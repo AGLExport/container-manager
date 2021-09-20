@@ -1,0 +1,5 @@
+.deps/
+container-manager
+Makefile
+Makefile.in
+*.o
