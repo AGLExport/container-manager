@@ -2,18 +2,85 @@
 #include <stddef.h>
 //---------------------------------------------------------------------------------------------------------------
 
+#include "CEventLoop.hxx"
 
 
 //---------------------------------------------------------------------------------------------------------------
 /*
-int main (int argc, char *argv[])
+int NetdeviceScanSteup()
 {
+	struct mnl_socket *nl;
+	char buf[MNL_SOCKET_BUFFER_SIZE];
+	struct nlmsghdr *nlh;
+	struct rtgenmsg *rt;
+	int ret;
+	unsigned int seq, portid;
+
+	nlh = mnl_nlmsg_put_header(buf);
+	nlh->nlmsg_type	= RTM_GETLINK;
+	nlh->nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
+	nlh->nlmsg_seq = seq = time(NULL);
+	rt = (struct rtgenmsg *)mnl_nlmsg_put_extra_header(nlh, sizeof(struct rtgenmsg));
+	rt->rtgen_family = AF_PACKET;
+
+	nl = mnl_socket_open(NETLINK_ROUTE);
+	if (nl == NULL) {
+		perror("mnl_socket_open");
+		exit(EXIT_FAILURE);
+	}
+
+	if (mnl_socket_bind(nl, RTMGRP_LINK , MNL_SOCKET_AUTOPID) < 0) {
+		perror("mnl_socket_bind");
+		exit(EXIT_FAILURE);
+	}
+	portid = mnl_socket_get_portid(nl);
+
+	if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
+		perror("mnl_socket_sendto");
+		exit(EXIT_FAILURE);
+	}
+
+	do {
+	ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
+	while (ret > 0) {
+		ret = mnl_cb_run(buf, ret, seq, portid, data_cb, NULL);
+		if (ret <= MNL_CB_STOP)
+			break;
+		ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
+	}
+	if (ret == -1) {
+		perror("error");
+		exit(EXIT_FAILURE);
+	}
+	}
+	while(1);
+		
+	mnl_socket_close(nl);
+
+
+	
 	return 0;
 }
 */
+//---------------------------------------------------------------------------------------------------------------
+
+int main (int argc, char *argv[])
+{
+	CEventLoop *ev = new CEventLoop();
+	
+	ev->Create();
+	
+	ev->Run();
+	
+	ev->Destroy();
+	
+	return 0;
+}
+
 
 //---------------------------------------------------------------------------------------------------------------
 /* This example is placed in the public domain. */
+/*
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -30,7 +97,7 @@ static int data_attr_cb(const struct nlattr *attr, void *data)
 	const struct nlattr **tb = (const struct nlattr **)data;
 	int type = mnl_attr_get_type(attr);
 
-	/* skip unsupported attribute in user-space */
+	// skip unsupported attribute in user-space
 	if (mnl_attr_type_valid(attr, IFLA_MAX) < 0)
 		return MNL_CB_OK;
 
@@ -146,5 +213,5 @@ int main(void)
 
 	return 0;
 }
-
+*/
 
