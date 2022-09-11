@@ -1,0 +1,6 @@
+{
+	"name": "agl-cluster",
+	"base": {
+		"autoboot": true
+	}
+}

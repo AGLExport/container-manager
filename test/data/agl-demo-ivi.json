@@ -1,0 +1,150 @@
+{
+	"name": "agl-demo-ivi",
+	"base": {
+		"autoboot": true,
+		"bootpriority": 10,
+		"rootfs": {
+			"path": "/opt/container/guests/agl-demo-ivi/rootfs",
+			"filesystem":	"ext4",
+			"mode":		"ro",
+			"blockdev": [
+				"/dev/mmcblk0p3",
+				"/dev/mmcblk1p3"
+			]
+		},
+		"extradisk": [
+			{
+				"from": 	"/opt/container/guests/agl-demo-ivi/nv",
+				"to":		"var/nonvolatile",
+				"filesystem":	"ext4",
+				"mode":		"rw",
+				"redundancy":	"failover",
+				"blockdev": [
+					"/dev/mmcblk0p8",
+					"/dev/mmcblk1p8"
+				]
+			},
+			{
+				"from": 	"/opt/container/guests/agl-demo-ivi/extra",
+				"to":		"opt/extra",
+				"filesystem":	"ext4",
+				"mode":		"ro",
+				"redundancy":	"ab",
+				"blockdev": [
+					"/dev/mmcblk0p10",
+					"/dev/mmcblk1p10"
+				]
+			}
+		],
+		"lifecycle": {
+			"halt": "SIGRTMIN+3",
+			"reboot": "SIGTERM"
+		},
+		"cap": {
+			"drop": "sys_module mac_admin mac_override sys_time",
+			"keep": ""
+		},
+		"idmap": {
+			"uid": {
+				"guestroot":	0,
+				"hostidstart":	100000,
+				"num":	65536
+			},
+			"gid": {
+				"guestroot":	0,
+				"hostidstart":	100000,
+				"num":	65536
+			}
+		},
+		"environment": [
+			"XDG_RUNTIME_DIR=/lxc/share",
+			"LD_LIBRARY_PATH=/usr/lib:/lib",
+			"HOME=/home/root"
+		]
+	},
+	"resource": [
+		{
+			"type":		"cgroup",
+			"object":	"cpuset.cpus",
+			"value":	"0,2-3"
+		}
+	],
+	"fs": {
+		"mount": [
+			{
+				"type": 	"filesystem",
+				"from": 	"shm",
+				"to":		"/dev/shm",
+				"fstype":	"tmpfs",
+				"option": 	"defaults 0 0"
+			},
+			{
+				"type": 	"directry",
+				"from": 	"/sys/kernel/security",
+				"to":		"sys/kernel/security",
+				"fstype":	"none",
+				"option": 	"ro,bind,optional 0 0"
+			},
+			{
+				"type": 	"directry",
+				"from": 	"/opt/container/share",
+				"to":		"opt/share",
+				"fstype":	"none",
+				"option": 	"ro,bind,optional,create=dir"
+			}
+		]
+	},
+	"device": {
+		"static": [
+			{
+				"type": 		"devdir",
+				"from": 		"/dev/dri",
+				"to":			"dev/dri",
+				"devnode":		"/dev/dri/card0",
+				"optional": 		0,
+				"wideallow": 	1,
+				"exclusive": 	0
+			},
+			{
+				"type": 		"devnode",
+				"from": 		"/dev/ttySC3",
+				"to":			"dev/ttySC3",
+				"devnode":		"/dev/ttySC3",
+				"optional": 		1,
+				"wideallow": 	0,
+				"exclusive": 	1
+			},
+			{
+				"type": 		"gpio",
+				"port":			381,
+				"direction":	"low",
+				"from": 		"/sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio381",
+				"to":			"sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio381"
+			}
+		],
+		"dynamic": [
+			{
+				"devpath":		"/devices/pci0000:00/0000:00:01.2/0000:01:00.0/",
+				"subsystem":	"block",
+				"devtype":		"disk"
+			},
+			{
+				"devpath":		"/devices/pci0000:00/0000:00:01.2/0000:01:00.0/",
+				"subsystem":	"block",
+				"devtype":		"partition"
+			}
+		]
+	},
+	"network": {
+		"static": [
+			{
+				"ifname": 	"veth0"
+			}
+		],
+		"dynamic": [
+			{
+				"ifname": 	"enx00e04"
+			}
+		]
+	}
+}

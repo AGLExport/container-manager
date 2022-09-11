@@ -1,0 +1,15 @@
+{
+	"name": "agl-cluster",
+	"base": {
+		"autoboot": true,
+		"bootpriority": 1,
+		"rootfs": {
+			"path": "/opt/container/guests/agl-cluster/rootfs",
+			"blockdev": [
+				"/dev/mmcblk0p2",
+				"/dev/mmcblk1p2",
+				"/dev/mmcblk2p2"
+			]
+		}
+	}
+}
