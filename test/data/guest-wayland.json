@@ -1,0 +1,115 @@
+{
+	"name": "guest1",
+	"base": {
+		"autoboot": true,
+		"bootpriority": 100,
+		"rootfs": {
+			"path": "/opt/guests/guest1",
+			"filesystem":	"ext4",
+			"blockdev": [
+				"/dev/mmcblk0p1",
+				"/dev/mmcblk1p1"
+			]
+		},
+		"lifecycle": {
+			"halt": "SIGRTMIN+3",
+			"reboot": "SIGTERM"
+		},
+		"cap": {
+			"drop": "sys_module mac_admin mac_override sys_time",
+			"keep": ""
+		},
+		"idmap": {
+			"uid": {
+				"guestroot":	0,
+				"hostidstart":	100000,
+				"num":	65536
+			},
+			"gid": {
+				"guestroot":	0,
+				"hostidstart":	100000,
+				"num":	65536
+			}
+		},
+		"environment": [
+			"XDG_RUNTIME_DIR=/lxc/share",
+			"LD_LIBRARY_PATH=/usr/lib:/lib",
+			"HOME=/home/root"
+		]
+	},
+	"resource": [
+		{
+			"type":		"cgroup",
+			"object":	"cpuset.cpus",
+			"value":	"0-1"
+		}
+	],
+	"fs": {
+		"mount": [
+			{
+				"type": 	"filesystem",
+				"from": 	"shm",
+				"to":		"/dev/shm",
+				"fstype":	"tmpfs",
+				"option": 	"defaults 0 0"
+			},
+			{
+				"type": 	"directry",
+				"from": 	"/sys/kernel/security",
+				"to":		"sys/kernel/security",
+				"fstype":	"none",
+				"option": 	"ro,bind,optional 0 0"
+			},
+			{
+				"type": 	"directry",
+				"from": 	"/lxc/share",
+				"to":		"lxc/share",
+				"fstype":	"none",
+				"option": 	"bind,optional,create=dir"
+			}
+		]
+	},
+	"device": {
+		"static": [
+			{
+				"type": 		"devdir",
+				"from": 		"/dev/dri",
+				"to":			"dev/dri",
+				"devnode":		"/dev/dri/card0",
+				"optional": 		0,
+				"wideallow": 	1,
+				"exclusive": 	0
+			},
+			{
+				"type": 		"devnode",
+				"from": 		"/dev/ttySC3",
+				"to":			"dev/ttySC3",
+				"devnode":		"/dev/ttySC3",
+				"optional": 		1,
+				"wideallow": 	0,
+				"exclusive": 	1
+			},
+			{
+				"type": 		"gpio",
+				"port":			381,
+				"direction":	"low",
+				"from": 		"/sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio381",
+				"to":			"sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio381"
+			}
+		]
+	},
+	"network": [
+		{
+			"type": 	"veth",
+			"param": {
+				"link": 	"lxcbr0",
+				"flags":	"up",
+				"hwaddr":	"00:16:3e:xx:xx:xx",
+				"mode": "bridge",
+				"address":	"10.0.3.20/24",
+				"gateway":	"10.0.3.1"
+			}
+		}
+
+	]
+}

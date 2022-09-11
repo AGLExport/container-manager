@@ -1,0 +1,15 @@
+mmcblk*p1	:	host
+mmcblk*p2	:	agl-cluster-guest
+mmcblk*p3	:	agl-ivi-guest
+mmcblk*p4	:	agl-guest-reserve1
+mmcblk*p5	:	agl-guest-reserve2
+mmcblk*p6	:	host-persistence
+mmcblk*p7	:	agl-cluster-guest-persistence
+mmcblk*p8	:	agl-ivi-guest-persistence
+mmcblk*p9	:	agl-guest-reserve1-persistence
+mmcblk*p10	:	agl-guest-reserve2-persistence
+
+
+
+
+

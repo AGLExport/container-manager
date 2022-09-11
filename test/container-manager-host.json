@@ -1,0 +1,8 @@
+{
+	"configdir": "test/data/",
+	"etherbridge": [
+		{
+			"name": "lxcbr0"
+		}
+	]
+}

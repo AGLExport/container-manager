@@ -1,0 +1,47 @@
+{
+	"name": "agl-cluster",
+	"base": {
+		"autoboot": true,
+		"bootpriority": 1,
+		"rootfs": {
+			"path": "/opt/container/guests/agl-cluster/rootfs",
+			"blockdev": [
+				"/dev/mmcblk0p2",
+				"/dev/mmcblk1p2"
+			]
+		},
+		"persistence": {
+			"from": 	"/opt/container/guests/agl-cluster/nv",
+			"to":		"var/nonvolatile",
+			"blockdev": [
+				"/dev/mmcblk0p7",
+				"/dev/mmcblk1p7"
+			]
+		},
+		"lifecycle": {
+			"halt": "SIGRTMIN+3",
+			"reboot": "SIGTERM"
+		},
+		"cap": {
+			"drop": "sys_module mac_admin mac_override sys_time",
+			"keep": ""
+		},
+		"idmap": {
+			"uid": {
+				"guestroot":	0,
+				"hostidstart":	100000,
+				"num":	65536
+			},
+			"gid": {
+				"guestroot":	0,
+				"hostidstart":	100000,
+				"num":	65536
+			}
+		},
+		"environment": [
+			"XDG_RUNTIME_DIR=/lxc/share",
+			"LD_LIBRARY_PATH=/usr/lib:/lib",
+			"HOME=/home/root"
+		]
+	}
+}

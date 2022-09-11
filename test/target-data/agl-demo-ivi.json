@@ -1,0 +1,171 @@
+{
+	"name": "agl-demo-ivi",
+	"base": {
+		"autoboot": true,
+		"bootpriority": 10,
+		"rootfs": {
+			"path": "/opt/container/guests/agl-demo-ivi/rootfs",
+			"filesystem":	"ext4",
+			"mode":		"ro",
+			"blockdev": [
+				"/dev/mmcblk1p3",
+				"/dev/mmcblk0p3"
+			]
+		},
+		"extradisk": [
+			{
+				"from": 	"/opt/container/guests/agl-demo-ivi/nv",
+				"to":		"var/nonvolatile",
+				"filesystem":	"ext4",
+				"mode":		"rw",
+				"redundancy":	"failover",
+				"blockdev": [
+					"/dev/mmcblk1p8",
+					"/dev/mmcblk0p8"
+				]
+			},
+			{
+				"from": 	"/opt/container/guests/agl-demo-ivi/extra",
+				"to":		"opt/extra",
+				"filesystem":	"ext4",
+				"mode":		"ro",
+				"redundancy":	"ab",
+				"blockdev": [
+					"/dev/mmcblk1p10",
+					"/dev/mmcblk0p10"
+				]
+			}
+		],
+		"lifecycle": {
+			"halt": "SIGRTMIN+3",
+			"reboot": "SIGTERM"
+		},
+		"cap": {
+			"drop": "sys_module mac_admin mac_override sys_time",
+			"keep": ""
+		},
+		"environment": [
+			"XDG_RUNTIME_DIR=/lxc/share",
+			"LD_LIBRARY_PATH=/usr/lib:/lib",
+			"HOME=/home/root"
+		]
+	},
+	"resource": [
+		{
+			"type":		"cgroup",
+			"object":	"cpuset.cpus",
+			"value":	"0,2-3"
+		}
+	],
+	"fs": {
+		"mount": [
+			{
+				"type": 	"filesystem",
+				"from": 	"shm",
+				"to":		"/dev/shm",
+				"fstype":	"tmpfs",
+				"option": 	"defaults 0 0"
+			},
+			{
+				"type": 	"directry",
+				"from": 	"/sys/kernel/security",
+				"to":		"sys/kernel/security",
+				"fstype":	"none",
+				"option": 	"ro,bind,optional 0 0"
+			},
+			{
+				"type": 	"directry",
+				"from": 	"/run/drm-lease-manager/lease-ivi",
+				"to":		"var/display/drm-lease-manager/lease",
+				"fstype":	"none",
+				"option": 	"bind,create=file"
+			}
+		]
+	},
+	"device": {
+		"static": [
+			{
+				"type": 		"devdir",
+				"from": 		"/dev/dri",
+				"to":			"dev/dri",
+				"devnode":		"/dev/dri/card0",
+				"optional": 		0,
+				"wideallow": 	1,
+				"exclusive": 	0
+			},
+			{
+				"type": 		"devnode",
+				"from": 		"/dev/pvr_sync",
+				"to":			"dev/pvr_sync",
+				"devnode":		"/dev/pvr_sync",
+				"optional": 		0,
+				"wideallow": 	0,
+				"exclusive": 	0
+			},
+			{
+				"type": 		"devnode",
+				"from": 		"/dev/ttySC3",
+				"to":			"dev/ttySC3",
+				"devnode":		"/dev/ttySC3",
+				"optional": 		1,
+				"wideallow": 	0,
+				"exclusive": 	1
+			},
+			{
+				"type": 		"gpio",
+				"port":			377,
+				"from": 		"/sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio377",
+				"to":			"sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio377"
+			},
+			{
+				"type": 		"gpio",
+				"port":			378,
+				"direction":	"in",
+				"from": 		"/sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio378",
+				"to":			"sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio378"
+			},
+			{
+				"type": 		"gpio",
+				"port":			379,
+				"direction":	"low",
+				"from": 		"/sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio379",
+				"to":			"sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio379"
+			}
+		],
+		"dynamic": [
+			{
+				"devpath":		"/devices/platform/soc/ee0a0100.usb/usb2/",
+				"subsystem":	"block",
+				"devtype":		"disk",
+				"mode":	0
+			},
+			{
+				"devpath":		"/devices/platform/soc/ee0a0100.usb/usb2/",
+				"subsystem":	"block",
+				"devtype":		"partition",
+				"mode":	3
+			}
+		]
+	},
+	"network": {
+		"static": [
+			{
+				"type": 	"veth",
+				"param": {
+					"name":	"veth0",
+					"link":	"lxcbr0",
+					"flags":	"up",
+					"hwaddr":	"00:16:3e:xx:xx:xx",
+					"mode": "bridge",
+					"address":	"10.0.3.20/24",
+					"gateway":	"10.0.3.1"
+				}
+			}
+		],
+		"dynamic": [
+			{
+				"ifname": 	"eth0"
+			}
+		]
+	}
+}
