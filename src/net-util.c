@@ -31,6 +31,12 @@ struct s_netifmonitor {
 	container_control_interface_t *cci;
 };
 
+static const char *net_if_blacklist[] = {
+	"veth",
+	"lxcbr",
+	NULL,
+};
+
 #ifdef _PRINTF_DEBUG_
 static void print_iflist(network_interface_manager_t *nfm)
 {
@@ -101,18 +107,32 @@ static int sdutil_get_ifname(const struct nlmsghdr *nlh, char *ifname)
 static int data_cb(const struct nlmsghdr *nlh, void *data)
 {
 	struct ifinfomsg *ifm = mnl_nlmsg_get_payload(nlh);
-	network_interface_manager_t *netif = (network_interface_manager_t*)data;
+	dynamic_device_manager_t *ddm = (dynamic_device_manager_t*)data;
+	struct s_netifmonitor *nfm = NULL;
+	network_interface_manager_t *netif = NULL;
 	network_interface_info_t *nfi_new = NULL;
+	container_control_interface_t *cci = NULL;
 	int ret = 0;
 	int ifindex = 0;
 	char ifname[IFNAMSIZ+1];
 
 	memset(ifname, 0, sizeof(ifname));
 
+	netif = &ddm->netif;
+	nfm = (struct s_netifmonitor*)ddm->netifmon;
+	cci = nfm->cci;
+
 	ifindex = ifm->ifi_index; //Get if index
 	ret = sdutil_get_ifname(nlh, ifname); //Get if name
 	if (ret < 0)
 		goto out; //no data
+
+	for (int i=0; net_if_blacklist[i] != NULL; i++) {
+		ret = strncmp(ifname, net_if_blacklist[i], strlen(net_if_blacklist[i]));
+		if (ret == 0) {
+			goto out; //no data
+		}
+	}
 
 	nfi_new = (network_interface_info_t*)malloc(sizeof(network_interface_info_t));
 	if (nfi_new == NULL)
@@ -141,6 +161,9 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 
 		dl_list_add(&netif->nllist, &nfi_new->list);
 
+		// Update notification
+		(void)cci->netif_updated(cci);
+
 	} else if (nlh->nlmsg_type == RTM_DELLINK) {
 		network_interface_info_t *nfi = NULL, *nfi_n = NULL;
 
@@ -158,6 +181,10 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 		}
 
 		network_interface_info_free(nfi_new);
+
+		// Update notification
+		(void)cci->netif_updated(cci);
+
 	} else {
 		; //no update
 	}
@@ -184,7 +211,6 @@ static int nml_event_handler(sd_event_source *event, int fd, uint32_t revents, v
 	ddm = (dynamic_device_manager_t*)userdata;
 	nfm = (struct s_netifmonitor*)ddm->netifmon;
 	nl = nfm->nl;
-	cci = nfm->cci;
 
 	if ((revents & (EPOLLHUP | EPOLLERR)) != 0) {
 		// Fail safe - disable udev event
@@ -193,10 +219,7 @@ static int nml_event_handler(sd_event_source *event, int fd, uint32_t revents, v
 		// Receive
 		ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
 		if (ret > 0) {
-			(void)mnl_cb_run(buf, ret, 0, 0, data_cb, &ddm->netif);
-
-			// Update notification
-			(void)cci->netif_updated(cci);
+			(void)mnl_cb_run(buf, ret, 0, 0, data_cb, ddm);
 		}
 	}
 
@@ -249,7 +272,7 @@ static int netifmonitor_listing_existif(dynamic_device_manager_t *ddm)
 
 	ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
 	while (ret > 0) {
-		ret = mnl_cb_run(buf, ret, seq, portid, data_cb, &ddm->netif);
+		ret = mnl_cb_run(buf, ret, seq, portid, data_cb, ddm);
 		if (ret <= MNL_CB_STOP)
 			break;
 		ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
