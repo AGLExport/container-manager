@@ -226,11 +226,11 @@ int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_
 
 	// check new netif
 	dl_list_for_each(nii, &netif->nllist, network_interface_info_t, list) {
+
+		if (nii->ifindex <= 0)
+			continue;
+
 		dl_list_for_each(cdne, &cdn->dynamic_netiflist, container_dynamic_netif_elem_t, list) {
-
-			if (nii->ifindex <= 0)
-				continue;
-
 			if (cdne->ifindex == 0 && strncmp(cdne->ifname, nii->ifname, sizeof(cdne->ifname)) == 0) {
 				// found new interface for own
 				cdne->ifindex = nii->ifindex;
@@ -251,16 +251,10 @@ int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_
 					#endif
 					;
 				}
-			}
-		}
-	}
-
-	// check existing netif
-	dl_list_for_each(ddi, &netif->devlist, dynamic_device_info_t, list) {
-		dl_list_for_each(cdne, &cdn->dynamic_netiflist, container_dynamic_netif_elem_t, list) {
-
-			if (cdne->ifindex == ddi->ifindex)
+			} else if (cdne->ifindex == nii->ifindex) {
+				// existing netif
 				cdne->is_available = 1;
+			}
 		}
 	}
 
