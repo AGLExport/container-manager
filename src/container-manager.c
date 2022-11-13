@@ -26,7 +26,11 @@ static const char TEST_CONF_PATH[] = "test/container-manager-host.json";
 
 static int sigterm_notify(const struct signalfd_siginfo *si, void *userdata)
 {
-	return 1;//exit event loop
+	#ifdef _PRINTF_DEBUG_
+	fprintf(stderr,"sigterm_notify\n");
+	#endif
+
+	return -1;	//exit event loop
 }
 static signal_util_t util_array[1] = {
 	[0] = {
@@ -40,7 +44,6 @@ int main(int argc, char *argv[])
 {
 	int ret = -1;
 	sd_event *event = NULL;
-	//container_config_t *cc = NULL;
 	containers_t *cs = NULL;
 	container_control_interface_t *cci = NULL;
 	dynamic_device_manager_t *ddm = NULL;
