@@ -32,6 +32,7 @@
 
 static int container_mngsm_device_updated(struct s_container_control_interface *cci);
 static int container_mngsm_netif_updated(struct s_container_control_interface *cci);
+static int container_mngsm_system_shutdown(struct s_container_control_interface *cci);
 
 /**
  * Container management state machine cleanup.
@@ -58,6 +59,7 @@ int container_mngsm_interface_get(container_control_interface_t **pcci, containe
 		cci->mngsm = (void*)cs->cms;
 		cci->device_updated = container_mngsm_device_updated;
 		cci->netif_updated = container_mngsm_netif_updated;
+		cci->system_shutdown = container_mngsm_system_shutdown;
 
 		cs->cci = (container_control_interface_t*)cci;
 	}
@@ -141,6 +143,35 @@ static int container_mngsm_netif_updated(struct s_container_control_interface *c
 	memset(&command, 0, sizeof(command));
 
 	command.header.command = CONTAINER_MNGSM_COMMAND_NETIFUPDATED;
+
+	ret = write(cm->secondary_fd, &command, sizeof(command));
+	if (ret != sizeof(command))
+		return -1;
+
+	return 0;
+}
+/**
+ * Network interface update notification to container manager state machine
+ *
+ * @param [in]	cci	Interface struct
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Critical error.
+ */
+static int container_mngsm_system_shutdown(struct s_container_control_interface *cci)
+{
+	struct s_container_mngsm *cm = NULL;
+	container_mngsm_notification_t command;
+	ssize_t ret = -1;
+
+	if (cci == NULL)
+		return -1;
+
+	cm = (struct s_container_mngsm*)cci->mngsm;
+
+	memset(&command, 0, sizeof(command));
+
+	command.header.command = CONTAINER_MNGSM_COMMAND_SYSTEM_SHUTDOWN;
 
 	ret = write(cm->secondary_fd, &command, sizeof(command));
 	if (ret != sizeof(command))

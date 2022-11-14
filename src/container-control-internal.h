@@ -35,23 +35,29 @@ typedef struct s_container_mngsm_notification {
 	container_mngsm_command_header_t header;
 } container_mngsm_notification_t;
 
-#define CONTAINER_MNGSM_COMMAND_GUEST_STATUS_CHANGE	(0x3000u)
+#define CONTAINER_MNGSM_COMMAND_GUEST_EXIT	(0x3000u)
 
-typedef struct s_container_mngsm_guest_status_change_data {
-	int new_status;
+typedef struct s_container_mngsm_guest_exit_data {
 	int container_number;
-} container_mngsm_guest_status_change_data_t;
+} container_mngsm_guest_exit_data_t;
 
-typedef struct s_container_mngsm_guest_status_change {
+typedef struct s_container_mngsm_guest_exit {
 	container_mngsm_command_header_t header;
-	container_mngsm_guest_status_change_data_t data;
-} container_mngsm_guest_status_change_t;
+	container_mngsm_guest_exit_data_t data;
+} container_mngsm_guest_status_exit_t;
+
+#define CONTAINER_MNGSM_COMMAND_SYSTEM_SHUTDOWN	(0x4000u)
+
+
 
 //-----------------------------------------------------------------------------
 
 
 int container_device_updated(containers_t *cs);
 int container_netif_updated(containers_t *cs);
-int container_status_chage(containers_t *cs, container_mngsm_guest_status_change_data_t *data);
+int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data);
+int container_manager_shutdown(containers_t *cs);
+int container_exec_internal_event(containers_t *cs);
+
 //-----------------------------------------------------------------------------
 #endif //#ifndef CONTAINER_CONTROL_INTERNAL_H

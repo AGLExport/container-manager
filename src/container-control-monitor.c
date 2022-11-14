@@ -37,7 +37,7 @@
 static int container_monitor_state_change(containers_t *cs, int status, int num)
 {
 	struct s_container_mngsm *cm = NULL;
-	container_mngsm_guest_status_change_t command;
+	container_mngsm_guest_status_exit_t command;
 	ssize_t ret = -1;
 
 	if (cs == NULL)
@@ -47,8 +47,7 @@ static int container_monitor_state_change(containers_t *cs, int status, int num)
 
 	memset(&command, 0, sizeof(command));
 
-	command.header.command = CONTAINER_MNGSM_COMMAND_GUEST_STATUS_CHANGE;
-	command.data.new_status = status;
+	command.header.command = CONTAINER_MNGSM_COMMAND_GUEST_EXIT;
 	command.data.container_number = num;
 
 	ret = write(cm->secondary_fd, &command, sizeof(command));

@@ -54,16 +54,21 @@ static int container_mngsm_state_machine(containers_t *cs, const uint8_t *buf)
 		ret = container_netif_updated(cs);
 
 		break;
-	case CONTAINER_MNGSM_COMMAND_GUEST_STATUS_CHANGE :
+	case CONTAINER_MNGSM_COMMAND_GUEST_EXIT :
 		{
-			container_mngsm_guest_status_change_t *p = (container_mngsm_guest_status_change_t*)buf;
+			container_mngsm_guest_status_exit_t *p = (container_mngsm_guest_status_exit_t*)buf;
 
-			ret = container_status_chage(cs, &p->data);
+			ret = container_exited(cs, &p->data);
 		}
+		break;
+	case CONTAINER_MNGSM_COMMAND_SYSTEM_SHUTDOWN :
+		ret = container_manager_shutdown(cs);
 		break;
 	default:
 		;
 	}
+
+	ret = container_exec_internal_event(cs);
 
 	return 0;
 }
@@ -97,6 +102,8 @@ static int container_mngsm_commsocket_handler(sd_event_source *event, int fd, ui
 		sd_event_source_disable_unref(event);
 	} else if ((revents & EPOLLIN) != 0) {
 		// Event receive
+		memset(buf, 0, sizeof(buf));
+
 		rret = read(fd, buf, sizeof(buf));
 		if (rret > 0) {
 			(void)container_mngsm_state_machine(cs, (const uint8_t*)buf);
@@ -238,7 +245,33 @@ err_return:
 
 	return -1;
 }
+/**
+ * Container management state machine cleanup.
+ *
+ * @param [in]	cs	Incetance of containers_t
+ * @return int	 0 success
+ * 				-2 argument error
+ *				-1 internal error
+ */
+int container_mngsm_exit(containers_t *cs)
+{
+	int ret = -1;
+	struct s_container_mngsm *cms = NULL;
 
+	if (cs == NULL)
+		return -2;
+
+	ret = sd_event_exit(cs->event, 0);
+	if (ret < 0) {
+		// Fource process exit
+		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+		fprintf(stderr,"[CM CRITICAL ERROR] container_mngsm_exit was fail.\n");
+		#endif
+		_exit(0);
+	}
+
+	return 0;
+}
 /**
  * Container management state machine cleanup.
  *

@@ -16,6 +16,9 @@ struct s_container_control_interface {
 
 	int (*device_updated)(struct s_container_control_interface *cci);
 	int (*netif_updated)(struct s_container_control_interface *cci);
+
+
+	int (*system_shutdown)(struct s_container_control_interface *cci);
 };
 typedef struct s_container_control_interface container_control_interface_t;
 
