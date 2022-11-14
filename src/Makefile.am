@@ -74,7 +74,8 @@ if ENABLE_GCOV
 CFLAGS   += -coverage
 endif
 
-
+containermanager_CFLAGS   += -DCM_CRITICAL_ERROR_OUT_STDERROR
+containermanager_CXXFLAGS += -DCM_CRITICAL_ERROR_OUT_STDERROR
 
 if ENABLE_PRINTFDEBUG
 containermanager_CFLAGS   += -D_PRINTF_DEBUG_

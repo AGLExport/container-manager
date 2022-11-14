@@ -38,8 +38,6 @@ static int sd_event_signal_handler(sd_event_source *s, const struct signalfd_sig
 		return -1;
 	}
 
-	fprintf(stderr,"signal %d from %d\n", si->ssi_signo, si->ssi_pid);
-
 	signalnum = sd_event_source_get_signal(s);
 
 	if (0 < signalnum && signalnum <= FAKE_SIGRTMAX) {
@@ -52,10 +50,13 @@ static int sd_event_signal_handler(sd_event_source *s, const struct signalfd_sig
 				ret = elem->signal_notify(si, elem->userdata);
 			}
 		}
-	}
 
-	if (ret < 0) {
-		(void) sd_event_exit(sigutil_mng->event, -1);
+		if (ret < 0) {
+			(void) sd_event_exit(sigutil_mng->event, -1);
+			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+			fprintf(stderr,"[CM CRITICAL ERROR] sd_event_signal_handler nofification fail. fource exit event loop.\n");
+			#endif
+		}
 	}
 
 	return 0;

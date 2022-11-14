@@ -627,6 +627,55 @@ err_ret:
 	return result;
 }
 /**
+ * runtime network interface assign into guest
+ *
+ * @param [in]	cc 	container_config_t
+ * @return int
+ * @retval 0 success
+ * @retval -1 critical error.
+ */
+int lxcutil_container_shutdown(container_config_t *cc)
+{
+	bool bret = false;
+	int result = -1;
+
+	if (cc->runtime_stat.lxc != NULL) {
+		bret = cc->runtime_stat.lxc->shutdown(cc->runtime_stat.lxc, 0);	//non block shutdown
+		#ifdef _PRINTF_DEBUG_
+		fprintf(stderr, "lxcutil_container_shutdown: shutdown request to guest %s\n", cc->name );
+		#endif
+	}
+
+	if (bret == true)
+		result = 0;
+
+	return result;
+}
+/**
+ * runtime network interface assign into guest
+ *
+ * @param [in]	cc 	container_config_t
+ * @return int
+ * @retval 0 success
+ * @retval -1 critical error.
+ */
+int lxcutil_container_fourcekill(container_config_t *cc)
+{
+	pid_t pid = -1;
+
+	if (cc->runtime_stat.lxc != NULL) {
+		pid = cc->runtime_stat.lxc->init_pid(cc->runtime_stat.lxc);
+		if (pid > 0) {
+			(void) kill(pid, SIGKILL);
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stderr, "lxcutil_container_fourcekill: kill signal send to guest %s\n", cc->name );
+			#endif
+		}
+	}
+
+	return 0;
+}
+/**
  * release lxc instance
  *
  * @param [in]	cc 	container_config_t

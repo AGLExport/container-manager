@@ -26,11 +26,19 @@ static const char TEST_CONF_PATH[] = "test/container-manager-host.json";
 
 static int sigterm_notify(const struct signalfd_siginfo *si, void *userdata)
 {
+	int ret = -1;
+	container_control_interface_t *cci = (container_control_interface_t*)userdata;
+
+	ret = cci->system_shutdown(cci);
+
 	#ifdef _PRINTF_DEBUG_
 	fprintf(stderr,"sigterm_notify\n");
 	#endif
 
-	return -1;	//exit event loop
+	if (ret < 0)
+		return -1; //exit event loop
+
+	return 0;
 }
 static signal_util_t util_array[1] = {
 	[0] = {
@@ -91,6 +99,7 @@ int main(int argc, char *argv[])
 	if (ret < 0)
 		goto finish;
 
+	util_array[0].userdata = (void*)cci;
 	ret = signal_setup(event, util_array, 1);
 	if (ret < 0)
 		goto finish;

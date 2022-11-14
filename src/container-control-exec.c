@@ -313,11 +313,11 @@ err_ret:
  * @retval  0 Success.
  * @retval -1 Critical error.
  */
-int container_status_chage(containers_t *cs, container_mngsm_guest_status_change_data_t *data)
+int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
 {
 	int num = 0, container_num = 0;
 	int ret = 1;
-	int result = -1;
+	int result = 0;
 	container_config_t *cc = NULL;
 
 	num = cs->num_of_container;
@@ -327,27 +327,255 @@ int container_status_chage(containers_t *cs, container_mngsm_guest_status_change
 
 	cc = cs->containers[container_num];
 
-	if (data->new_status == CONTAINER_DEAD) {
-		if (cc->runtime_stat.status == CONTAINER_STARTED) {
-			cc->runtime_stat.status = CONTAINER_DEAD;
-			fprintf(stderr,"%s is CONTAINER_DEAD\n", cc->name);
-			// TODO Container reboot
-		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
-			cc->runtime_stat.status = CONTAINER_EXIT;
-			fprintf(stderr,"%s is CONTAINER_EXIT\n", cc->name);
-		} else {
-			//nop
+	#ifdef _PRINTF_DEBUG_
+	fprintf(stderr,"container_exited : %s\n", cc->name);
+	#endif
+
+	if (cs->sys_state  == CM_SYSTEM_STATE_RUN) {
+		if (cc->runtime_stat.status == CONTAINER_NOT_STARTED) {
+			// not runninng, not need shutdown
 			;
+		} else if (cc->runtime_stat.status == CONTAINER_STARTED) {
+			// now runninng, guest was dead
+			cc->runtime_stat.status = CONTAINER_DEAD;
+
+		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
+			// Already requested shutdown, change to not start state.
+			cc->runtime_stat.status = CONTAINER_NOT_STARTED;
+
+		} else if (cc->runtime_stat.status == CONTAINER_DEAD) {
+			// Already dead container, no update status.
+			;
+		} else if (cc->runtime_stat.status == CONTAINER_EXIT) {
+			// undefined state
+			result = -1;
+		} else {
+			// undefined state
+			result = -1;
+		}
+	} else if (cs->sys_state  == CM_SYSTEM_STATE_SHUTDOWN) {
+		if (cc->runtime_stat.status == CONTAINER_NOT_STARTED) {
+			// May not get this state, change to exit state. (fail safe)
+			cc->runtime_stat.status = CONTAINER_EXIT;
+		} else if (cc->runtime_stat.status == CONTAINER_STARTED) {
+			// cross event between crash and system shutdown, change to exit state.
+			cc->runtime_stat.status = CONTAINER_EXIT;
+	
+		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
+			// exit containr after shutdown request.
+			cc->runtime_stat.status = CONTAINER_EXIT;
+			;
+		} else if (cc->runtime_stat.status == CONTAINER_DEAD) {
+			// May not get this state, change to exit state. (fail safe)
+			cc->runtime_stat.status = CONTAINER_EXIT;
+		} else if (cc->runtime_stat.status == CONTAINER_EXIT) {
+			// Already exit, not need new action
+			;
+		} else {
+			// undefined state
+			result = -1;
+		}
+	} else {
+		// undefined state
+		result = -1;
+	}
+	
+	return result;
+}
+
+/**
+ * Container start up
+ *
+ * @param [in]	cs	Preconstructed containers_t
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Critical error.
+ */
+static int container_request_shutdown(container_config_t *cc, int sys_state)
+{
+	int num = 0, container_num = 0;
+	int ret = -1;
+	int result = 0;
+
+	if (sys_state == CM_SYSTEM_STATE_RUN) {
+		if (cc->runtime_stat.status == CONTAINER_NOT_STARTED) {
+			// not runninng, not need shutdown
+			;
+		} else if (cc->runtime_stat.status == CONTAINER_STARTED) {
+			// now runninng, send shutdown request
+			ret = lxcutil_container_shutdown(cc);
+			if (ret < 0) {
+				//In fail case, fource kill.
+				(void) lxcutil_container_fourcekill(cc);
+				cc->runtime_stat.status = CONTAINER_NOT_STARTED; // guest is fource dead
+				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+				fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
+				#endif
+			} else {
+				//Requested, wait to exit.
+				cc->runtime_stat.status = CONTAINER_SHUTDOWN;
+				// TODO set timeout
+			}			
+		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
+			// Already requested shutdown, not need new action.
+			;
+		} else if (cc->runtime_stat.status == CONTAINER_DEAD) {
+			// Already dead container, disable to re-launch.
+			cc->runtime_stat.status = CONTAINER_NOT_STARTED;
+		} else if (cc->runtime_stat.status == CONTAINER_EXIT) {
+			// undefined state
+			result = -1;
+		} else {
+			// undefined state
+			result = -1;
+		}
+	} else if (sys_state == CM_SYSTEM_STATE_SHUTDOWN) {
+		if (cc->runtime_stat.status == CONTAINER_NOT_STARTED) {
+			// not runninng, change to exit state
+			cc->runtime_stat.status = CONTAINER_EXIT;
+		} else if (cc->runtime_stat.status == CONTAINER_STARTED) {
+			// now runninng, send shutdown request
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stderr,"container_request_shutdown to %s\n", cc->name);
+			#endif
+
+			ret = lxcutil_container_shutdown(cc);
+			if (ret < 0) {
+				//In fail case, fource kill.
+				(void) lxcutil_container_fourcekill(cc);
+				cc->runtime_stat.status = CONTAINER_EXIT; // guest is fource exit
+				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+				fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
+				#endif
+			} else {
+				//Requested, wait to exit.
+				cc->runtime_stat.status = CONTAINER_SHUTDOWN;
+				// TODO set timeout
+			}			
+		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
+			// Already requested shutdown, not need new action.
+			;
+		} else if (cc->runtime_stat.status == CONTAINER_DEAD) {
+			// Already dead container, it's already exit.
+			cc->runtime_stat.status = CONTAINER_EXIT;
+		} else if (cc->runtime_stat.status == CONTAINER_EXIT) {
+			// Already exit, not need new action
+			;
+		} else {
+			// undefined state
+			result = -1;
+		}
+	} else {
+		// undefined state
+		result = -1;
+	}
+	
+	return result;
+}
+
+/**
+ * Container start up
+ *
+ * @param [in]	cs	Preconstructed containers_t
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Critical error.
+ */
+int container_manager_shutdown(containers_t *cs)
+{
+	int num = 0;
+	int fail_count = 0;
+	int ret = -1;
+	container_config_t *cc = NULL;
+
+	cs->sys_state = CM_SYSTEM_STATE_SHUTDOWN; // chage to shutdown state
+
+	// Send shutdown request to each container
+	num = cs->num_of_container;
+
+	for(int i=0;i < num;i++) {
+		cc = cs->containers[i];
+
+		ret = container_request_shutdown(cc, cs->sys_state);
+		if (ret < 0) {
+			fail_count++;
 		}
 	}
 
-	
+	if (fail_count > 0)
+		return -1;	
 
 	return 0;
+}
+/**
+ * Container start up
+ *
+ * @param [in]	cs	Preconstructed containers_t
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Critical error.
+ */
+int container_exec_internal_event(containers_t *cs)
+{
+	int num = 0;
+	int fail_count = 0;
+	int ret = -1;
+	container_config_t *cc = NULL;
 
-err_ret:
-	
-	return result;
+	num = cs->num_of_container;
+
+	if (cs->sys_state == CM_SYSTEM_STATE_RUN) {
+		// internal event for run state
+
+		// Check need to auto relaunch
+		for(int i=0;i < num;i++) {
+			cc = cs->containers[i];
+			if (cc->runtime_stat.status == CONTAINER_DEAD) {
+				// Dead state -> relaunch
+
+				//TODO relaunch
+				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+				fprintf(stderr,"[CM CRITICAL ERROR] container_exec_internal_event need to relaunch %s.\n", cc->name);
+				#endif
+			}
+		}
+
+		// Check to all container shutdown timeout.
+		for(int i=0;i < num;i++) {
+			cc = cs->containers[i];
+			// TODO timeout 
+		}
+
+	} else if (cs->sys_state == CM_SYSTEM_STATE_SHUTDOWN) {
+		// internal event for shutdown state
+		int exit_count = 0;
+
+		// Check to all container was exited.
+		for(int i=0;i < num;i++) {
+			cc = cs->containers[i];
+			if (cc->runtime_stat.status == CONTAINER_EXIT) {
+				exit_count++;
+			}
+		}
+
+		if (exit_count == num) {
+			// All guest exited
+			(void) container_mngsm_exit(cs);
+			goto out;
+		}
+
+		// Check to all container shutdown timeout.
+		for(int i=0;i < num;i++) {
+			cc = cs->containers[i];
+			// TODO timeout 
+		}
+	} else {
+		// undefined state
+		return -1;
+	}
+
+out:
+	return 0;
 }
 /**
  * Container start up
@@ -379,40 +607,45 @@ int container_start(containers_t *cs)
 		// run preprocess 
 		ret = container_start_preprocess_base(&cc->baseconfig);
 		if (ret < 0) {
-			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr, "[FAIL] container_start_preprocess_base ret = %d\n", ret);
+			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+			fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_start_preprocess_base ret = %d\n", ret);
 			#endif
-			goto err_ret;
+			continue;
 		}
 
 		// create container inctance
 		ret = lxcutil_create_instance(cc);
 		if (ret < 0) {
-			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr, "[FAIL] lxcutil_create_instance ret = %d\n", ret);
+			cc->runtime_stat.status = CONTAINER_DEAD;
+
+			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+			fprintf(stderr,"[CM CRITICAL ERROR] container_start: lxcutil_create_instance ret = %d\n", ret);
 			#endif
-			goto err_ret;
+			continue;
 		}
 
 		// TODO Need to move timing
 		// Start container
 		bret = cc->runtime_stat.lxc->start(cc->runtime_stat.lxc, 0, NULL);
 		if (bret == false) {
-			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr, "[FAIL] lxcutil_lxc-start\n");
+			(void) lxcutil_release_instance(cc);
+			cc->runtime_stat.status = CONTAINER_DEAD;
+
+			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+			fprintf(stderr,"[CM CRITICAL ERROR] container_start: lxc-start fail.\n");
 			#endif
-			goto err_ret;
+			continue;
 		}
 
-		fprintf(stderr, "Container state: %s\n", cc->runtime_stat.lxc->state(cc->runtime_stat.lxc));
-		fprintf(stderr, "Container PID: %d\n", cc->runtime_stat.lxc->init_pid(cc->runtime_stat.lxc));
+		//fprintf(stderr, "Container state: %s\n", cc->runtime_stat.lxc->state(cc->runtime_stat.lxc));
+		//fprintf(stderr, "Container PID: %d\n", cc->runtime_stat.lxc->init_pid(cc->runtime_stat.lxc));
 		
 		ret = container_monitor_addguest(cs, cc);
 		if (ret < 0) {
-			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr, "[FAIL] Can't set monitor (pid = %d)\n", cc->runtime_stat.lxc->init_pid(cc->runtime_stat.lxc));
+			// Can run guest with out monitor, critical log only.
+			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+			fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_monitor_addguest ret = %d\n", ret);
 			#endif
-			goto err_ret;
 		}
 
 		cc->runtime_stat.status = CONTAINER_STARTED;
@@ -450,6 +683,7 @@ int container_terminate(containers_t *cs)
 
 		// TODO Need to move timing
 		// Stop container
+		/*
 		if (cc->runtime_stat.lxc != NULL) {
 			bret = cc->runtime_stat.lxc->stop(cc->runtime_stat.lxc);
 			if (bret == false) {
@@ -458,7 +692,7 @@ int container_terminate(containers_t *cs)
 				#endif
 				;
 			}
-		}
+		}*/
 
 		(void)lxcutil_release_instance(cc);
 	}
@@ -587,7 +821,7 @@ static int container_start_mountdisk_ab(char **devs, const char *path, const cha
 	}
 
 	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr,"container_start_preprocess_base: %s mount to %s (%s)\n", dev, path, fstype);
+	fprintf(stderr,"container_start_mountdisk_ab: %s mount to %s (%s)\n", dev, path, fstype);
 	#endif
 
 	return 0;
@@ -622,6 +856,9 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 										, bc->rootfs.filesystem, mntflag, bc->abboot);
 	if ( ret < 0) {
 		// root fs mount is Mandatry.
+		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+		fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatry disk %s could not mount\n", bc->rootfs.blockdev[bc->abboot]);
+		#endif
 		return -1;
 	}
 
@@ -642,12 +879,18 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 				ret = container_start_mountdisk_ab(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, bc->abboot);
 				if (ret < 0) {
 					// AB disk mout is mandatry function.
+					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+					fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatry disk %s could not mount\n", exdisk->blockdev[bc->abboot]);
+					#endif
 					return -1;
 				}
 			} else {
 				ret = container_start_mountdisk_failover(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag);
 				if (ret < 0) {
 					// Failover disk mout is optional function.
+					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+					fprintf(stderr,"[CM ERROR] container_start_preprocess_base: failover disk %s could not mount\n", exdisk->blockdev[0]);
+					#endif
 					continue;
 				}
 			} 
