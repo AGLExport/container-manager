@@ -16,6 +16,7 @@
 			{
 				"from": 	"/opt/container/guests/agl-cluster/nv",
 				"to":		"var/nonvolatile",
+				"filesystem":	"ext4",
 				"mode":		"rw",
 				"redundancy":	"failover",
 				"blockdev": [
