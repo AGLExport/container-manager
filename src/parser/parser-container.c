@@ -198,8 +198,8 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 			#endif
 		} else {
 			// Mandatory value
-			#ifdef _PRINTF_DEBUG_
-			fprintf(stdout,"cmparser: base-path not set. It's mandatory value\n");
+			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+			fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-path not set. It's mandatory value\n");
 			#endif
 			result = -2;
 			goto err_ret;
@@ -212,8 +212,12 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 			fprintf(stdout,"cmparser: filesystem value = %s\n",bc->rootfs.filesystem);
 			#endif
 		} else {
-			// When don't have file system setting, It's use automatically mount.
-			;
+			// Mandatory value
+			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+			fprintf(stderr,"[CM CRITICAL ERROR] cmparser: filesystem not set. It's mandatory value\n");
+			#endif
+			result = -2;
+			goto err_ret;
 		}
 
 		mode = cJSON_GetObjectItemCaseSensitive(rootfs, "mode");
@@ -251,8 +255,8 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 		}
 	} else {
 		// Mandatory value
-		#ifdef _PRINTF_DEBUG_
-		fprintf(stdout,"cmparser: base-path not set. It's mandatory value\n");
+		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+		fprintf(stderr,"[CM CRITICAL ERROR] cmparser: rootfs not set. It's mandatory value\n");
 		#endif
 		result = -2;
 		goto err_ret;
@@ -280,8 +284,8 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 				;
 			} else {
 				// Mandatory value, drop this entry.
-				#ifdef _PRINTF_DEBUG_
-				fprintf(stdout,"cmparser: base-extradisk from not set. It's mandatory value\n");
+				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+				fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-extradisk from not set. It's mandatory value. drop entry\n");
 				#endif
 				continue;
 			}
@@ -294,8 +298,8 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 				;
 			} else {
 				// Mandatory value, drop this entry.
-				#ifdef _PRINTF_DEBUG_
-				fprintf(stdout,"cmparser: base-persistence to not set. It's mandatory value\n");
+				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+				fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-extradisk to not set. It's mandatory value. drop entry\n");
 				#endif
 				continue;
 			}
@@ -307,7 +311,9 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 				fprintf(stdout,"cmparser: base-extradisk filesystem = %s\n",filesystem->valuestring);
 				#endif
 			} else {
-				// When don't have file system setting, It's use automatically mount.
+				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+				fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-extradisk filesystem not set. It's mandatory value. drop entry\n");
+				#endif
 				fsstr = NULL;
 			}
 
@@ -358,6 +364,9 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 
 			if(bdev[0] == NULL) {
 				// Mandatory value, drop this entry.
+				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+				fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-extradisk blockdev[0] not set. It's mandatory value. drop entry\n");
+				#endif
 				continue;
 			}
 
