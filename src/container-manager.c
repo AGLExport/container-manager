@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 		goto finish;
 
 	//ret = lxc_container_put(plxc);
-	ret = container_start(cs);
+	ret = container_mngsm_start(cs);
 
 	(void) sd_notify(
 		1,
@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
 
 finish:
 	if (cs != NULL) {
-		(void) container_terminate(cs);
+		(void) container_mngsm_terminate(cs);
 		(void) container_mngsm_cleanup(cs);
 	}
 

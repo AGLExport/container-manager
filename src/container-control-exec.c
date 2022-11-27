@@ -26,6 +26,7 @@
 #include "device-control.h"
 
 static int container_start_preprocess_base(container_baseconfig_t *bc);
+static int container_cleanup_preprocess_base(container_baseconfig_t *bc);
 
 dynamic_device_elem_data_t *dynamic_device_elem_data_create(const char *devpath, const char *devtype, const char *subsystem, const char *devnode,
 															dev_t devnum, const char *diskseq, const char *partn);
@@ -53,8 +54,8 @@ int container_device_update_guest(container_config_t *cc, dynamic_device_manager
 	fprintf(stderr, "container_device_update_guest : %s\n", cc->name);
 	#endif
 
-	if (cc->runtime_stat.status == CONTAINER_NOT_STARTED) {
-		// Not starting container, pending
+	if (cc->runtime_stat.status != CONTAINER_STARTED) {
+		// Not running container, pending
 		return 0;
 	}
 
@@ -163,6 +164,40 @@ err_ret:
  * @retval  0 Success.
  * @retval -1 Critical error.
  */
+int container_device_remove_element(container_config_t *cc)
+{
+	int ret = 1;
+	container_dynamic_device_t *cdd = NULL;
+	container_dynamic_device_elem_t *cdde = NULL;
+	dynamic_device_elem_data_t *dded = NULL, *dded_n = NULL;
+
+	#ifdef _PRINTF_DEBUG_
+	fprintf(stderr, "container_device_remove_element : %s\n", cc->name);
+	#endif
+	cdd = &cc->deviceconfig.dynamic_device;
+
+	// remove all dynamic device elem data
+	dl_list_for_each(cdde, &cdd->dynamic_devlist, container_dynamic_device_elem_t, list) {
+		dl_list_for_each_safe(dded, dded_n, &cdde->device_list, dynamic_device_elem_data_t, list) {
+			// remove
+			dl_list_del(&dded->list);
+			dynamic_device_elem_data_free(dded);
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stderr, "device remove %s from %s\n", dded->devpath, cc->name);
+			#endif
+		}
+	}
+
+	return 0;
+}
+/**
+ * Container start up
+ *
+ * @param [in]	cs	Preconstructed containers_t
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Critical error.
+ */
 int container_device_updated(containers_t *cs)
 {
 	int num;
@@ -206,8 +241,8 @@ int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_
 	container_dynamic_netif_elem_t *cdne = NULL;
 	dynamic_device_info_t *ddi = NULL;
 
-	if (cc->runtime_stat.status == CONTAINER_NOT_STARTED) {
-		// Not starting container, pending
+	if (cc->runtime_stat.status != CONTAINER_STARTED) {
+		// Not running container, pending
 		return 0;
 	}
 
@@ -274,6 +309,19 @@ int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_
 
 err_ret:
 	return -1;
+}
+/**
+ * Container start up
+ *
+ * @param [in]	cs	Preconstructed containers_t
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Critical error.
+ */
+int container_netif_remove_element(container_config_t *cc)
+{
+	// no work
+	return 0;
 }
 /**
  * Container start up
@@ -379,7 +427,9 @@ int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
 		// undefined state
 		result = -1;
 	}
-	
+
+	(void) container_terminate(cc);
+
 	return result;
 }
 
@@ -407,6 +457,7 @@ static int container_request_shutdown(container_config_t *cc, int sys_state)
 			if (ret < 0) {
 				//In fail case, fource kill.
 				(void) lxcutil_container_fourcekill(cc);
+				(void) container_terminate(cc);
 				cc->runtime_stat.status = CONTAINER_NOT_STARTED; // guest is fource dead
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 				fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
@@ -443,6 +494,7 @@ static int container_request_shutdown(container_config_t *cc, int sys_state)
 			if (ret < 0) {
 				//In fail case, fource kill.
 				(void) lxcutil_container_fourcekill(cc);
+				(void) container_terminate(cc);
 				cc->runtime_stat.status = CONTAINER_EXIT; // guest is fource exit
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 				fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
@@ -532,11 +584,21 @@ int container_exec_internal_event(containers_t *cs)
 			cc = cs->containers[i];
 			if (cc->runtime_stat.status == CONTAINER_DEAD) {
 				// Dead state -> relaunch
-
-				//TODO relaunch
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 				fprintf(stderr,"[CM CRITICAL ERROR] container_exec_internal_event need to relaunch %s.\n", cc->name);
 				#endif
+
+				//TODO relaunch
+				ret = container_start(cc);
+				if (ret == 0) {
+					ret = container_monitor_addguest(cs, cc);
+					if (ret < 0) {
+						// Can run guest with out monitor, critical log only.
+						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+						fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_monitor_addguest ret = %d\n", ret);
+						#endif
+					}
+				}
 			}
 		}
 
@@ -585,7 +647,66 @@ out:
  * @retval  0 Success.
  * @retval -1 Critical error.
  */
-int container_start(containers_t *cs)
+int container_start(container_config_t *cc)
+{
+	int ret = 1;
+	bool bret = false;
+
+	#ifdef _PRINTF_DEBUG_
+	fprintf(stderr, "container_start %s\n", cc->name);
+	#endif
+
+	// run preprocess 
+	ret = container_start_preprocess_base(&cc->baseconfig);
+	if (ret < 0) {
+		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+		fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_start_preprocess_base ret = %d\n", ret);
+		#endif
+		return -1;
+	}
+
+	// create container inctance
+	ret = lxcutil_create_instance(cc);
+	if (ret < 0) {
+		cc->runtime_stat.status = CONTAINER_DEAD;
+
+		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+		fprintf(stderr,"[CM CRITICAL ERROR] container_start: lxcutil_create_instance ret = %d\n", ret);
+		#endif
+		return -1;
+	}
+
+	// Start container
+	bret = cc->runtime_stat.lxc->start(cc->runtime_stat.lxc, 0, NULL);
+	if (bret == false) {
+		(void) lxcutil_release_instance(cc);
+		cc->runtime_stat.status = CONTAINER_DEAD;
+
+		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+		fprintf(stderr,"[CM CRITICAL ERROR] container_start: lxc-start fail.\n");
+		#endif
+		return -1;
+	}
+
+	cc->runtime_stat.status = CONTAINER_STARTED;
+
+	#ifdef _PRINTF_DEBUG_
+	fprintf(stderr,"container_start: guest %s launch.\n", cc->name);
+	fprintf(stderr, "Container state: %s\n", cc->runtime_stat.lxc->state(cc->runtime_stat.lxc));
+	fprintf(stderr, "Container PID: %d\n", cc->runtime_stat.lxc->init_pid(cc->runtime_stat.lxc));
+	#endif
+
+	return 0;
+}
+/**
+ * Container start up
+ *
+ * @param [in]	cs	Preconstructed containers_t
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Critical error.
+ */
+int container_mngsm_start(containers_t *cs)
 {
 	int num;
 	int ret = 1;
@@ -601,55 +722,16 @@ int container_start(containers_t *cs)
 	for(int i=0;i < num;i++) {
 		cc = cs->containers[i];
 
-		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr, "container_start %s\n", cc->name);
-		#endif
-		// run preprocess 
-		ret = container_start_preprocess_base(&cc->baseconfig);
-		if (ret < 0) {
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_start_preprocess_base ret = %d\n", ret);
-			#endif
-			continue;
+		ret = container_start(cc);
+		if (ret == 0) {
+			ret = container_monitor_addguest(cs, cc);
+			if (ret < 0) {
+				// Can run guest with out monitor, critical log only.
+				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+				fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_monitor_addguest ret = %d\n", ret);
+				#endif
+			}
 		}
-
-		// create container inctance
-		ret = lxcutil_create_instance(cc);
-		if (ret < 0) {
-			cc->runtime_stat.status = CONTAINER_DEAD;
-
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			fprintf(stderr,"[CM CRITICAL ERROR] container_start: lxcutil_create_instance ret = %d\n", ret);
-			#endif
-			continue;
-		}
-
-		// TODO Need to move timing
-		// Start container
-		bret = cc->runtime_stat.lxc->start(cc->runtime_stat.lxc, 0, NULL);
-		if (bret == false) {
-			(void) lxcutil_release_instance(cc);
-			cc->runtime_stat.status = CONTAINER_DEAD;
-
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			fprintf(stderr,"[CM CRITICAL ERROR] container_start: lxc-start fail.\n");
-			#endif
-			continue;
-		}
-
-		//fprintf(stderr, "Container state: %s\n", cc->runtime_stat.lxc->state(cc->runtime_stat.lxc));
-		//fprintf(stderr, "Container PID: %d\n", cc->runtime_stat.lxc->init_pid(cc->runtime_stat.lxc));
-		
-		ret = container_monitor_addguest(cs, cc);
-		if (ret < 0) {
-			// Can run guest with out monitor, critical log only.
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_monitor_addguest ret = %d\n", ret);
-			#endif
-		}
-
-		cc->runtime_stat.status = CONTAINER_STARTED;
-
 	}
 
 	// dynamic device update
@@ -670,7 +752,23 @@ err_ret:
  * @retval  0 Success.
  * @retval -1 Critical error.
  */
-int container_terminate(containers_t *cs)
+int container_terminate(container_config_t *cc)
+{
+	(void) lxcutil_release_instance(cc);
+	(void) container_device_remove_element(cc);
+	(void) container_cleanup_preprocess_base(&cc->baseconfig);
+
+	return 0;
+}
+/**
+ * Container start up
+ *
+ * @param [in]	cs	Preconstructed containers_t
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Critical error.
+ */
+int container_mngsm_terminate(containers_t *cs)
 {
 	int num;
 	bool bret = false;
@@ -680,6 +778,7 @@ int container_terminate(containers_t *cs)
 
 	for(int i=0;i < num;i++) {
 		cc = cs->containers[i];
+		(void) container_terminate(cc);
 
 		// TODO Need to move timing
 		// Stop container
@@ -693,13 +792,10 @@ int container_terminate(containers_t *cs)
 				;
 			}
 		}*/
-
-		(void)lxcutil_release_instance(cc);
 	}
 
 	return 0;
 }
-
 /**
  * Disk mount procedure for failover
  *
@@ -895,6 +991,56 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 				}
 			} 
 
+		}
+	}
+
+	return 0;
+}
+/**
+ * Cleanup for container start base preprocess
+ *
+ * @param [in]	cs	Preconstructed containers_t
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 unmount error.
+ * @retval -2 Syscall error. 
+ */
+static int container_cleanup_preprocess_base(container_baseconfig_t *bc)
+{
+	int ret = -1;
+
+	// unmount extradisk
+	if (!dl_list_empty(&bc->extradisk_list)) {
+		container_baseconfig_extradisk_t *exdisk = NULL;
+
+		dl_list_for_each(exdisk, &bc->extradisk_list, container_baseconfig_extradisk_t, list) {
+
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stderr,"container_cleanup_preprocess_base: unmount to %s.\n", exdisk->from);
+			#endif
+			ret = umount(exdisk->from);
+			if (ret < 0) {
+				if (errno == EBUSY) {
+					(void) umount2(exdisk->from, MNT_FORCE);
+					#ifdef _PRINTF_DEBUG_
+					fprintf(stderr,"container_cleanup_preprocess_base: force unmount to %s.\n", exdisk->from);
+					#endif
+				}
+			}
+		}
+	}
+
+	// unmount rootfs
+	#ifdef _PRINTF_DEBUG_
+	fprintf(stderr,"container_cleanup_preprocess_base: unmount to rootfs %s.\n", bc->rootfs.path);
+	#endif
+	ret = umount(bc->rootfs.path);
+	if (ret < 0) {
+		if (errno == EBUSY) {
+			(void) umount2(bc->rootfs.path, MNT_FORCE);
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stderr,"container_cleanup_preprocess_base: force unmount to rootfs %s.\n", bc->rootfs.path);
+			#endif
 		}
 	}
 

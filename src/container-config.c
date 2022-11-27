@@ -169,7 +169,7 @@ err_ret:
 	free(cs);
 
 	if (cm != NULL)
-		cmparser_manager_release_config(cm);	
+		cmparser_manager_release_config(cm);
 
 	return NULL;
 }

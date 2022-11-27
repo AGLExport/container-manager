@@ -13,9 +13,9 @@
 #include "container-control-interface.h"
 
 //-----------------------------------------------------------------------------
-int container_start(containers_t *cs);
+int container_mngsm_start(containers_t *cs);
 int container_mngsm_exit(containers_t *cs);
-int container_terminate(containers_t *cs);
+int container_mngsm_terminate(containers_t *cs);
 
 int container_monitor_addguest(containers_t *cs, container_config_t *cc);
 
