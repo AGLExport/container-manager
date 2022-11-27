@@ -841,6 +841,7 @@ static int container_start_mountdisk_failover(char **devs, const char *path, con
 					#endif
 					continue;
 				}
+				mntdisk = i;
 				break;
 			} else {
 				//error - try to mount secoundary disk
