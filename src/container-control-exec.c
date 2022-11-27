@@ -944,7 +944,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 
 	// mount rootfs
 	if (bc->rootfs.mode == DISKMOUNT_TYPE_RW) {
-		mntflag = MS_DIRSYNC | MS_NOATIME | MS_NODEV | MS_NOEXEC | MS_SYNCHRONOUS;
+		mntflag = MS_DIRSYNC | MS_NOATIME | MS_NODEV | MS_SYNCHRONOUS;
 	} else {
 		mntflag = MS_NOATIME | MS_RDONLY;
 	}
