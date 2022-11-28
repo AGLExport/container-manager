@@ -661,7 +661,7 @@ static int dynamic_device_info_create_block(dynamic_device_info_t **ddi, struct 
 
 	pstr = udev_device_get_devnode(pdev);
 	devnum = udev_device_get_devnum(pdev);
-	if (pstr == NULL && devnum == 0) {
+	if (pstr == NULL || devnum == 0) {
 		//Mandatry data is nothing
 		return -1;
 	}
