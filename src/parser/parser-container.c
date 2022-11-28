@@ -1024,11 +1024,18 @@ static void* cmparser_parse_static_netif_veth_create(cJSON *param)
 	netif_elem_veth_t *pveth = NULL;
 	void *vp = NULL;
 
+
+	pveth = (netif_elem_veth_t*)malloc(sizeof(netif_elem_veth_t));
+	if (pveth == NULL) {
+		return NULL;
+	}
+
 	link = cJSON_GetObjectItemCaseSensitive(param, "link");
 	if (cJSON_IsString(link) && (link->valuestring != NULL)) {
 		plink = strdup(link->valuestring);
 	} else {
 		//link is mandatry
+		free(pveth);
 		return NULL;
 	}
 
@@ -1060,11 +1067,6 @@ static void* cmparser_parse_static_netif_veth_create(cJSON *param)
 	gateway = cJSON_GetObjectItemCaseSensitive(param, "gateway");
 	if (cJSON_IsString(gateway) && (gateway->valuestring != NULL)) {
 		pgateway = strdup(gateway->valuestring);
-	}
-
-	pveth = (netif_elem_veth_t*)malloc(sizeof(netif_elem_veth_t));
-	if (pveth == NULL) {
-		return NULL;
 	}
 
 	pveth->link = plink;
