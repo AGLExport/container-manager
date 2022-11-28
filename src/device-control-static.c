@@ -286,9 +286,9 @@ static int devc_iionode_scan(container_static_device_t *sdevc)
 		// Set valid flag
 		iioelem->is_valid = 1;
 
-		//#ifdef _PRINTF_DEBUG_
-		fprintf(stdout,"devc: iio node %s/%s is valid = %d\n", iioelem->sysfrom, iioelem->devfrom, iioelem->is_valid);
-		//#endif
+		#ifdef _PRINTF_DEBUG_
+		fprintf(stdout,"devc: iio node %s / %s is valid = %d\n", iioelem->sysfrom, iioelem->devfrom, iioelem->is_valid);
+		#endif
 	}
 
 	return 0;

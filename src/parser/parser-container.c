@@ -896,10 +896,10 @@ static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON
 					else
 						p->optional = 0;	// default value
 
-					//#ifdef _PRINTF_DEBUG_
+					#ifdef _PRINTF_DEBUG_
 					fprintf(stdout,"cmparser: iio sysfrom = %s, systo = %s, devfrom = %s, devto = %s, devnode = %s, optional = %d\n",
 								p->sysfrom, p->systo, p->devfrom, p->devto, p->devnode, p->optional);
-					//#endif
+					#endif
 
 					dl_list_add_tail(&sdc->static_iiolist, &p->list);
 
