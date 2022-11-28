@@ -31,7 +31,7 @@ int onece_write(const char *path, const void* data, size_t size)
 	ssize_t ret = -1;
 
 	fd = open(path, (O_WRONLY | O_CLOEXEC | O_TRUNC));
-	if (fd < -1)
+	if (fd < 0)
 		return -1;
 
 	do {
@@ -58,7 +58,7 @@ int onece_read(const char *path, void* data, size_t size)
 	ssize_t ret = -1;
 
 	fd = open(path, (O_RDONLY | O_CLOEXEC));
-	if (fd < -1)
+	if (fd < 0)
 		return -1;
 
 	do {
@@ -84,7 +84,6 @@ int node_check(const char *path)
 
 	ret = stat(path, &sb);
 	if (ret < 0) {
-		// file node
 		return -1;
 	}
 
