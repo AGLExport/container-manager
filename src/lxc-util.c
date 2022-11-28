@@ -295,6 +295,8 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 	static const char sdevtype[2][2] = {"c","b"};
 	const char *pdevtype = NULL;
 	container_static_gpio_elem_t *gpioelem = NULL;
+	container_static_iio_elem_t *iioelem = NULL;
+
 
 	memset(buf,0,sizeof(buf));
 
@@ -405,6 +407,79 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 			continue;
 		}
 		// device allow is not need
+	}
+
+	// iio
+	dl_list_for_each(iioelem, &devc->static_device.static_iiolist, container_static_iio_elem_t, list) {
+		//device bind mount
+		buflen = sizeof(buf) - 1;
+		buf[0] = '\0';
+
+		if (iioelem->sysfrom == NULL || iioelem->systo == NULL || iioelem->is_valid == 0) {
+			// iio(sysfs) is mandatry device
+			result = -2;
+			goto err_ret;
+		}
+
+		slen = snprintf(buf, buflen, "%s %s none bind,rw", iioelem->sysfrom, iioelem->systo); 
+		if (slen == buflen)
+			continue;	// buffer over -> drop data
+
+		bret = plxc->set_config_item(plxc, "lxc.mount.entry", buf);
+		if (bret == false) {
+			result = -1;
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.entry", buf);
+			#endif
+			goto err_ret;
+		}
+		// sysfs part end.
+
+		if (iioelem->devfrom != NULL && iioelem->devto != NULL && iioelem->devnode != NULL) {
+			// dev node part required.
+			buflen = sizeof(buf) - 1;
+			buf[0] = '\0';
+
+			slen = snprintf(buf, buflen, "%s %s none bind,rw", iioelem->devfrom, iioelem->devto); 
+			if (slen == buflen)
+				continue;	// buffer over -> drop data
+
+			buflen = buflen - slen;
+			if (develem->optional == 1) {
+				(void)strncat(buf, ",optional", buflen);
+				slen = sizeof(",optional");
+			} else
+				slen = 0;
+
+			buflen = buflen - slen;
+			(void)strncat(buf, ",create=file", buflen);
+
+			bret = plxc->set_config_item(plxc, "lxc.mount.entry", buf);
+			if (bret == false) {
+				result = -1;
+				#ifdef _PRINTF_DEBUG_
+				fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.entry", buf);
+				#endif
+				goto err_ret;
+			}
+
+			// device allow
+			buflen = sizeof(buf) - 1;
+			buf[0] = '\0';
+
+			slen = snprintf(buf, buflen, "c %d:%d rw", iioelem->major, iioelem->minor); // static node is block to mknod
+			if (slen == buflen)
+				continue;	// buffer over -> drop data
+
+			bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", buf);
+			if (bret == false) {
+				result = -1;
+				#ifdef _PRINTF_DEBUG_
+				fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.entry", buf);
+				#endif
+				goto err_ret;
+			}
+		} 
 	}
 
 	return 0;

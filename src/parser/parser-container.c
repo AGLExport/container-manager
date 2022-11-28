@@ -651,6 +651,7 @@ static int cmparser_parser_get_devtype(const char *str)
 	static const char devn[] = "devnode";
 	static const char devd[] = "devdir";
 	static const char gpio[] = "gpio";
+	static const char iio[] = "iio";
 	int ret = 0;
 
 	if (strncmp(devn, str, sizeof(devn)) == 0)
@@ -659,6 +660,8 @@ static int cmparser_parser_get_devtype(const char *str)
 		ret = DEVICE_TYPE_DEVDIR;
 	else if (strncmp(gpio, str, sizeof(gpio)) == 0)
 		ret = DEVICE_TYPE_GPIO;
+	else if (strncmp(iio, str, sizeof(iio)) == 0)
+		ret = DEVICE_TYPE_IIO;
 
 	return ret;
 }
@@ -830,6 +833,76 @@ static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON
 
 					dl_list_add_tail(&sdc->static_gpiolist, &p->list);
 
+				} else if (typeval == DEVICE_TYPE_IIO) {
+					cJSON *sysfrom = NULL, *systo = NULL, *devfrom = NULL, *devto = NULL;
+					cJSON *devnode = NULL, *optional = NULL;
+					char *pdevfrom = NULL, *pdevto = NULL, *pdevnode = NULL;
+					container_static_iio_elem_t *p = NULL;
+
+					sysfrom = cJSON_GetObjectItemCaseSensitive(elem, "sysfrom");
+					if (!(cJSON_IsString(sysfrom) && (sysfrom->valuestring != NULL))) {
+						// sysfrom is mandatory, skip.
+						continue;
+					}
+
+					systo = cJSON_GetObjectItemCaseSensitive(elem, "systo");
+					if (!(cJSON_IsString(systo) && (systo->valuestring != NULL))) {
+						// systo is mandatory, skip.
+						continue;
+					}
+
+					devfrom = cJSON_GetObjectItemCaseSensitive(elem, "devfrom");
+					if (cJSON_IsString(devfrom) && (devfrom->valuestring != NULL)) {
+						// devfrom is optional
+						pdevfrom = devfrom->valuestring;
+					}
+
+					devto = cJSON_GetObjectItemCaseSensitive(elem, "devto");
+					if (cJSON_IsString(devto) && (devto->valuestring != NULL)) {
+						// devto is optional
+						pdevto = devto->valuestring;
+					}
+
+					devnode = cJSON_GetObjectItemCaseSensitive(elem, "devnode");
+					if (cJSON_IsString(devnode) && (devnode->valuestring != NULL)) {
+						// devnode is optional
+						pdevnode = devnode->valuestring;						
+					}
+
+					optional = cJSON_GetObjectItemCaseSensitive(elem, "optional");
+
+					// all data available
+					p = (container_static_iio_elem_t*)malloc(sizeof(container_static_iio_elem_t));
+					if (p == NULL)
+						goto err_ret;
+
+					memset(p, 0 , sizeof(container_static_iio_elem_t));
+					dl_list_init(&p->list);
+
+					p->type = typeval;
+					p->sysfrom = strdup(sysfrom->valuestring);
+					p->systo = strdup(systo->valuestring);
+					if (pdevfrom != NULL)
+						p->devfrom = strdup(pdevfrom);
+
+					if (pdevto != NULL)
+						p->devto = strdup(pdevto);
+
+					if (pdevnode != NULL)
+						p->devnode = strdup(pdevnode);
+
+					if (cJSON_IsNumber(optional))
+						p->optional = optional->valueint;
+					else
+						p->optional = 0;	// default value
+
+					//#ifdef _PRINTF_DEBUG_
+					fprintf(stdout,"cmparser: iio sysfrom = %s, systo = %s, devfrom = %s, devto = %s, devnode = %s, optional = %d\n",
+								p->sysfrom, p->systo, p->devfrom, p->devto, p->devnode, p->optional);
+					//#endif
+
+					dl_list_add_tail(&sdc->static_iiolist, &p->list);
+
 				}
 			}
 		}
@@ -858,6 +931,19 @@ err_ret:
 			free(gpioelem->from);
 			free(gpioelem->to);
 			free(gpioelem);
+		}
+
+		container_static_iio_elem_t *iioelem = NULL;
+		// static iio config
+		while(dl_list_empty(&sdc->static_iiolist) == 0) {
+			iioelem = dl_list_last(&sdc->static_iiolist, container_static_iio_elem_t, list);
+			dl_list_del(&iioelem->list);
+			free(iioelem->sysfrom);
+			free(iioelem->systo);
+			free(iioelem->devfrom);
+			free(iioelem->devto);
+			free(iioelem->devnode);
+			free(iioelem);
 		}
 	}
 
@@ -1321,6 +1407,7 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 	dl_list_init(&ccfg->fsconfig.fsmount.mountlist);
 	dl_list_init(&ccfg->deviceconfig.static_device.static_devlist);
 	dl_list_init(&ccfg->deviceconfig.static_device.static_gpiolist);
+	dl_list_init(&ccfg->deviceconfig.static_device.static_iiolist);
 	dl_list_init(&ccfg->deviceconfig.dynamic_device.dynamic_devlist);
 	dl_list_init(&ccfg->netifconfig.static_netif.static_netiflist);
 	dl_list_init(&ccfg->netifconfig.dynamic_netif.dynamic_netiflist);
@@ -1438,6 +1525,7 @@ void cmparser_release_config(container_config_t *cc)
 	{
 		container_static_device_elem_t *delem = NULL;
 		container_static_gpio_elem_t *gpioelem = NULL;
+		container_static_iio_elem_t *iioelem = NULL;
 
 		while(dl_list_empty(&cc->deviceconfig.static_device.static_devlist) == 0) {
 			delem = dl_list_last(&cc->deviceconfig.static_device.static_devlist, container_static_device_elem_t, list);
@@ -1454,6 +1542,17 @@ void cmparser_release_config(container_config_t *cc)
 			free(gpioelem->from);
 			free(gpioelem->to);
 			free(gpioelem);
+		}
+
+		while(dl_list_empty(&cc->deviceconfig.static_device.static_iiolist) == 0) {
+			iioelem = dl_list_last(&cc->deviceconfig.static_device.static_iiolist, container_static_iio_elem_t, list);
+			dl_list_del(&iioelem->list);
+			free(iioelem->sysfrom);
+			free(iioelem->systo);
+			free(iioelem->devfrom);
+			free(iioelem->devto);
+			free(iioelem->devnode);
+			free(iioelem);
 		}
 	}
 
