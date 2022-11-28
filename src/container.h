@@ -118,6 +118,7 @@ typedef struct s_container_fsconfig container_fsconfig_t;
 #define DEVICE_TYPE_DEVNODE	(1)
 #define DEVICE_TYPE_DEVDIR	(2)
 #define DEVICE_TYPE_GPIO	(3)
+#define DEVICE_TYPE_IIO		(4)
 
 #define DEVNODE_TYPE_CHR	(1)
 #define DEVNODE_TYPE_BLK	(2)
@@ -165,9 +166,26 @@ struct s_container_static_gpio_elem {
 };
 typedef struct s_container_static_gpio_elem container_static_gpio_elem_t;
 
+struct s_container_static_iio_elem {
+	struct dl_list list;
+	int type;	/** < device type */
+	char *sysfrom;	/** < host side mount etry sysfs */
+	char *systo;	/** < guest side mount etry sysfs */
+	char *devfrom;	/** < host side mount etry dev */
+	char *devto;	/** < guest side mount etry dev */
+	char *devnode;	/** < Checck device node */
+	int optional;	/** < 0 = required, 1 = optional  */
+	//--- interal control data
+	int is_valid;	/** < gpio port available */
+	int major;	/** < major number */
+	int minor;	/** < minor number */
+};
+typedef struct s_container_static_iio_elem container_static_iio_elem_t;
+
 struct s_container_static_device {
 	struct dl_list static_devlist;
 	struct dl_list static_gpiolist;
+	struct dl_list static_iiolist;
 };
 typedef struct s_container_static_device container_static_device_t;
 

@@ -130,6 +130,15 @@
 				"direction":	"low",
 				"from": 		"/sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio379",
 				"to":			"sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio379"
+			},
+			{
+				"type": 		"iio",
+				"sysfrom": 		"/sys/devices/platform/soc/e66d0000.i2c/i2c-3/3-006a/iio:device0/",
+				"systo":		"sys/devices/platform/soc/e66d0000.i2c/i2c-3/3-006a/iio:device0/",
+				"devfrom": 		"/dev/iio:device0",
+				"devto":		"dev/iio:device0",
+				"devnode":		"/dev/iio:device0",
+				"optional": 	0
 			}
 		],
 		"dynamic": [

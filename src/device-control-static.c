@@ -24,6 +24,7 @@
 
 static int devc_static_devnode_scan(container_static_device_t *sdevc);
 static int devc_gpionode_scan(container_static_device_t *devc);
+static int devc_iionode_scan(container_static_device_t *sdevc);
 static int devc_netbridge_setup(container_manager_config_t *cmc);
 
 
@@ -56,6 +57,10 @@ int devc_early_device_setup(containers_t *cs)
 
 		// run gpio export
 		ret = devc_gpionode_scan(&cc->deviceconfig.static_device);
+		if (ret < 0)
+			goto err_ret;
+
+		ret = devc_iionode_scan(&cc->deviceconfig.static_device);
 		if (ret < 0)
 			goto err_ret;
 	}
@@ -208,6 +213,81 @@ static int devc_gpionode_scan(container_static_device_t *sdevc)
 		gpioelem->is_valid = 1;
 		#ifdef _PRINTF_DEBUG_
 		fprintf(stdout,"devc: gpio node %s is valid = %d\n", gpioelem->from, gpioelem->is_valid);
+		#endif
+	}
+
+	return 0;
+
+err_ret:
+
+	return result;
+}
+/**
+ * Start up time device initialization
+ *
+ * @param [in]	cs	Preconstructed containers_t
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Device scan error.
+ * @retval -2 Syscall error.
+ * @retval -3 Memory allocation error. 
+ */
+static int devc_iionode_scan(container_static_device_t *sdevc)
+{
+	int ret = 1;
+	int result = -1;
+	char buf[1024];
+	char directionbuf[128];
+	int slen = 0, buflen = 0;
+	const char *pdevtype = NULL;
+	container_static_iio_elem_t *iioelem = NULL;
+
+	// static device node
+	dl_list_for_each(iioelem, &sdevc->static_iiolist, container_static_iio_elem_t, list) {
+
+		if (iioelem->sysfrom == NULL || iioelem->systo == NULL) {
+			// This type data must not created in data perser.
+			result = -1;
+			goto err_ret;
+		}
+
+		// is available?
+		ret = node_check(iioelem->sysfrom);
+		if (ret != 0) {
+			// sysfs iio node is not available. skip.
+			iioelem->is_valid = 0;
+			continue;
+		}
+
+		// optional info check
+		if (iioelem->devfrom != NULL && iioelem->devto != NULL && iioelem->devnode != NULL) {
+			// dev node option is enabled.
+			struct stat sb = {0};
+
+			ret = stat(iioelem->devnode, &sb);
+			if (ret < 0) {
+				// no device node, skip.
+				iioelem->is_valid = 0;
+				continue;
+			}
+
+			// Check devide node type
+			if(!S_ISCHR(sb.st_mode)) {
+				// iio dev node must be char device, skip.
+				iioelem->is_valid = 0;
+				continue;
+			}
+
+			// Set major and minor num
+			iioelem->major = major(sb.st_rdev);
+			iioelem->minor = minor(sb.st_rdev);
+		}
+
+		// Set valid flag
+		iioelem->is_valid = 1;
+
+		#ifdef _PRINTF_DEBUG_
+		fprintf(stdout,"devc: iio node %s / %s is valid = %d\n", iioelem->sysfrom, iioelem->devfrom, iioelem->is_valid);
 		#endif
 	}
 
