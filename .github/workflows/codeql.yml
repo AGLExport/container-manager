@@ -52,8 +52,11 @@ jobs:
         # Details on CodeQL's query packs refer to : https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
         # queries: security-extended,security-and-quality
 
+    - name: Update
+      run: sudo apt update -y
+
     - name: Installs
-      run: sudo apt-get install -y libsystemd-dev liblxc-dev libmnl-dev libudev-dev libcjson-dev libblkid-dev
+      run: sudo apt install -y libsystemd-dev liblxc-dev libmnl-dev libudev-dev libcjson-dev libblkid-dev
 
     # Autobuild attempts to build any compiled languages  (C/C++, C#, Go, or Java).
     # If this step fails, then you should remove it and run the build manually (see below)
