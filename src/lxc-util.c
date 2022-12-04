@@ -679,6 +679,12 @@ int lxcutil_create_instance(container_config_t *cc)
 		goto err_ret;
 	}
 
+	bret = plxc->want_daemonize(plxc, true);
+	if (ret < 0) {
+		result = -1;
+		goto err_ret;
+	}
+
 	cc->runtime_stat.lxc = plxc;
 
 	#ifdef _PRINTF_DEBUG_
