@@ -23,6 +23,7 @@ int container_monitor_addguest(containers_t *cs, container_config_t *cc);
 int container_mngsm_setup(containers_t **pcs, sd_event *event, const char *config_dir);
 int container_mngsm_cleanup(containers_t *cs);
 int container_mngsm_regist_device_manager(containers_t *cs, dynamic_device_manager_t *ddm);
+int container_mngsm_update_timertick(containers_t *cs);
 
 int container_mngsm_interface_get(container_control_interface_t **pcci, containers_t *cs);
 int container_mngsm_interface_free(containers_t *cs);

@@ -32,6 +32,8 @@ dynamic_device_elem_data_t *dynamic_device_elem_data_create(const char *devpath,
 															dev_t devnum, const char *diskseq, const char *partn);
 int dynamic_device_elem_data_free(dynamic_device_elem_data_t *dded);
 
+int container_restart(container_config_t *cc);
+
 /**
  * Container start up
  *
@@ -387,6 +389,9 @@ int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
 			// now runninng, guest was dead
 			cc->runtime_stat.status = CONTAINER_DEAD;
 
+			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+			fprintf(stderr,"[CM CRITICAL ERROR] container %s was dead.\n", cc->name);
+			#endif
 		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
 			// Already requested shutdown, change to not start state.
 			cc->runtime_stat.status = CONTAINER_NOT_STARTED;
@@ -584,18 +589,17 @@ int container_exec_internal_event(containers_t *cs)
 			cc = cs->containers[i];
 			if (cc->runtime_stat.status == CONTAINER_DEAD) {
 				// Dead state -> relaunch
-				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				fprintf(stderr,"[CM CRITICAL ERROR] container_exec_internal_event need to relaunch %s.\n", cc->name);
-				#endif
-
-				//TODO relaunch
-				ret = container_start(cc);
+				ret = container_restart(cc);
 				if (ret == 0) {
+					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+					fprintf(stderr,"[CM CRITICAL ERROR] container %s relaunched.\n", cc->name);
+					#endif
+
 					ret = container_monitor_addguest(cs, cc);
 					if (ret < 0) {
 						// Can run guest with out monitor, critical log only.
 						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-						fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_monitor_addguest ret = %d\n", ret);
+						fprintf(stderr,"[CM CRITICAL ERROR] Fail container_monitoring to %s ret = %d\n", cc->name, ret);
 						#endif
 					}
 				}
@@ -640,6 +644,46 @@ out:
 	return 0;
 }
 /**
+ * Container launch common part of start and restart.
+ *
+ * @param [in]	cs	Preconstructed containers_t
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Create instance fail.
+ * @retval -2 Container start fail.
+ */
+int container_restart(container_config_t *cc)
+{
+	int ret = -1;
+	bool bret = false;
+
+	// create container inctance
+	ret = lxcutil_create_instance(cc);
+	if (ret < 0) {
+		cc->runtime_stat.status = CONTAINER_DEAD;
+
+		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+		fprintf(stderr,"[CM CRITICAL ERROR] container_restart: lxcutil_create_instance ret = %d\n", ret);
+		#endif
+		return -1;
+	}
+
+	// Start container
+	bret = cc->runtime_stat.lxc->start(cc->runtime_stat.lxc, 0, NULL);
+	if (bret == false) {
+		(void) lxcutil_release_instance(cc);
+		cc->runtime_stat.status = CONTAINER_DEAD;
+
+		// In case of relaunch, 'start' is fail while executing cleanup method by lxc-monitor.
+		//Shall not out error message in this point.
+		return -2;
+	}
+
+	cc->runtime_stat.status = CONTAINER_STARTED;
+
+	return 0;
+}
+/**
  * Container start up
  *
  * @param [in]	cs	Preconstructed containers_t
@@ -649,7 +693,7 @@ out:
  */
 int container_start(container_config_t *cc)
 {
-	int ret = 1;
+	int ret = -1;
 	bool bret = false;
 
 	#ifdef _PRINTF_DEBUG_
@@ -665,26 +709,16 @@ int container_start(container_config_t *cc)
 		return -1;
 	}
 
-	// create container inctance
-	ret = lxcutil_create_instance(cc);
+	// Start container
+	ret = container_restart(cc);
 	if (ret < 0) {
 		cc->runtime_stat.status = CONTAINER_DEAD;
 
-		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		fprintf(stderr,"[CM CRITICAL ERROR] container_start: lxcutil_create_instance ret = %d\n", ret);
-		#endif
-		return -1;
-	}
-
-	// Start container
-	bret = cc->runtime_stat.lxc->start(cc->runtime_stat.lxc, 0, NULL);
-	if (bret == false) {
-		(void) lxcutil_release_instance(cc);
-		cc->runtime_stat.status = CONTAINER_DEAD;
-
-		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		fprintf(stderr,"[CM CRITICAL ERROR] container_start: lxc-start fail.\n");
-		#endif
+		if (ret == -2) {
+			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+			fprintf(stderr,"[CM CRITICAL ERROR] container_start: lxc-start fail %s\n", cc->name);
+			#endif
+		}
 		return -1;
 	}
 
@@ -738,6 +772,8 @@ int container_mngsm_start(containers_t *cs)
 	cci->device_updated(cci);
 	cci->netif_updated(cci);
 
+	container_mngsm_update_timertick(cs);
+
 	return 0;
 
 err_ret:
@@ -756,7 +792,7 @@ int container_terminate(container_config_t *cc)
 {
 	(void) lxcutil_release_instance(cc);
 	(void) container_device_remove_element(cc);
-	(void) container_cleanup_preprocess_base(&cc->baseconfig);
+	//(void) container_cleanup_preprocess_base(&cc->baseconfig);
 
 	return 0;
 }

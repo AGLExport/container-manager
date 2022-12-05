@@ -14,6 +14,7 @@
 // common definition
 //-----------------------------------------------------------------------------
 struct s_container_mngsm {
+	sd_event_source *timer_source;
 	sd_event_source *socket_source;
 	int primary_fd;
 	int secondary_fd;
@@ -48,6 +49,7 @@ typedef struct s_container_mngsm_guest_exit {
 
 #define CONTAINER_MNGSM_COMMAND_SYSTEM_SHUTDOWN	(0x4000u)
 
+#define CONTAINER_MNGSM_COMMAND_TIMER_TICK		(0x5000u)
 
 
 //-----------------------------------------------------------------------------
