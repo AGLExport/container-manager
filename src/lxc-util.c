@@ -680,7 +680,7 @@ int lxcutil_create_instance(container_config_t *cc)
 	}
 
 	bret = plxc->want_daemonize(plxc, true);
-	if (ret < 0) {
+	if (bret == false) {
 		result = -1;
 		goto err_ret;
 	}
