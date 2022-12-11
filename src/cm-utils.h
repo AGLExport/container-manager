@@ -17,6 +17,7 @@ int onece_read(const char *path, void* data, size_t size);
 int node_check(const char *path);
 int mkdir_p(const char *dir, mode_t mode);
 int wait_child_pid(pid_t pid);
+int64_t get_current_time_ms(void);
 
 //-----------------------------------------------------------------------------
 #endif //#ifndef CM_UTIL_H
