@@ -593,7 +593,107 @@ err_ret:
 
 	return result;
 }
+/**
+ * Sub functinon for the resourcetype parse.
+ * Shall not call from other than cmparser_parse_resource.
+ *
+ * @param [in]	str		string of resource control type
+ * @return int
+ * @retval RESOURCE_TYPE_CGROUP	str is "cgroup"
+ * @retval 0 NON
+ */
+static int cmparser_parser_get_resourcetype(const char *str)
+{
+	static const char ccgroup[] = "cgroup";
+	int ret = 0;
 
+	if (strncmp(ccgroup, str, sizeof(ccgroup)) == 0)
+		ret = RESOURCE_TYPE_CGROUP;
+
+	return ret;
+}
+
+/**
+ * parser for resource section of container config.
+ *
+ * @param [out]	rc	Pointer to pre-allocated container_resourceconfig_t.
+ * @param [in]	res	Pointer to cJSON object of top of resource section.
+ * @return int
+ * @retval  0 Success to parse.
+ * @retval -1 Json file error.
+ * @retval -2 Json file parse error.
+ * @retval -3 Memory allocation error.
+ */
+static int cmparser_parse_resource(container_resourceconfig_t *rc, const cJSON *res)
+{
+	cJSON *mount = NULL;
+	int result = -1;
+
+	// Get mount data
+	if (cJSON_IsArray(res)) {
+		cJSON *elem = NULL;
+		cJSON *type = NULL, *object = NULL, *value = NULL;
+		container_resource_elem_t *p = NULL;
+		int typeval = -1;
+
+		cJSON_ArrayForEach(elem, res) {
+			if (cJSON_IsObject(elem)) {
+				type = cJSON_GetObjectItemCaseSensitive(elem, "type");
+				if (cJSON_IsString(type) && (type->valuestring != NULL)) {
+					typeval = cmparser_parser_get_resourcetype(type->valuestring);
+					if (typeval == 0)
+						continue;
+					#ifdef _PRINTF_DEBUG_
+					fprintf(stdout,"cmparser: resource.type = %d\n",typeval);
+					#endif
+				} else
+					continue;
+
+				object = cJSON_GetObjectItemCaseSensitive(elem, "object");
+				if (!(cJSON_IsString(object) && (object->valuestring != NULL)))
+					continue;
+
+				value = cJSON_GetObjectItemCaseSensitive(elem, "value");
+				if (!(cJSON_IsString(value) && (value->valuestring != NULL)))
+					continue;
+
+				// all data available
+				p = (container_resource_elem_t*)malloc(sizeof(container_resource_elem_t));
+				if (p == NULL)
+					goto err_ret;
+
+				memset(p, 0 , sizeof(container_resource_elem_t));
+				dl_list_init(&p->list);
+				p->type = typeval;
+				p->object = strdup(object->valuestring);
+				p->value = strdup(value->valuestring);
+				#ifdef _PRINTF_DEBUG_
+				fprintf(stdout,"cmparser: resource.type = %d, from = %s, value = %s\n",
+							p->type, p->object, p->value);
+				#endif
+
+				dl_list_add_tail(&rc->resource.resourcelist, &p->list);
+			}
+		}
+	}
+
+	return 0;
+
+err_ret:
+	{
+		container_resource_elem_t *melem = NULL;
+		// resource config
+		while(dl_list_empty(&rc->resource.resourcelist) == 0) {
+			melem = dl_list_last(&rc->resource.resourcelist, container_resource_elem_t, list);
+			dl_list_del(&melem->list);
+			free(melem->object);
+			free(melem->value);
+			free(melem);
+		}
+	}
+
+	return result;
+}
 
 /**
  * Sub functinon for the fstype parse. 
@@ -1484,6 +1584,7 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 	memset(ccfg, 0, sizeof(container_config_t));
 	dl_list_init(&ccfg->baseconfig.extradisk_list);
 	dl_list_init(&ccfg->baseconfig.envlist);
+	dl_list_init(&ccfg->resourceconfig.resource.resourcelist);
 	dl_list_init(&ccfg->fsconfig.fsmount.mountlist);
 	dl_list_init(&ccfg->deviceconfig.static_device.static_devlist);
 	dl_list_init(&ccfg->deviceconfig.static_device.static_gpiolist);
@@ -1522,6 +1623,20 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 			result = -2;
 			goto err_ret;
 		}
+	}
+
+	// Get resource data
+	{
+		const cJSON *resource = NULL;
+		resource = cJSON_GetObjectItemCaseSensitive(json, "resource");
+		if (cJSON_IsArray(resource)) {
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stdout,"cmparser: resource entry found\n");
+			#endif
+			ret = cmparser_parse_resource(&ccfg->resourceconfig, resource);
+		}
+
+		// Not mandatory
 	}
 
 	// Get fs data
@@ -1687,6 +1802,19 @@ void cmparser_release_config(container_config_t *cc)
 			free(melem->to);
 			free(melem->fstype);
 			free(melem->option);
+			free(melem);
+		}
+	}
+
+	// resource config
+	{
+		container_resource_elem_t *melem = NULL;
+		// resource config
+		while(dl_list_empty(&cc->resourceconfig.resource.resourcelist) == 0) {
+			melem = dl_list_last(&cc->resourceconfig.resource.resourcelist, container_resource_elem_t, list);
+			dl_list_del(&melem->list);
+			free(melem->object);
+			free(melem->value);
 			free(melem);
 		}
 	}

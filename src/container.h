@@ -91,6 +91,28 @@ struct s_container_baseconfig {
 };
 typedef struct s_container_baseconfig container_baseconfig_t;
 //-----------------------------------------------------------------------------
+// resource config ---------------------------------
+#define RESOURCE_TYPE_CGROUP	(1)
+
+struct s_container_resource_elem {
+	struct dl_list list;
+	int type;	/** < resource control type */
+	char *object;	/** < resource object */
+	char *value;	/** < value for resource object */
+	//--- interal control data
+};
+typedef struct s_container_resource_elem container_resource_elem_t;
+
+struct s_container_resource {
+	struct dl_list resourcelist;
+};
+typedef struct s_container_resource container_resource_t;
+
+struct s_container_resourceconfig {
+	container_resource_t resource;
+};
+typedef struct s_container_resourceconfig container_resourceconfig_t;
+//-----------------------------------------------------------------------------
 // fs config ---------------------------------
 #define FSMOUNT_TYPE_FILESYSTEM	(1)
 #define FSMOUNT_TYPE_DIRECTRY	(2)
@@ -304,6 +326,7 @@ typedef struct s_container_runtime_status container_runtime_status_t;
 struct s_container_config {
 	char *name;
 	container_baseconfig_t baseconfig;
+	container_resourceconfig_t resourceconfig;
 	container_fsconfig_t fsconfig;
 	container_deviceconfig_t deviceconfig;
 	container_netifconfig_t netifconfig;
