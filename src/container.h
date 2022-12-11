@@ -285,6 +285,7 @@ typedef struct s_container_netifconfig container_netifconfig_t;
 
 //-----------------------------------------------------------------------------
 // runtime status ---------------------------------
+#define CONTAINER_DISABLE		(-1)
 #define CONTAINER_NOT_STARTED	(0)
 #define CONTAINER_STARTED		(1)
 #define CONTAINER_SHUTDOWN		(2)
