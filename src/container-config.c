@@ -118,6 +118,8 @@ containers_t *create_container_configs(const char *config_file)
 					}
 					ca[num] = cc;
 					num = num + 1;
+					if (num >= GUEST_CONTAINER_LIMIT)
+						break;
 				}
 			}
 		}
