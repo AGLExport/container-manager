@@ -1,54 +1,42 @@
 {
-	"name": "agl-demo-ivi",
+	"name": "agl-qt-ivi-demo",
 	"base": {
 		"autoboot": true,
 		"bootpriority": 10,
 		"role": "ivi",
 		"rootfs": {
-			"path": "/opt/container/guests/agl-demo-ivi/rootfs",
+			"path": "/opt/container/guests/agl-qt-ivi-demo/rootfs",
 			"filesystem":	"ext4",
-			"mode":		"ro",
+			"mode":		"rw",
 			"blockdev": [
-				"/dev/mmcblk1p3",
-				"/dev/mmcblk0p3"
+				"/dev/mmcblk1p4",
+				"/dev/mmcblk1p4"
 			]
 		},
 		"extradisk": [
 			{
-				"from": 	"/opt/container/guests/agl-demo-ivi/nv",
+				"from": 	"/opt/container/guests/agl-qt-ivi-demo/nv",
 				"to":		"var/nonvolatile",
 				"filesystem":	"ext4",
 				"mode":		"rw",
 				"redundancy":	"failover",
 				"blockdev": [
-					"/dev/mmcblk1p8",
-					"/dev/mmcblk0p8"
-				]
-			},
-			{
-				"from": 	"/opt/container/guests/agl-demo-ivi/extra",
-				"to":		"opt/extra",
-				"filesystem":	"ext4",
-				"mode":		"ro",
-				"redundancy":	"ab",
-				"blockdev": [
-					"/dev/mmcblk1p10",
-					"/dev/mmcblk0p10"
+					"/dev/mmcblk1p11",
+					"/dev/mmcblk1p11"
 				]
 			}
 		],
 		"lifecycle": {
 			"halt": "SIGRTMIN+3",
 			"reboot": "SIGTERM",
-			"timeout": 10000
+			"timeout": 15000
 		},
 		"cap": {
 			"drop": "sys_module mac_admin mac_override sys_time",
 			"keep": ""
 		},
 		"environment": [
-			"XDG_RUNTIME_DIR=/lxc/share",
-			"LD_LIBRARY_PATH=/usr/lib:/lib",
+			"PIPEWIRE_RUNTIME_DIR=/var",
 			"HOME=/home/root"
 		]
 	},
@@ -69,6 +57,13 @@
 				"option": 	"defaults 0 0"
 			},
 			{
+				"type": 	"filesystem",
+				"from": 	"tmpfs",
+				"to":		"run",
+				"fstype":	"tmpfs",
+				"option": 	"defaults 0 0"
+			},
+			{
 				"type": 	"directry",
 				"from": 	"/sys/kernel/security",
 				"to":		"sys/kernel/security",
@@ -77,10 +72,31 @@
 			},
 			{
 				"type": 	"directry",
+				"from": 	"/run/udev/data",
+				"to":		"run/udev/data",
+				"fstype":	"none",
+				"option": 	"ro,bind,optional,create=dir"
+			},
+			{
+				"type": 	"directry",
 				"from": 	"/run/drm-lease-manager/lease-ivi",
 				"to":		"var/display/drm-lease-manager/lease",
 				"fstype":	"none",
 				"option": 	"bind,create=file"
+			},
+			{
+				"type": 	"directry",
+				"from": 	"/run/pipewire/pipewire-0",
+				"to":		"var/pipewire-0",
+				"fstype":	"none",
+				"option": 	"bind,optional,create=file"
+			},
+			{
+				"type": 	"directry",
+				"from": 	"/opt/container/guests/agl-qt-ivi-demo/system.conf",
+				"to":		"etc/systemd/system.conf.d/10-environment.conf",
+				"fstype":	"none",
+				"option": 	"bind,optional,create=file"
 			}
 		]
 	},
@@ -96,6 +112,15 @@
 				"exclusive": 	0
 			},
 			{
+				"type": 		"devdir",
+				"from": 		"/dev/input",
+				"to":			"dev/input",
+				"devnode":		"/dev/input/event0",
+				"optional": 		1,
+				"wideallow": 	1,
+				"exclusive": 	0
+			},
+			{
 				"type": 		"devnode",
 				"from": 		"/dev/pvr_sync",
 				"to":			"dev/pvr_sync",
@@ -103,35 +128,6 @@
 				"optional": 		0,
 				"wideallow": 	0,
 				"exclusive": 	0
-			},
-			{
-				"type": 		"devnode",
-				"from": 		"/dev/ttySC3",
-				"to":			"dev/ttySC3",
-				"devnode":		"/dev/ttySC3",
-				"optional": 		1,
-				"wideallow": 	0,
-				"exclusive": 	1
-			},
-			{
-				"type": 		"gpio",
-				"port":			377,
-				"from": 		"/sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio377",
-				"to":			"sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio377"
-			},
-			{
-				"type": 		"gpio",
-				"port":			378,
-				"direction":	"in",
-				"from": 		"/sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio378",
-				"to":			"sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio378"
-			},
-			{
-				"type": 		"gpio",
-				"port":			379,
-				"direction":	"low",
-				"from": 		"/sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio379",
-				"to":			"sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio379"
 			},
 			{
 				"type": 		"iio",
@@ -167,15 +163,8 @@
 					"link":	"lxcbr0",
 					"flags":	"up",
 					"hwaddr":	"00:16:3e:xx:xx:xx",
-					"mode": "bridge",
-					"address":	"10.0.3.20/24",
-					"gateway":	"10.0.3.1"
+					"mode": "bridge"
 				}
-			}
-		],
-		"dynamic": [
-			{
-				"ifname": 	"eth0"
 			}
 		]
 	}

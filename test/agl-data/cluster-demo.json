@@ -1,43 +1,41 @@
 {
-	"name": "agl-cluster",
+	"name": "cluster-demo",
 	"base": {
 		"autoboot": true,
 		"bootpriority": 1,
 		"role": "cluster",
 		"rootfs": {
-			"path": "/opt/container/guests/agl-cluster/rootfs",
+			"path": "/opt/container/guests/cluster-demo/rootfs",
 			"filesystem":	"ext4",
-			"mode":		"ro",
+			"mode":		"rw",
 			"blockdev": [
 				"/dev/mmcblk1p2",
-				"/dev/mmcblk0p2"
+				"/dev/mmcblk1p2"
 			]
 		},
 		"extradisk": [
 			{
-				"from": 	"/opt/container/guests/agl-cluster/nv",
+				"from": 	"/opt/container/guests/cluster-demo/nv",
 				"to":		"var/nonvolatile",
 				"filesystem":	"ext4",
 				"mode":		"rw",
 				"redundancy":	"failover",
 				"blockdev": [
-					"/dev/mmcblk1p7",
-					"/dev/mmcblk0p7"
+					"/dev/mmcblk1p9",
+					"/dev/mmcblk1p9"
 				]
 			}
 		],
 		"lifecycle": {
 			"halt": "SIGRTMIN+3",
 			"reboot": "SIGTERM",
-			"timeout": 10000
+			"timeout": 5000
 		},
 		"cap": {
 			"drop": "sys_module mac_admin mac_override sys_time",
 			"keep": ""
 		},
 		"environment": [
-			"XDG_RUNTIME_DIR=/lxc/share",
-			"LD_LIBRARY_PATH=/usr/lib:/lib",
 			"HOME=/home/root"
 		]
 	},
@@ -58,6 +56,13 @@
 				"option": 	"defaults 0 0"
 			},
 			{
+				"type": 	"filesystem",
+				"from": 	"tmpfs",
+				"to":		"run",
+				"fstype":	"tmpfs",
+				"option": 	"defaults 0 0"
+			},
+			{
 				"type": 	"directry",
 				"from": 	"/sys/kernel/security",
 				"to":		"sys/kernel/security",
@@ -70,6 +75,20 @@
 				"to":		"var/display/drm-lease-manager/lease",
 				"fstype":	"none",
 				"option": 	"bind,create=file"
+			},
+			{
+				"type": 	"directry",
+				"from": 	"/run/pipewire/icipc-0",
+				"to":		"var/icipc-0",
+				"fstype":	"none",
+				"option": 	"bind,optional,create=file"
+			},
+			{
+				"type": 	"directry",
+				"from": 	"/opt/container/guests/cluster-demo/system.conf",
+				"to":		"etc/systemd/system.conf.d/10-environment.conf",
+				"fstype":	"none",
+				"option": 	"bind,optional,create=file"
 			}
 		]
 	},
@@ -92,22 +111,6 @@
 				"optional": 		0,
 				"wideallow": 	0,
 				"exclusive": 	0
-			},
-			{
-				"type": 		"devnode",
-				"from": 		"/dev/ttySC2",
-				"to":			"dev/ttySC2",
-				"devnode":		"/dev/ttySC2",
-				"optional": 		1,
-				"wideallow": 	0,
-				"exclusive": 	1
-			},
-			{
-				"type": 		"gpio",
-				"port":			380,
-				"direction":	"low",
-				"from": 		"/sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio380",
-				"to":			"sys/devices/platform/soc/e6055400.gpio/gpiochip6/gpio/gpio380"
 			}
 		]
 	},
@@ -120,9 +123,7 @@
 					"link": 	"lxcbr0",
 					"flags":	"up",
 					"hwaddr":	"00:16:3e:xx:xx:xx",
-					"mode": "bridge",
-					"address":	"10.0.3.20/24",
-					"gateway":	"10.0.3.1"
+					"mode": "bridge"
 				}
 			}
 		]
