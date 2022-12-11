@@ -255,9 +255,10 @@ static int devc_iionode_scan(container_static_device_t *sdevc)
 		ret = node_check(iioelem->sysfrom);
 		if (ret != 0) {
 			// sysfs iio node is not available. skip.
-			iioelem->is_valid = 0;
+			iioelem->is_sys_valid = 0;
 			continue;
 		}
+		iioelem->is_sys_valid = 1;
 
 		// optional info check
 		if (iioelem->devfrom != NULL && iioelem->devto != NULL && iioelem->devnode != NULL) {
@@ -267,24 +268,27 @@ static int devc_iionode_scan(container_static_device_t *sdevc)
 			ret = stat(iioelem->devnode, &sb);
 			if (ret < 0) {
 				// no device node, skip.
-				iioelem->is_valid = 0;
+				iioelem->is_dev_valid = 0;
 				continue;
 			}
 
 			// Check devide node type
 			if(!S_ISCHR(sb.st_mode)) {
 				// iio dev node must be char device, skip.
-				iioelem->is_valid = 0;
+				iioelem->is_dev_valid = 0;
 				continue;
 			}
 
 			// Set major and minor num
 			iioelem->major = major(sb.st_rdev);
 			iioelem->minor = minor(sb.st_rdev);
-		}
 
-		// Set valid flag
-		iioelem->is_valid = 1;
+			// Set valid flag
+			iioelem->is_dev_valid = 1;
+
+		} else {
+			iioelem->is_dev_valid = 0;
+		}
 
 		#ifdef _PRINTF_DEBUG_
 		fprintf(stdout,"devc: iio node %s / %s is valid = %d\n", iioelem->sysfrom, iioelem->devfrom, iioelem->is_valid);

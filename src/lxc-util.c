@@ -415,10 +415,27 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 		buflen = sizeof(buf) - 1;
 		buf[0] = '\0';
 
-		if (iioelem->sysfrom == NULL || iioelem->systo == NULL || iioelem->is_valid == 0) {
-			// iio(sysfs) is mandatry device
+		if (iioelem->sysfrom == NULL || iioelem->systo == NULL ) {
+			// iio(sysfs) parameter was broaken
 			result = -2;
 			goto err_ret;
+		}
+
+		if (iioelem->is_sys_valid == 0) {
+			if(iioelem->optional == 1) {
+				// If device is optional, no device case is skip
+				#ifdef _PRINTF_DEBUG_
+				fprintf(stderr,"lxcutil: lxcutil_set_config_base skip  %s\n", iioelem->sysfrom);
+				#endif
+				continue;
+			} else {
+				// Not optional, error.
+				#ifdef _PRINTF_DEBUG_
+				fprintf(stderr,"lxcutil: lxcutil_set_config_base not valid sys %s - error\n", iioelem->sysfrom);
+				#endif
+				result = -2;
+				goto err_ret;
+			}
 		}
 
 		slen = snprintf(buf, buflen, "%s %s none bind,rw", iioelem->sysfrom, iioelem->systo); 
@@ -440,44 +457,58 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 			buflen = sizeof(buf) - 1;
 			buf[0] = '\0';
 
-			slen = snprintf(buf, buflen, "%s %s none bind,rw", iioelem->devfrom, iioelem->devto); 
-			if (slen == buflen)
-				continue;	// buffer over -> drop data
+			if (iioelem->is_dev_valid == 1) {
+				slen = snprintf(buf, buflen, "%s %s none bind,rw", iioelem->devfrom, iioelem->devto); 
+				if (slen == buflen)
+					continue;	// buffer over -> drop data
 
-			buflen = buflen - slen;
-			if (develem->optional == 1) {
-				(void)strncat(buf, ",optional", buflen);
-				slen = sizeof(",optional");
-			} else
-				slen = 0;
+				buflen = buflen - slen;
+				if (develem->optional == 1) {
+					(void)strncat(buf, ",optional", buflen);
+					slen = sizeof(",optional");
+				} else
+					slen = 0;
 
-			buflen = buflen - slen;
-			(void)strncat(buf, ",create=file", buflen);
+				buflen = buflen - slen;
+				(void)strncat(buf, ",create=file", buflen);
 
-			bret = plxc->set_config_item(plxc, "lxc.mount.entry", buf);
-			if (bret == false) {
-				result = -1;
+				bret = plxc->set_config_item(plxc, "lxc.mount.entry", buf);
+				if (bret == false) {
+					result = -1;
+					#ifdef _PRINTF_DEBUG_
+					fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.entry", buf);
+					#endif
+					goto err_ret;
+				}
+
+				// device allow
+				buflen = sizeof(buf) - 1;
+				buf[0] = '\0';
+
+				slen = snprintf(buf, buflen, "c %d:%d rw", iioelem->major, iioelem->minor); // static node is block to mknod
+				if (slen == buflen)
+					continue;	// buffer over -> drop data
+
+				bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", buf);
+				if (bret == false) {
+					result = -1;
+					#ifdef _PRINTF_DEBUG_
+					fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.entry", buf);
+					#endif
+					goto err_ret;
+				}
+			} else {
+				if(iioelem->optional == 0) {
+					// Not optional, error.
+					#ifdef _PRINTF_DEBUG_
+					fprintf(stderr,"lxcutil: lxcutil_set_config_base not valid dev %s - error\n", iioelem->devfrom);
+					#endif
+					result = -2;
+					goto err_ret;
+				}
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.entry", buf);
+				fprintf(stderr,"lxcutil: lxcutil_set_config_base skip  %s\n", iioelem->devfrom);
 				#endif
-				goto err_ret;
-			}
-
-			// device allow
-			buflen = sizeof(buf) - 1;
-			buf[0] = '\0';
-
-			slen = snprintf(buf, buflen, "c %d:%d rw", iioelem->major, iioelem->minor); // static node is block to mknod
-			if (slen == buflen)
-				continue;	// buffer over -> drop data
-
-			bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", buf);
-			if (bret == false) {
-				result = -1;
-				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.entry", buf);
-				#endif
-				goto err_ret;
 			}
 		} 
 	}
