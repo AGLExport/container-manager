@@ -46,6 +46,7 @@ typedef struct s_container_baseconfig_extradisk container_baseconfig_extradisk_t
 struct s_container_baseconfig_lifecycle {
 	char *halt;		/**< Shoutdown request signal for guest */
 	char *reboot;	/**< Reboot request signal for guest */
+	int timeout;	/**< Shutdown timeout for guest */
 };
 typedef struct s_container_baseconfig_lifecycle container_baseconfig_lifecycle_t;
 
@@ -78,6 +79,7 @@ typedef struct s_container_baseconfig_env container_baseconfig_env_t;
 struct s_container_baseconfig {
 	int	autoboot;
 	int bootpriority;
+	char *role;
 	container_baseconfig_rootfs_t rootfs;
 	struct dl_list extradisk_list;
 	container_baseconfig_lifecycle_t lifecycle;
@@ -291,6 +293,7 @@ typedef struct s_container_netifconfig container_netifconfig_t;
 
 struct s_container_runtime_status {
 	struct lxc_container *lxc;
+	int64_t timeout;
 	int status;
 	pid_t pid;
 	sd_event_source *pidfd_source;

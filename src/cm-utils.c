@@ -12,6 +12,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -145,4 +146,24 @@ int wait_child_pid(pid_t pid)
 		return -2;
 
 	return 0;
+}
+/**
+ * Get ms time
+ *
+ * @return int64_t
+ * @retval  >0 current time.
+ * @retval -1 Critical error.
+ */
+int64_t get_current_time_ms(void)
+{
+	int64_t ms = -1;
+	struct timespec t = {0,0};
+	int ret = -1;
+
+	ret = clock_gettime(CLOCK_MONOTONIC, &t);
+	if (ret == 0) {
+		ms = (t.tv_sec * 1000) + (t.tv_nsec / 1000 / 1000);
+	} 
+
+	return ms;
 }

@@ -468,9 +468,17 @@ static int container_request_shutdown(container_config_t *cc, int sys_state)
 				fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
 				#endif
 			} else {
+				int64_t timeout = 0;
+
+				// Set timeout
+				timeout = get_current_time_ms();
+				if (timeout < 0)
+					timeout = 0;
+				timeout = timeout + cc->baseconfig.lifecycle.timeout;
+				cc->runtime_stat.timeout = timeout;
+
 				//Requested, wait to exit.
 				cc->runtime_stat.status = CONTAINER_SHUTDOWN;
-				// TODO set timeout
 			}			
 		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
 			// Already requested shutdown, not need new action.
@@ -505,9 +513,17 @@ static int container_request_shutdown(container_config_t *cc, int sys_state)
 				fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
 				#endif
 			} else {
+				int64_t timeout = 0;
+
+				// Set timeout
+				timeout = get_current_time_ms();
+				if (timeout < 0)
+					timeout = 0;
+				timeout = timeout + cc->baseconfig.lifecycle.timeout;
+				cc->runtime_stat.timeout = timeout;
+
 				//Requested, wait to exit.
 				cc->runtime_stat.status = CONTAINER_SHUTDOWN;
-				// TODO set timeout
 			}			
 		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
 			// Already requested shutdown, not need new action.
@@ -577,9 +593,11 @@ int container_exec_internal_event(containers_t *cs)
 	int num = 0;
 	int fail_count = 0;
 	int ret = -1;
+	int64_t timeout = 0;
 	container_config_t *cc = NULL;
 
 	num = cs->num_of_container;
+	timeout = get_current_time_ms();
 
 	if (cs->sys_state == CM_SYSTEM_STATE_RUN) {
 		// internal event for run state
@@ -609,7 +627,18 @@ int container_exec_internal_event(containers_t *cs)
 		// Check to all container shutdown timeout.
 		for(int i=0;i < num;i++) {
 			cc = cs->containers[i];
-			// TODO timeout 
+
+			if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
+				if (cc->runtime_stat.timeout < timeout) {
+					// fource kill after timeout
+					(void) lxcutil_container_fourcekill(cc);
+					(void) container_terminate(cc);
+					cc->runtime_stat.status = CONTAINER_NOT_STARTED; // guest is fource dead
+					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+					fprintf(stderr,"[CM CRITICAL ERROR] container %s was shutdown timeout, fourcekill.\n", cc->name);
+					#endif
+				}
+			}
 		}
 
 	} else if (cs->sys_state == CM_SYSTEM_STATE_SHUTDOWN) {
@@ -633,7 +662,17 @@ int container_exec_internal_event(containers_t *cs)
 		// Check to all container shutdown timeout.
 		for(int i=0;i < num;i++) {
 			cc = cs->containers[i];
-			// TODO timeout 
+			if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
+				if (cc->runtime_stat.timeout < timeout) {
+					// fource kill after timeout
+					(void) lxcutil_container_fourcekill(cc);
+					(void) container_terminate(cc);
+					cc->runtime_stat.status = CONTAINER_EXIT; // guest is fource dead
+					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+					fprintf(stderr,"[CM CRITICAL ERROR] container %s was shutdown timeout at sys shutdown, fourcekill.\n", cc->name);
+					#endif
+				}
+			}
 		}
 	} else {
 		// undefined state

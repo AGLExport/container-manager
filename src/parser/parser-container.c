@@ -145,6 +145,7 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 {
 	cJSON *autoboot = NULL;
 	cJSON *bootpriority = NULL;
+	cJSON *role = NULL;
 	cJSON *rootfs = NULL;
 	cJSON *extradisk = NULL;
 	cJSON *lifecycle = NULL;
@@ -182,6 +183,21 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 		bc->bootpriority = 1000; // Default value is 100s0
 		#ifdef _PRINTF_DEBUG_
 		fprintf(stdout,"cmparser: base-autoboot set default value = 1000\n");
+		#endif
+	}
+
+	// Get container role
+	role = cJSON_GetObjectItemCaseSensitive(base, "role");
+	if (cJSON_IsString(role) && (role->valuestring != NULL)) {
+		bc->role = strdup(role->valuestring);
+		#ifdef _PRINTF_DEBUG_
+		fprintf(stdout,"cmparser: base-role value = %s\n",bc->role);
+		#endif
+	} else {
+		// When it not set, role is default = NULL
+		bc->role = NULL;
+		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+		fprintf(stderr,"cmparser: base-role value is defule (NULL)\n");
 		#endif
 	}
 
@@ -396,7 +412,7 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 	// Get lifecycle data
 	lifecycle = cJSON_GetObjectItemCaseSensitive(base, "lifecycle");
 	if (cJSON_IsObject(lifecycle)) {
-		cJSON *halt = NULL, *reboot = NULL;
+		cJSON *halt = NULL, *reboot = NULL, *timeout = NULL;
 
 		halt = cJSON_GetObjectItemCaseSensitive(lifecycle, "halt");
 		if (cJSON_IsString(halt) && (halt->valuestring != NULL)) {
@@ -411,6 +427,20 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 			bc->lifecycle.reboot = strdup(reboot->valuestring);
 			#ifdef _PRINTF_DEBUG_
 			fprintf(stdout,"cmparser: base-lifecycle-reboot value = %s\n",bc->lifecycle.reboot);
+			#endif
+		}
+
+		// Get boot priority
+		timeout = cJSON_GetObjectItemCaseSensitive(lifecycle, "timeout");
+		if (cJSON_IsNumber(timeout) && (timeout->valueint > 0)) {
+			bc->lifecycle.timeout = timeout->valueint;
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stdout,"cmparser: base-timeout value = %d\n",bc->lifecycle.timeout);
+			#endif
+		} else {
+			bc->lifecycle.timeout = 1000; // Default value is 1000ms
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stdout,"cmparser: base-timeout set default value = 1000\n");
 			#endif
 		}
 	}
