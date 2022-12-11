@@ -191,7 +191,57 @@ err_ret:
 	
 	return result;
 }
+/**
+ * Read json string with memory alocation
+ *
+ * @param [in]	file		Full file path for json file
+ * @return int
+ * @retval -1 lxc runtime error.
+ * @retval -2 mandatory setting error.
+ * @retval -3 TODO.
+ */
+static int lxcutil_set_config_resource(struct lxc_container *plxc, container_resourceconfig_t *rsc)
+{
+	int ret = 1;
+	int result = -1;
+	bool bret = false;
+	char buf[1024];
+	int slen = 0, buflen = 0;
+	container_resource_elem_t *melem = NULL;
 
+	memset(buf,0,sizeof(buf));
+
+	dl_list_for_each(melem, &rsc->resource.resourcelist, container_resource_elem_t, list) {
+		buflen = sizeof(buf) - 1;
+		buf[0] = '\0';
+
+		if (melem->type == RESOURCE_TYPE_CGROUP) {
+			if (melem->object == NULL || melem->value == NULL)
+				continue;	//drop data
+
+			slen = snprintf(buf, buflen, "lxc.cgroup.%s", melem->object);
+			if (slen == buflen)
+				continue;	// buffer over -> drop data
+
+			bret = plxc->set_config_item(plxc, buf, melem->value);
+			if (bret == false) {
+				result = -1;
+				#ifdef _PRINTF_DEBUG_
+				fprintf(stderr,"lxcutil: lxcutil_set_config_resource set config %s = %s fail.\n", buf, melem->value);
+				#endif
+				goto err_ret;
+			}
+		} else {
+			; //nop
+		}
+	}
+
+	return 0;
+
+err_ret:
+
+	return result;
+}
 /**
  * Read json string with memory alocation
  *
@@ -685,7 +735,13 @@ int lxcutil_create_instance(container_config_t *cc)
 		result = -1;
 		goto err_ret;
 	}		
-	
+
+	ret = lxcutil_set_config_resource(plxc, &cc->resourceconfig);
+	if (ret < 0) {
+		result = -1;
+		goto err_ret;
+	}
+
 	ret = lxcutil_set_config_fs(plxc, &cc->fsconfig);
 	if (ret < 0) {
 		result = -1;
