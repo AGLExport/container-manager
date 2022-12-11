@@ -31,7 +31,7 @@ containermanager_LDADD = \
 	@LIBSYSTEMD_LIBS@ \
 	@LIBUDEV_LIBS@ \
 	@LIBMNL_LIBS@ \
-	@LIBCJSON_LIBS@ \
+	-lcjson \
 	@LIBLXC_LIBS@ \
 	@LIBBLKID_LIBS@
 
@@ -43,7 +43,7 @@ containermanager_CFLAGS = \
 	@LIBSYSTEMD_CFLAGS@ \
 	@LIBUDEV_CFLAGS@ \
 	@LIBMNL_CFLAGS@ \
-	@LIBCJSON_CFLAGS@ \
+	-I/usr/include/cjson \
 	@LIBLXC_CFLAGS@ \
 	@LIBBLKID_CFLAGS@ \
 	-D_GNU_SOURCE
@@ -56,7 +56,7 @@ containermanager_CXXFLAGS = \
 	@LIBSYSTEMD_CFLAGS@ \
 	@LIBUDEV_CFLAGS@ \
 	@LIBMNL_CFLAGS@ \
-	@LIBCJSON_CFLAGS@ \
+	-I/usr/include/cjson \
 	@LIBLXC_CFLAGS@ \
 	@LIBBLKID_CFLAGS@ \
 	-D_GNU_SOURCE
