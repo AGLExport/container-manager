@@ -63,6 +63,7 @@ int container_exec_internal_event(containers_t *cs);
 
 int container_start(container_config_t *cc);
 int container_terminate(container_config_t *cc);
+int container_cleanup(container_config_t *cc);
 
 //-----------------------------------------------------------------------------
 #endif //#ifndef CONTAINER_CONTROL_INTERNAL_H

@@ -462,7 +462,7 @@ static int container_request_shutdown(container_config_t *cc, int sys_state)
 			if (ret < 0) {
 				//In fail case, fource kill.
 				(void) lxcutil_container_fourcekill(cc);
-				(void) container_terminate(cc);
+				(void) container_cleanup(cc);
 				cc->runtime_stat.status = CONTAINER_NOT_STARTED; // guest is fource dead
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 				fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
@@ -489,6 +489,9 @@ static int container_request_shutdown(container_config_t *cc, int sys_state)
 		} else if (cc->runtime_stat.status == CONTAINER_EXIT) {
 			// undefined state
 			result = -1;
+		} else if (cc->runtime_stat.status == CONTAINER_DISABLE) {
+			// disabled container, not need new action
+			;
 		} else {
 			// undefined state
 			result = -1;
@@ -507,7 +510,7 @@ static int container_request_shutdown(container_config_t *cc, int sys_state)
 			if (ret < 0) {
 				//In fail case, fource kill.
 				(void) lxcutil_container_fourcekill(cc);
-				(void) container_terminate(cc);
+				(void) container_cleanup(cc);
 				cc->runtime_stat.status = CONTAINER_EXIT; // guest is fource exit
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 				fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
@@ -533,6 +536,9 @@ static int container_request_shutdown(container_config_t *cc, int sys_state)
 			cc->runtime_stat.status = CONTAINER_EXIT;
 		} else if (cc->runtime_stat.status == CONTAINER_EXIT) {
 			// Already exit, not need new action
+			;
+		} else if (cc->runtime_stat.status == CONTAINER_DISABLE) {
+			// disabled container, not need new action
 			;
 		} else {
 			// undefined state
@@ -648,7 +654,7 @@ int container_exec_internal_event(containers_t *cs)
 		// Check to all container was exited.
 		for(int i=0;i < num;i++) {
 			cc = cs->containers[i];
-			if (cc->runtime_stat.status == CONTAINER_EXIT) {
+			if (cc->runtime_stat.status == CONTAINER_EXIT || cc->runtime_stat.status == CONTAINER_DISABLE) {
 				exit_count++;
 			}
 		}
@@ -735,6 +741,13 @@ int container_start(container_config_t *cc)
 	int ret = -1;
 	bool bret = false;
 
+	if (cc->runtime_stat.status == CONTAINER_DISABLE) {
+		#ifdef _PRINTF_DEBUG_
+		fprintf(stderr, "container %s is disable launch\n", cc->name);
+		#endif
+		return 0;
+	}
+
 	#ifdef _PRINTF_DEBUG_
 	fprintf(stderr, "container_start %s\n", cc->name);
 	#endif
@@ -795,6 +808,12 @@ int container_mngsm_start(containers_t *cs)
 	for(int i=0;i < num;i++) {
 		cc = cs->containers[i];
 
+		// Initial launch select
+		if (cc->baseconfig.autoboot == 1)
+			 cc->runtime_stat.status = CONTAINER_NOT_STARTED;
+		else
+			cc->runtime_stat.status = CONTAINER_DISABLE;
+
 		ret = container_start(cc);
 		if (ret == 0) {
 			ret = container_monitor_addguest(cs, cc);
@@ -820,7 +839,7 @@ err_ret:
 	return result;
 }
 /**
- * Container start up
+ * Container terminated
  *
  * @param [in]	cs	Preconstructed containers_t
  * @return int
@@ -831,7 +850,21 @@ int container_terminate(container_config_t *cc)
 {
 	(void) lxcutil_release_instance(cc);
 	(void) container_device_remove_element(cc);
-	//(void) container_cleanup_preprocess_base(&cc->baseconfig);
+
+	return 0;
+}
+/**
+ * Container cleanup
+ *
+ * @param [in]	cs	Preconstructed containers_t
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Critical error.
+ */
+int container_cleanup(container_config_t *cc)
+{
+	(void) container_terminate(cc);
+	(void) container_cleanup_preprocess_base(&cc->baseconfig);
 
 	return 0;
 }
@@ -853,20 +886,7 @@ int container_mngsm_terminate(containers_t *cs)
 
 	for(int i=0;i < num;i++) {
 		cc = cs->containers[i];
-		(void) container_terminate(cc);
-
-		// TODO Need to move timing
-		// Stop container
-		/*
-		if (cc->runtime_stat.lxc != NULL) {
-			bret = cc->runtime_stat.lxc->stop(cc->runtime_stat.lxc);
-			if (bret == false) {
-				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr, "[FAIL] lxcutil_lxc-start\n");
-				#endif
-				;
-			}
-		}*/
+		(void) container_cleanup(cc);
 	}
 
 	return 0;
@@ -901,7 +921,7 @@ static int container_start_mountdisk_failover(char **devs, const char *path, con
 				#ifdef _PRINTF_DEBUG_
 				fprintf(stderr,"container_start_preprocess_base: %s is already mounted.\n", path);
 				#endif
-				ret = umount2(path, MNT_FORCE);
+				ret = umount2(path, MNT_DETACH);
 				if (ret < 0) {
 					#ifdef _PRINTF_DEBUG_
 					fprintf(stderr,"container_start_preprocess_base: %s unmount fail.\n", path);
@@ -969,7 +989,7 @@ static int container_start_mountdisk_ab(char **devs, const char *path, const cha
 			#ifdef _PRINTF_DEBUG_
 			fprintf(stderr,"container_start_mountdisk_ab: %s is already mounted.\n", path);
 			#endif
-			ret = umount2(path, MNT_FORCE);
+			ret = umount2(path, MNT_DETACH);
 			if (ret < 0) {
 				#ifdef _PRINTF_DEBUG_
 				fprintf(stderr,"container_start_mountdisk_ab: %s unmount fail.\n", path);
@@ -1097,9 +1117,9 @@ static int container_cleanup_preprocess_base(container_baseconfig_t *bc)
 			ret = umount(exdisk->from);
 			if (ret < 0) {
 				if (errno == EBUSY) {
-					(void) umount2(exdisk->from, MNT_FORCE);
+					(void) umount2(exdisk->from, MNT_DETACH);
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"container_cleanup_preprocess_base: force unmount to %s.\n", exdisk->from);
+					fprintf(stderr,"container_cleanup_preprocess_base: lazy unmount to %s.\n", exdisk->from);
 					#endif
 				}
 			}
@@ -1113,9 +1133,9 @@ static int container_cleanup_preprocess_base(container_baseconfig_t *bc)
 	ret = umount(bc->rootfs.path);
 	if (ret < 0) {
 		if (errno == EBUSY) {
-			(void) umount2(bc->rootfs.path, MNT_FORCE);
+			(void) umount2(bc->rootfs.path, MNT_DETACH);
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"container_cleanup_preprocess_base: force unmount to rootfs %s.\n", bc->rootfs.path);
+			fprintf(stderr,"container_cleanup_preprocess_base: lazy unmount to rootfs %s.\n", bc->rootfs.path);
 			#endif
 		}
 	}
