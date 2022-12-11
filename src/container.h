@@ -176,7 +176,8 @@ struct s_container_static_iio_elem {
 	char *devnode;	/** < Checck device node */
 	int optional;	/** < 0 = required, 1 = optional  */
 	//--- interal control data
-	int is_valid;	/** < gpio port available */
+	int is_sys_valid;	/** < sysfs node available */
+	int is_dev_valid;	/** < device node available */
 	int major;	/** < major number */
 	int minor;	/** < minor number */
 };
