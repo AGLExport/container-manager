@@ -952,10 +952,6 @@ static int container_start_mountdisk_failover(char **devs, const char *path, con
 		}
 	}
 
-	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr,"container_start_mountdisk_failover: %s mount to %s (%s)\n", dev, path, fstype);
-	#endif
-
 	return mntdisk;
 }
 /**
