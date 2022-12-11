@@ -131,10 +131,245 @@ static int cmparser_parser_get_diskmountfailop(const char *str)
 	return ret;
 }
 /**
- * parser for base section of container config.
+ * Sub functinon for the rootfs config parser.
  *
  * @param [out]	bc	Pointer to pre-allocated container_baseconfig_t.
- * @param [in]	bc	Pointer to cJSON object of top of base section.
+ * @param [in]	rootfs	Pointer to cJSON object of top of base section.
+ * @return int
+ * @retval  0 Success to parse.
+ * @retval -1 Json file error.
+ * @retval -2 Json file parse error. 
+ * @retval -3 Memory allocation error. 
+ */
+static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *rootfs)
+{
+	int result = -1;
+	cJSON *path = NULL, *filesystem = NULL, *mode = NULL, *blockdev = NULL;
+
+	path = cJSON_GetObjectItemCaseSensitive(rootfs, "path");
+	if (cJSON_IsString(path) && (path->valuestring != NULL)) {
+		bc->rootfs.path = strdup(path->valuestring);
+		#ifdef _PRINTF_DEBUG_
+		fprintf(stdout,"cmparser: base-path value = %s\n",bc->rootfs.path);
+		#endif
+	} else {
+		// Mandatory value
+		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+		fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-path not set. It's mandatory value\n");
+		#endif
+		result = -2;
+		goto err_ret;
+	}
+
+	filesystem = cJSON_GetObjectItemCaseSensitive(rootfs, "filesystem");
+	if (cJSON_IsString(filesystem) && (filesystem->valuestring != NULL)) {
+		bc->rootfs.filesystem = strdup(filesystem->valuestring);
+		#ifdef _PRINTF_DEBUG_
+		fprintf(stdout,"cmparser: filesystem value = %s\n",bc->rootfs.filesystem);
+		#endif
+	} else {
+		// Mandatory value
+		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+		fprintf(stderr,"[CM CRITICAL ERROR] cmparser: filesystem not set. It's mandatory value\n");
+		#endif
+		result = -2;
+		goto err_ret;
+	}
+
+	mode = cJSON_GetObjectItemCaseSensitive(rootfs, "mode");
+	if (cJSON_IsString(mode) && (mode->valuestring != NULL)) {
+		bc->rootfs.mode = cmparser_parser_get_diskmountmode(mode->valuestring);
+		#ifdef _PRINTF_DEBUG_
+		fprintf(stdout,"cmparser: mode value = %d\n",bc->rootfs.mode);
+		#endif
+	} else {
+		// When don't have disk mount mode setting, It's use ro mount as adefault.
+		bc->rootfs.mode = DISKMOUNT_TYPE_RO;
+	}
+
+	blockdev = cJSON_GetObjectItemCaseSensitive(rootfs, "blockdev");
+	if (cJSON_IsArray(blockdev)) {
+		cJSON *dev = NULL;
+		int i = 0;
+
+
+		cJSON_ArrayForEach(dev, blockdev) {
+			if (i < 2) {
+				if (cJSON_IsString(dev) && (dev->valuestring != NULL)) {
+					bc->rootfs.blockdev[i] = strdup(dev->valuestring);
+					#ifdef _PRINTF_DEBUG_
+					fprintf(stdout,"cmparser: base-path blockdev[%d] = %s\n",i,bc->rootfs.blockdev[i]);
+					#endif
+				} else {
+					bc->rootfs.blockdev[i] = NULL;
+					#ifdef _PRINTF_DEBUG_
+					fprintf(stdout,"cmparser: base-path blockdev[%d] set default value = NULL\n", i);
+					#endif
+				}
+			}
+			i++;
+		}
+	}
+
+	return 0;
+
+err_ret:
+
+	return result;
+}
+/**
+ * Sub functinon for the extradisk config parser.
+ *
+ * @param [out]	bc	Pointer to pre-allocated container_baseconfig_t.
+ * @param [in]	extradisk	Pointer to cJSON object of top of base section.
+ * @return int
+ * @retval  0 Success to parse.
+ * @retval -1 Json file error.
+ * @retval -2 Json file parse error. 
+ * @retval -3 Memory allocation error. 
+ */
+static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON *extradisk)
+{
+	int result = -1;
+	cJSON *disk = NULL;
+
+	cJSON_ArrayForEach(disk, extradisk) {
+		cJSON *from = NULL, *to = NULL,  *blockdev = NULL;
+		cJSON *filesystem = NULL, *mode = NULL, *redundancy = NULL;
+		container_baseconfig_extradisk_t *exdisk = NULL;
+		int mntmode = 0, mntredundancy = 0;
+		char *bdev[2], *fsstr = NULL;
+		bdev[0] = NULL;
+		bdev[1] = NULL;
+
+		from = cJSON_GetObjectItemCaseSensitive(disk, "from");
+		if (cJSON_IsString(from) && (from->valuestring != NULL)) {
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stdout,"cmparser: base-extradisk from = %s\n",from->valuestring);
+			#endif
+			;
+		} else {
+			// Mandatory value, drop this entry.
+			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+			fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-extradisk from not set. It's mandatory value. drop entry\n");
+			#endif
+			continue;
+		}
+
+		to = cJSON_GetObjectItemCaseSensitive(disk, "to");
+		if (cJSON_IsString(to) && (to->valuestring != NULL)) {
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stdout,"cmparser: base-extradisk to = %s\n",to->valuestring);
+			#endif
+			;
+		} else {
+			// Mandatory value, drop this entry.
+			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+			fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-extradisk to not set. It's mandatory value. drop entry\n");
+			#endif
+			continue;
+		}
+
+		filesystem = cJSON_GetObjectItemCaseSensitive(disk, "filesystem");
+		if (cJSON_IsString(filesystem) && (filesystem->valuestring != NULL)) {
+			fsstr = filesystem->valuestring;
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stdout,"cmparser: base-extradisk filesystem = %s\n",filesystem->valuestring);
+			#endif
+		} else {
+			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+			fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-extradisk filesystem not set. It's mandatory value. drop entry\n");
+			#endif
+			fsstr = NULL;
+		}
+
+		mode = cJSON_GetObjectItemCaseSensitive(disk, "mode");
+		if (cJSON_IsString(mode) && (mode->valuestring != NULL)) {
+			mntmode = cmparser_parser_get_diskmountmode(mode->valuestring);
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stdout,"cmparser: base-extradisk mode = %s\n",mode->valuestring);
+			#endif
+		} else {
+			// When don't have disk mount mode setting, It's use ro mount as adefault.
+			mntmode = DISKMOUNT_TYPE_RO;
+		}
+
+		redundancy = cJSON_GetObjectItemCaseSensitive(disk, "redundancy");
+		if (cJSON_IsString(redundancy) && (redundancy->valuestring != NULL)) {
+			mntredundancy = cmparser_parser_get_diskmountfailop(redundancy->valuestring);
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stdout,"cmparser: base-extradisk redundancy = %s\n",redundancy->valuestring);
+			#endif
+		} else {
+			// When don't have disk mount mode setting, It's use failover as adefault.
+			mntredundancy = DISKREDUNDANCY_TYPE_FAILOVER;
+		}
+
+		blockdev = cJSON_GetObjectItemCaseSensitive(disk, "blockdev");
+		if (cJSON_IsArray(blockdev)) {
+			cJSON *dev = NULL;
+			int i = 0;
+
+			cJSON_ArrayForEach(dev, blockdev) {
+				if (i < 2) {
+					if (cJSON_IsString(dev) && (dev->valuestring != NULL)) {
+						bdev[i] = dev->valuestring;
+						#ifdef _PRINTF_DEBUG_
+						fprintf(stdout,"cmparser: base-extradisk blockdev[%d] = %s\n", i, bdev[i]);
+						#endif
+					} else {
+						bdev[i] = NULL;
+						#ifdef _PRINTF_DEBUG_
+						fprintf(stdout,"cmparser: base-extradisk blockdev[%d] set default value = NULL\n", i);
+						#endif
+					}
+				}
+				i++;
+			}
+		}
+
+		if(bdev[0] == NULL) {
+			// Mandatory value, drop this entry.
+			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+			fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-extradisk blockdev[0] not set. It's mandatory value. drop entry\n");
+			#endif
+			continue;
+		}
+
+		// When no error, create add list
+		exdisk = (container_baseconfig_extradisk_t*)malloc(sizeof(container_baseconfig_extradisk_t));
+		if (exdisk == NULL) {
+			result = -3;
+			goto err_ret;
+		}
+		memset(exdisk, 0 , sizeof(container_baseconfig_extradisk_t));
+
+		dl_list_init(&exdisk->list);
+		exdisk->from = strdup(from->valuestring);
+		exdisk->to = strdup(to->valuestring);
+		if (fsstr != NULL)
+			exdisk->filesystem = strdup(fsstr);
+		exdisk->mode = mntmode;
+		exdisk->redundancy = mntredundancy;
+		exdisk->blockdev[0] = strdup(bdev[0]);
+		if (bdev[1] != NULL)
+			exdisk->blockdev[1] = strdup(bdev[1]);
+
+		dl_list_add_tail(&bc->extradisk_list, &exdisk->list);
+	}
+
+	return 0;
+
+err_ret:
+
+	return result;
+}
+
+/**
+ * parser for base section of container config.
+ *
+ * @param [out]	bc		Pointer to pre-allocated container_baseconfig_t.
+ * @param [in]	base	Pointer to cJSON object of top of base section.
  * @return int
  * @retval  0 Success to parse.
  * @retval -1 Json file error.
@@ -204,71 +439,9 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 	// Get rootfs part
 	rootfs = cJSON_GetObjectItemCaseSensitive(base, "rootfs");
 	if (cJSON_IsObject(rootfs)) {
-		cJSON *path = NULL, *filesystem = NULL, *mode = NULL, *blockdev = NULL;
-
-		path = cJSON_GetObjectItemCaseSensitive(rootfs, "path");
-		if (cJSON_IsString(path) && (path->valuestring != NULL)) {
-			bc->rootfs.path = strdup(path->valuestring);
-			#ifdef _PRINTF_DEBUG_
-			fprintf(stdout,"cmparser: base-path value = %s\n",bc->rootfs.path);
-			#endif
-		} else {
-			// Mandatory value
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-path not set. It's mandatory value\n");
-			#endif
-			result = -2;
+		result = cmparser_parse_base_rootfs(bc, rootfs);
+		if (result != 0)
 			goto err_ret;
-		}
-
-		filesystem = cJSON_GetObjectItemCaseSensitive(rootfs, "filesystem");
-		if (cJSON_IsString(filesystem) && (filesystem->valuestring != NULL)) {
-			bc->rootfs.filesystem = strdup(filesystem->valuestring);
-			#ifdef _PRINTF_DEBUG_
-			fprintf(stdout,"cmparser: filesystem value = %s\n",bc->rootfs.filesystem);
-			#endif
-		} else {
-			// Mandatory value
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			fprintf(stderr,"[CM CRITICAL ERROR] cmparser: filesystem not set. It's mandatory value\n");
-			#endif
-			result = -2;
-			goto err_ret;
-		}
-
-		mode = cJSON_GetObjectItemCaseSensitive(rootfs, "mode");
-		if (cJSON_IsString(mode) && (mode->valuestring != NULL)) {
-			bc->rootfs.mode = cmparser_parser_get_diskmountmode(mode->valuestring);
-			#ifdef _PRINTF_DEBUG_
-			fprintf(stdout,"cmparser: mode value = %d\n",bc->rootfs.mode);
-			#endif
-		} else {
-			// When don't have disk mount mode setting, It's use ro mount as adefault.
-			bc->rootfs.mode = DISKMOUNT_TYPE_RO;
-		}
-
-		blockdev = cJSON_GetObjectItemCaseSensitive(rootfs, "blockdev");
-		if (cJSON_IsArray(blockdev)) {
-			cJSON *dev = NULL;
-			int i = 0;
-
-			cJSON_ArrayForEach(dev, blockdev) {
-				if (i < 2) {
-					if (cJSON_IsString(dev) && (dev->valuestring != NULL)) {
-						bc->rootfs.blockdev[i] = strdup(dev->valuestring);
-						#ifdef _PRINTF_DEBUG_
-						fprintf(stdout,"cmparser: base-path blockdev[%d] = %s\n",i,bc->rootfs.blockdev[i]);
-						#endif
-					} else {
-						bc->rootfs.blockdev[i] = NULL;
-						#ifdef _PRINTF_DEBUG_
-						fprintf(stdout,"cmparser: base-path blockdev[%d] set default value = NULL\n", i);
-						#endif
-					}
-				}
-				i++;
-			}
-		}
 	} else {
 		// Mandatory value
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
@@ -281,132 +454,9 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 	// Get persistence part
 	extradisk = cJSON_GetObjectItemCaseSensitive(base, "extradisk");
 	if (cJSON_IsArray(extradisk)) {
-		cJSON *disk = NULL;
-
-		cJSON_ArrayForEach(disk, extradisk) {
-			cJSON *from = NULL, *to = NULL,  *blockdev = NULL;
-			cJSON *filesystem = NULL, *mode = NULL, *redundancy = NULL;
-			container_baseconfig_extradisk_t *exdisk = NULL;
-			int mntmode = 0, mntredundancy = 0;
-			char *bdev[2], *fsstr = NULL;
-			bdev[0] = NULL;
-			bdev[1] = NULL;
-
-			from = cJSON_GetObjectItemCaseSensitive(disk, "from");
-			if (cJSON_IsString(from) && (from->valuestring != NULL)) {
-				#ifdef _PRINTF_DEBUG_
-				fprintf(stdout,"cmparser: base-extradisk from = %s\n",from->valuestring);
-				#endif
-				;
-			} else {
-				// Mandatory value, drop this entry.
-				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-extradisk from not set. It's mandatory value. drop entry\n");
-				#endif
-				continue;
-			}
-
-			to = cJSON_GetObjectItemCaseSensitive(disk, "to");
-			if (cJSON_IsString(to) && (to->valuestring != NULL)) {
-				#ifdef _PRINTF_DEBUG_
-				fprintf(stdout,"cmparser: base-extradisk to = %s\n",to->valuestring);
-				#endif
-				;
-			} else {
-				// Mandatory value, drop this entry.
-				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-extradisk to not set. It's mandatory value. drop entry\n");
-				#endif
-				continue;
-			}
-
-			filesystem = cJSON_GetObjectItemCaseSensitive(disk, "filesystem");
-			if (cJSON_IsString(filesystem) && (filesystem->valuestring != NULL)) {
-				fsstr = filesystem->valuestring;
-				#ifdef _PRINTF_DEBUG_
-				fprintf(stdout,"cmparser: base-extradisk filesystem = %s\n",filesystem->valuestring);
-				#endif
-			} else {
-				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-extradisk filesystem not set. It's mandatory value. drop entry\n");
-				#endif
-				fsstr = NULL;
-			}
-
-			mode = cJSON_GetObjectItemCaseSensitive(disk, "mode");
-			if (cJSON_IsString(mode) && (mode->valuestring != NULL)) {
-				mntmode = cmparser_parser_get_diskmountmode(mode->valuestring);
-				#ifdef _PRINTF_DEBUG_
-				fprintf(stdout,"cmparser: base-extradisk mode = %s\n",mode->valuestring);
-				#endif
-			} else {
-				// When don't have disk mount mode setting, It's use ro mount as adefault.
-				mntmode = DISKMOUNT_TYPE_RO;
-			}
-
-			redundancy = cJSON_GetObjectItemCaseSensitive(disk, "redundancy");
-			if (cJSON_IsString(redundancy) && (redundancy->valuestring != NULL)) {
-				mntredundancy = cmparser_parser_get_diskmountfailop(redundancy->valuestring);
-				#ifdef _PRINTF_DEBUG_
-				fprintf(stdout,"cmparser: base-extradisk redundancy = %s\n",redundancy->valuestring);
-				#endif
-			} else {
-				// When don't have disk mount mode setting, It's use failover as adefault.
-				mntredundancy = DISKREDUNDANCY_TYPE_FAILOVER;
-			}
-
-			blockdev = cJSON_GetObjectItemCaseSensitive(disk, "blockdev");
-			if (cJSON_IsArray(blockdev)) {
-				cJSON *dev = NULL;
-				int i = 0;
-
-				cJSON_ArrayForEach(dev, blockdev) {
-					if (i < 2) {
-						if (cJSON_IsString(dev) && (dev->valuestring != NULL)) {
-							bdev[i] = dev->valuestring;
-							#ifdef _PRINTF_DEBUG_
-							fprintf(stdout,"cmparser: base-extradisk blockdev[%d] = %s\n", i, bdev[i]);
-							#endif
-						} else {
-							bdev[i] = NULL;
-							#ifdef _PRINTF_DEBUG_
-							fprintf(stdout,"cmparser: base-extradisk blockdev[%d] set default value = NULL\n", i);
-							#endif
-						}
-					}
-					i++;
-				}
-			}
-
-			if(bdev[0] == NULL) {
-				// Mandatory value, drop this entry.
-				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-extradisk blockdev[0] not set. It's mandatory value. drop entry\n");
-				#endif
-				continue;
-			}
-
-			// When no error, create add list
-			exdisk = (container_baseconfig_extradisk_t*)malloc(sizeof(container_baseconfig_extradisk_t));
-			if (exdisk == NULL) {
-				result = -3;
-				goto err_ret;
-			}
-			memset(exdisk, 0 , sizeof(container_baseconfig_extradisk_t));
-
-			dl_list_init(&exdisk->list);
-			exdisk->from = strdup(from->valuestring);
-			exdisk->to = strdup(to->valuestring);
-			if (fsstr != NULL)
-				exdisk->filesystem = strdup(fsstr);
-			exdisk->mode = mntmode;
-			exdisk->redundancy = mntredundancy;
-			exdisk->blockdev[0] = strdup(bdev[0]);
-			if (bdev[1] != NULL)
-				exdisk->blockdev[1] = strdup(bdev[1]);
-
-			dl_list_add_tail(&bc->extradisk_list, &exdisk->list);
-		}
+		result = cmparser_parse_base_extradisk(bc, extradisk);
+		if (result != 0)
+			goto err_ret;
 	}
 
 	// Get lifecycle data
