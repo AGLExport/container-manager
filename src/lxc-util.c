@@ -165,12 +165,6 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 		}
 
 	}
-	#ifdef _PRINTF_DEBUG_
-	else {
-		fprintf(stderr,"lxcutil: lxcutil_set_config_base idmap is disabled (%d)\n", bc->idmaps.enabled);
-	}
-	#endif
-
 
 	// static setting
 	bret = plxc->set_config_item(plxc, "lxc.tty.max", "1");
