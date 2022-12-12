@@ -109,8 +109,9 @@ int main(int argc, char *argv[])
 	if (ret < 0)
 		goto finish;
 
-	//ret = lxc_container_put(plxc);
 	ret = container_mngsm_start(cs);
+	if (ret < 0)
+		goto finish;
 
 	(void) sd_notify(
 		1,

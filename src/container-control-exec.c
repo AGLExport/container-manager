@@ -801,7 +801,11 @@ int container_mngsm_start(containers_t *cs)
 	container_config_t *cc = NULL;
 	container_control_interface_t *cci = NULL;
 
-	container_mngsm_interface_get(&cci, cs);
+	ret = container_mngsm_interface_get(&cci, cs);
+	if (ret < 0) {
+		// May not get this error
+		return -1;
+	}
 
 	num = cs->num_of_container;
 
@@ -826,11 +830,15 @@ int container_mngsm_start(containers_t *cs)
 		}
 	}
 
-	// dynamic device update
-	cci->device_updated(cci);
-	cci->netif_updated(cci);
+	// dynamic device update - if these return error, recover to update timing
+	(void) cci->device_updated(cci);
+	(void) cci->netif_updated(cci);
 
-	container_mngsm_update_timertick(cs);
+	ret = container_mngsm_update_timertick(cs);
+	if (ret < 0) {
+		// May not get this error
+		return -1;
+	}
 
 	return 0;
 
