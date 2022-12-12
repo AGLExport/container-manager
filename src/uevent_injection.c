@@ -26,6 +26,32 @@
 #endif
 
 /**
+ * Sub function for uevent monitor.
+ * Get point to /dev/ trimmed devname.
+ *
+ * @param [in]	handle	Handle created by udevmonitor_setup;
+ * @return int	 != NULL pointer to devname
+ * 				 1 on the blacklist
+ * 				-3 argument error
+ *				-2 internal error
+ *				-1 Mandatory data is nothing
+ */
+static char *trimmed_devname(char* devnode)
+{
+	char *cmpstr = "/dev/";
+	char *pstr = NULL;
+	int cmplen = 0;
+
+	cmplen = strlen(cmpstr);
+
+	if (strncmp(devnode, cmpstr, cmplen) == 0) {
+		pstr = devnode;
+		pstr += cmplen;
+	}
+
+	return pstr;
+}
+/**
  * Sub function for open name space.
  *
  * @param [in]	pid	target process pid
@@ -230,19 +256,24 @@ static int uevent_injection_create_ueventdata(char *buf, int bufsize, dynamic_de
 
 	// DEVNAME=sdb1
 	if (dded->devnode != NULL) {
-		ret = snprintf(&buf[usage], remain, "DEVNAME=%s", dded->devnode);
-		if ((!(ret < remain)) || ret < 0)
-			return -2;
+		char *devname = NULL;
+		devname = trimmed_devname(dded->devnode);
+		if (devname != NULL) {
+			ret = snprintf(&buf[usage], remain, "DEVNAME=%s", devname);
+			if ((!(ret < remain)) || ret < 0)
+				return -2;
 
-		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr, "add injection message : %s\n", &buf[usage]);
-		#endif
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stderr, "add injection message : %s\n", &buf[usage]);
+			#endif
 
-		usage = usage + ret + 1 /*NULL term*/;
-		remain = bufsize - usage;
-		if (remain < 0)
-			return -2;
+			usage = usage + ret + 1 /*NULL term*/;
+			remain = bufsize - usage;
+			if (remain < 0)
+				return -2;
+		}
 	}
+
 	// DEVTYPE=partition
 	if (dded->devtype != NULL) {
 		ret = snprintf(&buf[usage], remain, "DEVTYPE=%s", dded->devtype);
