@@ -27,8 +27,6 @@ struct s_container_baseconfig_rootfs {
 	char *filesystem;	/**< rootfs file system type */
 	int mode;	/**< file system mount mode (ro/rw) */
 	char *blockdev[2];	/**< block device for rootfs with A/B update 0=a.1=b */
-	//--- interal control data
-	int rwmount;	/**< rw mount for rootfs */
 };
 typedef struct s_container_baseconfig_rootfs container_baseconfig_rootfs_t;
 
@@ -99,7 +97,6 @@ struct s_container_resource_elem {
 	int type;	/** < resource control type */
 	char *object;	/** < resource object */
 	char *value;	/** < value for resource object */
-	//--- interal control data
 };
 typedef struct s_container_resource_elem container_resource_elem_t;
 
@@ -124,7 +121,6 @@ struct s_container_fsmount_elem {
 	char *to;	/** < guest side mount etry  */
 	char *fstype;	/** < file system type */
 	char *option;	/** < mount option  */
-	//--- interal control data
 };
 typedef struct s_container_fsmount_elem container_fsmount_elem_t;
 
@@ -216,8 +212,6 @@ typedef struct s_container_static_device container_static_device_t;
 
 struct s_dynamic_device_elem_data {
 	struct dl_list list;
-	//char *syspath;	/** < sysfs path */
-	//char *sysname;	/** < sysname  */
 	char *devpath;	/** < devpath */
 	char *devtype;	/** < device type */
 	char *subsystem;	/** < subsystem name */
@@ -226,7 +220,6 @@ struct s_dynamic_device_elem_data {
 	char *diskseq;	/** < diskseq - block device - disk/partition only */
 	char *partn;	/** < partition num - block device - partition only */
 	//--- interal control data
-
 	int is_available;
 };
 typedef struct s_dynamic_device_elem_data dynamic_device_elem_data_t;
@@ -237,7 +230,6 @@ struct s_container_dynamic_device_elem {
 	char *subsystem;
 	char *devtype;
 	int mode;
-
 	//--- interal control data
 	struct dl_list device_list;
 };
@@ -273,8 +265,6 @@ struct s_container_static_netif_elem {
 	struct dl_list list;
 	int type;
 	void *setting;
-
-	//--- interal control data
 };
 typedef struct s_container_static_netif_elem container_static_netif_elem_t;
 
@@ -286,9 +276,7 @@ typedef struct s_container_static_netif container_static_netif_t;
 struct s_container_dynamic_netif_elem {
 	struct dl_list list;
 	char *ifname;
-
 	//--- interal control data
-	//struct dl_list netif_list;
 	int ifindex;
 	int is_available;
 };
@@ -330,10 +318,8 @@ struct s_container_config {
 	container_fsconfig_t fsconfig;
 	container_deviceconfig_t deviceconfig;
 	container_netifconfig_t netifconfig;
-
 	//--- interal control data
 	container_runtime_status_t runtime_stat;
-
 };
 typedef struct s_container_config container_config_t;
 //-----------------------------------------------------------------------------
