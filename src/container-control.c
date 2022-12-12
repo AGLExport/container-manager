@@ -138,7 +138,7 @@ static int container_mngsm_commsocket_setup(containers_t *cs, sd_event *event)
 	cms = (struct s_container_mngsm*)cs->cms;
 
 	// Create state machine control socket
-	ret = socketpair(AF_UNIX, SOCK_SEQPACKET|SOCK_CLOEXEC|SOCK_NONBLOCK, AF_UNIX, pairfd); 
+	ret = socketpair(AF_UNIX, SOCK_SEQPACKET|SOCK_CLOEXEC|SOCK_NONBLOCK, AF_UNIX, pairfd);
 	if (ret < 0) {
 		goto err_return;
 	}

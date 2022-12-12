@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	container.h
- * @brief	container management data 
+ * @brief	container management data
  */
 #ifndef CONTAINER_H
 #define CONTAINER_H
@@ -226,7 +226,7 @@ struct s_dynamic_device_elem_data {
 	char *diskseq;	/** < diskseq - block device - disk/partition only */
 	char *partn;	/** < partition num - block device - partition only */
 	//--- interal control data
-	
+
 	int is_available;
 };
 typedef struct s_dynamic_device_elem_data dynamic_device_elem_data_t;
@@ -352,7 +352,7 @@ struct s_containers {
 	int num_of_container;	/** < Num of container data */
 	int sys_state;
 	container_config_t **containers;	/** < container config array */
-	
+
 	container_mngsm_t *cms;	/** < container management state machine */
 	container_control_interface_t *cci;	/** < container control interface */
 	dynamic_device_manager_t *ddm;	/** < dynamic device manager */

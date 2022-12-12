@@ -26,8 +26,8 @@ static const char DEFAULT_CONF_PATH[] = "/etc/container-manager.json";
  * @param [in]	data1	data 2
  * @return int
  * @retval 0 same boot pri between data1 and data2.
- * @retval -1 data1 is higher than data2. 
- * @retval 1 data2 is higher than data1. 
+ * @retval -1 data1 is higher than data2.
+ * @retval 1 data2 is higher than data1.
  */
 static int compare_bootpri(const void *data1, const void *data2)
 {
@@ -101,13 +101,13 @@ containers_t *create_container_configs(const char *config_file)
 		struct dirent *dent = NULL;
 
 		do {
-			dent = readdir(dir); 
+			dent = readdir(dir);
 			if (dent != NULL) {
 				if (strstr(dent->d_name, ".json") != NULL) {
 
 					buf[slen] = '\0';
 					(void)strncat(buf, dent->d_name, buflen);
-	
+
 					// parse container config.
 					ret = cmparser_create_from_file(&cc, buf);
 					if (ret < 0) {
@@ -124,7 +124,7 @@ containers_t *create_container_configs(const char *config_file)
 			}
 		}
 		while(dent != NULL);
-	
+
 		closedir(dir);
 	}
 
@@ -181,8 +181,8 @@ err_ret:
  * @param [in]	file		Full file path for json file
  * @return int
  * @retval -1 Json file error.
- * @retval -2 Json file parse error. 
- * @retval -3 Memory allocation error. 
+ * @retval -2 Json file parse error.
+ * @retval -3 Memory allocation error.
  */
 int release_container_configs(containers_t *cs)
 {
@@ -192,13 +192,13 @@ int release_container_configs(containers_t *cs)
 		return -1;
 
 	num = cs->num_of_container;
-	
+
 	for(int i=0; i<num;i++) {
 		cmparser_release_config(cs->containers[i]);
 	}
 
 	free(cs->containers);
-	cmparser_manager_release_config(cs->cmcfg);	
+	cmparser_manager_release_config(cs->cmcfg);
 	free(cs);
 
 	return 0;

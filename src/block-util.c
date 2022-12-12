@@ -59,8 +59,8 @@ int block_util_getfs(const char *devpath, block_device_info_t *bdi)
 			pmagic[2] = data[2];
 			pmagic[3] = data[3];
 		} else if (sz == 2) {
-			pmagic[0] = data[0]; 
-			pmagic[1] = data[1]; 
+			pmagic[0] = data[0];
+			pmagic[1] = data[1];
 		} else {
 			goto error_ret;
 		}

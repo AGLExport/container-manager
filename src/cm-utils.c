@@ -163,7 +163,7 @@ int64_t get_current_time_ms(void)
 	ret = clock_gettime(CLOCK_MONOTONIC, &t);
 	if (ret == 0) {
 		ms = (t.tv_sec * 1000) + (t.tv_nsec / 1000 / 1000);
-	} 
+	}
 
 	return ms;
 }

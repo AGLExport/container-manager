@@ -143,7 +143,7 @@ err_return:
  * @return int
  * @retval  0 Success.
  * @retval -1 mount error.
- * @retval -2 Syscall error. 
+ * @retval -2 Syscall error.
  */
 int container_monitor_removeguest(containers_t *cs, container_config_t *cc)
 {
