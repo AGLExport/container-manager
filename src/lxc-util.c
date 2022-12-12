@@ -25,8 +25,8 @@
  * @param [in]	file		Full file path for json file
  * @return int
  * @retval -1 Json file error.
- * @retval -2 Json file perse error. 
- * @retval -3 Memory allocation error. 
+ * @retval -2 Json file perse error.
+ * @retval -3 Memory allocation error.
  */
 static int lxcutil_set_config_base(struct lxc_container *plxc, container_baseconfig_t *bc)
 {
@@ -41,7 +41,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 	// rootfs
 	(void)strncat(buf, "dir:", sizeof(buf)-1);
 	(void)strncat(buf, bc->rootfs.path, sizeof(buf)-1-4);
-	
+
 	bret = plxc->set_config_item(plxc, "lxc.rootfs.path", buf);
 	if (bret == false) {
 		result = -1;
@@ -60,9 +60,9 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 			buflen = sizeof(buf) -1;
 
 			if (exdisk->mode == DISKMOUNT_TYPE_RW) {
-				slen = snprintf(buf, buflen, "%s %s none bind,rw,create=dir", exdisk->from, exdisk->to); 
+				slen = snprintf(buf, buflen, "%s %s none bind,rw,create=dir", exdisk->from, exdisk->to);
 			} else {
-				slen = snprintf(buf, buflen, "%s %s none bind,ro,create=dir", exdisk->from, exdisk->to); 
+				slen = snprintf(buf, buflen, "%s %s none bind,ro,create=dir", exdisk->from, exdisk->to);
 			}
 
 			if (slen != buflen) {
@@ -188,7 +188,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 	return 0;
 
 err_ret:
-	
+
 	return result;
 }
 /**
@@ -248,8 +248,8 @@ err_ret:
  * @param [in]	file		Full file path for json file
  * @return int
  * @retval -1 lxc runtime error.
- * @retval -2 mandatory setting error. 
- * @retval -3 TODO. 
+ * @retval -2 mandatory setting error.
+ * @retval -3 TODO.
  */
 static int lxcutil_set_config_fs(struct lxc_container *plxc, container_fsconfig_t *fsc)
 {
@@ -279,10 +279,10 @@ static int lxcutil_set_config_fs(struct lxc_container *plxc, container_fsconfig_
 			if (melem->from == NULL || melem->to == NULL || melem->fstype == NULL || melem->option == NULL)
 				continue;	//drop data
 
-			slen = snprintf(buf, buflen, "%s %s %s %s", melem->from, melem->to, melem->fstype, melem->option); 
+			slen = snprintf(buf, buflen, "%s %s %s %s", melem->from, melem->to, melem->fstype, melem->option);
 			if (slen == buflen)
 				continue;	// buffer over -> drop data
-			
+
 			bret = plxc->set_config_item(plxc, "lxc.mount.entry", buf);
 			if (bret == false) {
 				result = -1;
@@ -295,10 +295,10 @@ static int lxcutil_set_config_fs(struct lxc_container *plxc, container_fsconfig_
 			if (melem->from == NULL || melem->to == NULL || melem->fstype == NULL || melem->option == NULL)
 				continue;	//drop data
 
-			slen = snprintf(buf, buflen, "%s %s %s %s", melem->from, melem->to, melem->fstype, melem->option); 
+			slen = snprintf(buf, buflen, "%s %s %s %s", melem->from, melem->to, melem->fstype, melem->option);
 			if (slen == buflen)
 				continue;	// buffer over -> drop data
-			
+
 			bret = plxc->set_config_item(plxc, "lxc.mount.entry", buf);
 			if (bret == false) {
 				result = -1;
@@ -315,7 +315,7 @@ static int lxcutil_set_config_fs(struct lxc_container *plxc, container_fsconfig_
 	return 0;
 
 err_ret:
-	
+
 	return result;
 }
 
@@ -325,8 +325,8 @@ err_ret:
  * @param [in]	file		Full file path for json file
  * @return int
  * @retval -1 lxc runtime error.
- * @retval -2 mandatory setting error. 
- * @retval -3 TODO. 
+ * @retval -2 mandatory setting error.
+ * @retval -3 TODO.
  */
 static int lxcutil_set_config_static_device(struct lxc_container *plxc, container_deviceconfig_t *devc)
 {
@@ -350,7 +350,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 		buflen = sizeof(buf) - 1;
 		memset(buf,0,sizeof(buf));
 
-		if (develem->from == NULL || develem->to == NULL 
+		if (develem->from == NULL || develem->to == NULL
 			|| (develem->optional == 0 && develem->is_valid == 0)) {
 			result = -2;
 			goto err_ret;
@@ -359,7 +359,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 		if (develem->is_valid == 0)
 			continue;	//drop data
 
-		slen = snprintf(buf, buflen, "%s %s none bind,rw", develem->from, develem->to); 
+		slen = snprintf(buf, buflen, "%s %s none bind,rw", develem->from, develem->to);
 		if (slen == buflen)
 			continue;	// buffer over -> drop data
 
@@ -424,7 +424,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 			goto err_ret;
 		}
 
-		slen = snprintf(buf, buflen, "%s %s none bind", gpioelem->from, gpioelem->to); 
+		slen = snprintf(buf, buflen, "%s %s none bind", gpioelem->from, gpioelem->to);
 		if (slen == buflen)
 			continue;	// buffer over -> drop data
 
@@ -482,7 +482,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 			}
 		}
 
-		slen = snprintf(buf, buflen, "%s %s none bind,rw", iioelem->sysfrom, iioelem->systo); 
+		slen = snprintf(buf, buflen, "%s %s none bind,rw", iioelem->sysfrom, iioelem->systo);
 		if (slen == buflen)
 			continue;	// buffer over -> drop data
 
@@ -502,7 +502,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 			buf[0] = '\0';
 
 			if (iioelem->is_dev_valid == 1) {
-				slen = snprintf(buf, buflen, "%s %s none bind,rw", iioelem->devfrom, iioelem->devto); 
+				slen = snprintf(buf, buflen, "%s %s none bind,rw", iioelem->devfrom, iioelem->devto);
 				if (slen == buflen)
 					continue;	// buffer over -> drop data
 
@@ -554,13 +554,13 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 				fprintf(stderr,"lxcutil: lxcutil_set_config_base skip  %s\n", iioelem->devfrom);
 				#endif
 			}
-		} 
+		}
 	}
 
 	return 0;
 
 err_ret:
-	
+
 	return result;
 }
 /**
@@ -699,8 +699,8 @@ err_ret:
  * @param [in]	file		Full file path for json file
  * @return int
  * @retval -1 Json file error.
- * @retval -2 Json file perse error. 
- * @retval -3 Memory allocation error. 
+ * @retval -2 Json file perse error.
+ * @retval -3 Memory allocation error.
  */
 int lxcutil_create_instance(container_config_t *cc)
 {
@@ -734,7 +734,7 @@ int lxcutil_create_instance(container_config_t *cc)
 	if (ret < 0) {
 		result = -1;
 		goto err_ret;
-	}		
+	}
 
 	ret = lxcutil_set_config_resource(plxc, &cc->resourceconfig);
 	if (ret < 0) {
@@ -746,13 +746,13 @@ int lxcutil_create_instance(container_config_t *cc)
 	if (ret < 0) {
 		result = -1;
 		goto err_ret;
-	}		
+	}
 
 	ret = lxcutil_set_config_static_device(plxc, &cc->deviceconfig);
 	if (ret < 0) {
 		result = -1;
 		goto err_ret;
-	}		
+	}
 
 	ret = lxcutil_set_config_static_netif(plxc, &cc->netifconfig);
 	if (ret < 0) {
@@ -776,7 +776,7 @@ int lxcutil_create_instance(container_config_t *cc)
 		bret = plxc->save_config(cc->runtime_stat.lxc, buf);
 		if (bret == false)
 			fprintf(stderr,"lxcutil: save_config fail.\n");
-		
+
 	}
 	#endif
 
@@ -989,7 +989,7 @@ int lxcutil_dynamic_device_add_to_guest(container_config_t *cc, dynamic_device_e
 		ret = snprintf(buf, sizeof(buf), "b %d:%d rwm", major(dded->devnum), minor(dded->devnum));
 	} else {
 		ret = snprintf(buf, sizeof(buf), "c %d:%d rwm", major(dded->devnum), minor(dded->devnum));
-	} 
+	}
 
 	if (!(ret < (sizeof(buf)-1))) {
 		result = -1;
@@ -1027,7 +1027,7 @@ int lxcutil_dynamic_device_add_to_guest(container_config_t *cc, dynamic_device_e
 	}
 
 	return 0;
-	
+
 err_ret:
 
 	return result;
@@ -1059,7 +1059,7 @@ int lxcutil_dynamic_device_remove_from_guest(container_config_t *cc, dynamic_dev
 		ret = snprintf(buf, sizeof(buf), "b %d:%d rwm", major(dded->devnum), minor(dded->devnum));
 	} else {
 		ret = snprintf(buf, sizeof(buf), "c %d:%d rwm", major(dded->devnum), minor(dded->devnum));
-	} 
+	}
 
 	if (!(ret < (sizeof(buf)-1))) {
 		result = -1;
@@ -1101,7 +1101,7 @@ int lxcutil_dynamic_device_remove_from_guest(container_config_t *cc, dynamic_dev
 	#endif
 
 	return 0;
-	
+
 err_ret:
 
 	return result;

@@ -69,7 +69,7 @@ int container_mngsm_interface_get(container_control_interface_t **pcci, containe
 	return 0;
 
 err_return:
-	
+
 	return -1;
 }
 /**

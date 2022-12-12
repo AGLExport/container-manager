@@ -61,7 +61,7 @@ char *cmparser_read_jsonstring(const char *file)
 err_ret:
 	if (strbuf != NULL)
 		free(strbuf);
-	
+
 	if(fd >= 0)
 		close(fd);
 
@@ -70,7 +70,7 @@ err_ret:
 /**
  * Release json string allocated by cmparser_read_jsonstring.
  *
- * @param [in]	jsonstring		Json string allocated by cmparser_read_jsonstring. 
+ * @param [in]	jsonstring		Json string allocated by cmparser_read_jsonstring.
  */
 void cmparser_release_jsonstring(char *jsonstring)
 {

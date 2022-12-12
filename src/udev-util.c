@@ -232,7 +232,7 @@ static int udevmonitor_devevent_add_block(dynamic_device_manager_t *ddm, dynamic
 
 	if (ddm == NULL || new_ddi == NULL)
 		return -2;
-	
+
 	dl_list_for_each_safe(ddi, ddi_n, &ddm->blockdev.list, dynamic_device_info_t, list) {
 
 		if (ddi->devnum == new_ddi->devnum) {
@@ -267,7 +267,7 @@ static int udevmonitor_devevent_remove_block(dynamic_device_manager_t *ddm, dyna
 
 	if (ddm == NULL || del_ddi == NULL)
 		return -2;
-	
+
 	dl_list_for_each_safe(ddi, ddi_n, &ddm->blockdev.list, dynamic_device_info_t, list) {
 
 		if (ddi->devnum == del_ddi->devnum) {
@@ -300,7 +300,7 @@ static int udevmonitor_devevent_change_block(dynamic_device_manager_t *ddm, dyna
 
 	if (ddm == NULL || new_ddi == NULL)
 		return -2;
-	
+
 	dl_list_for_each_safe(ddi, ddi_n, &ddm->blockdev.list, dynamic_device_info_t, list) {
 
 		if (ddi->devnum == new_ddi->devnum) {
@@ -335,7 +335,7 @@ static int udevmonitor_devevent_add_net(dynamic_device_manager_t *ddm, dynamic_d
 
 	if (ddm == NULL || new_ddi == NULL)
 		return -2;
-	
+
 	dl_list_for_each_safe(ddi, ddi_n, &ddm->netif.devlist, dynamic_device_info_t, list) {
 
 		if (ddi->ifindex == new_ddi->ifindex) {
@@ -370,7 +370,7 @@ static int udevmonitor_devevent_remove_net(dynamic_device_manager_t *ddm, dynami
 
 	if (ddm == NULL || del_ddi == NULL)
 		return -2;
-	
+
 	dl_list_for_each_safe(ddi, ddi_n, &ddm->netif.devlist, dynamic_device_info_t, list) {
 
 		// In del timming, ifindex is lost. need to use ifname(=sysname).
@@ -404,7 +404,7 @@ static int udevmonitor_devevent_change_net(dynamic_device_manager_t *ddm, dynami
 
 	if (ddm == NULL || new_ddi == NULL)
 		return -2;
-	
+
 	dl_list_for_each_safe(ddi, ddi_n, &ddm->netif.devlist, dynamic_device_info_t, list) {
 
 		if (ddi->ifindex == new_ddi->ifindex) {
@@ -643,7 +643,7 @@ int udevmonitor_cleanup(dynamic_device_manager_t *ddm)
  * 				 1 on the blacklist
  * 				-3 argument error
  *				-2 internal error
- *				-1 Mandatory data is nothing 
+ *				-1 Mandatory data is nothing
  */
 static int dynamic_device_info_create_block(dynamic_device_info_t **ddi, struct udev_device *pdev, const char* subsys)
 {
@@ -726,7 +726,7 @@ static int dynamic_device_info_create_block(dynamic_device_info_t **ddi, struct 
  * @return int	 0 success
  * 				-3 argument error
  *				-2 internal error
- *				-1 Mandatory data is nothing 
+ *				-1 Mandatory data is nothing
  */
 static int dynamic_device_info_create_net(dynamic_device_info_t **ddi, struct udev_device *pdev, const char* subsys)
 {

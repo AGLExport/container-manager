@@ -155,7 +155,7 @@ int container_device_update_guest(container_config_t *cc, dynamic_device_manager
 	return 0;
 
 err_ret:
-	
+
 	return -1;
 }
 /**
@@ -212,7 +212,7 @@ int container_device_updated(containers_t *cs)
 	#ifdef _PRINTF_DEBUG_
 	fprintf(stderr, "container_device_updated exec\n");
 	#endif
-	
+
 	for(int i=0;i < num;i++) {
 		cc = cs->containers[i];
 		ret = container_device_update_guest(cc, cs->ddm);
@@ -223,7 +223,7 @@ int container_device_updated(containers_t *cs)
 	return 0;
 
 err_ret:
-	
+
 	return result;
 }
 /**
@@ -304,7 +304,7 @@ int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_
 			#ifdef _PRINTF_DEBUG_
 			fprintf(stderr, "network if update removed %s from %s\n", cdne->ifname, cc->name);
 			#endif
-		}	
+		}
 	}
 
 	return 0;
@@ -352,7 +352,7 @@ int container_netif_updated(containers_t *cs)
 	return 0;
 
 err_ret:
-	
+
 	return result;
 }
 /**
@@ -413,7 +413,7 @@ int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
 		} else if (cc->runtime_stat.status == CONTAINER_STARTED) {
 			// cross event between crash and system shutdown, change to exit state.
 			cc->runtime_stat.status = CONTAINER_EXIT;
-	
+
 		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
 			// exit containr after shutdown request.
 			cc->runtime_stat.status = CONTAINER_EXIT;
@@ -479,7 +479,7 @@ static int container_request_shutdown(container_config_t *cc, int sys_state)
 
 				//Requested, wait to exit.
 				cc->runtime_stat.status = CONTAINER_SHUTDOWN;
-			}			
+			}
 		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
 			// Already requested shutdown, not need new action.
 			;
@@ -527,7 +527,7 @@ static int container_request_shutdown(container_config_t *cc, int sys_state)
 
 				//Requested, wait to exit.
 				cc->runtime_stat.status = CONTAINER_SHUTDOWN;
-			}			
+			}
 		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
 			// Already requested shutdown, not need new action.
 			;
@@ -548,7 +548,7 @@ static int container_request_shutdown(container_config_t *cc, int sys_state)
 		// undefined state
 		result = -1;
 	}
-	
+
 	return result;
 }
 
@@ -582,7 +582,7 @@ int container_manager_shutdown(containers_t *cs)
 	}
 
 	if (fail_count > 0)
-		return -1;	
+		return -1;
 
 	return 0;
 }
@@ -752,7 +752,7 @@ int container_start(container_config_t *cc)
 	fprintf(stderr, "container_start %s\n", cc->name);
 	#endif
 
-	// run preprocess 
+	// run preprocess
 	ret = container_start_preprocess_base(&cc->baseconfig);
 	if (ret < 0) {
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
@@ -800,9 +800,9 @@ int container_mngsm_start(containers_t *cs)
 	int result = -1;
 	container_config_t *cc = NULL;
 	container_control_interface_t *cci = NULL;
-	
+
 	container_mngsm_interface_get(&cci, cs);
-	
+
 	num = cs->num_of_container;
 
 	for(int i=0;i < num;i++) {
@@ -835,7 +835,7 @@ int container_mngsm_start(containers_t *cs)
 	return 0;
 
 err_ret:
-	
+
 	return result;
 }
 /**
@@ -1023,14 +1023,14 @@ static int container_start_mountdisk_ab(char **devs, const char *path, const cha
  * @return int
  * @retval  0 Success.
  * @retval -1 mount error.
- * @retval -2 Syscall error. 
+ * @retval -2 Syscall error.
  */
 static int container_start_preprocess_base(container_baseconfig_t *bc)
 {
 	int ret = 1;
 	int result = -1;
 	int abboot = 0;
-	const char *dev = NULL, *path = NULL, *fstyp = NULL; 
+	const char *dev = NULL, *path = NULL, *fstyp = NULL;
 	unsigned long mntflag = 0;
 
 	// mount rootfs
@@ -1081,7 +1081,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 					#endif
 					continue;
 				}
-			} 
+			}
 
 		}
 	}
@@ -1095,7 +1095,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
  * @return int
  * @retval  0 Success.
  * @retval -1 unmount error.
- * @retval -2 Syscall error. 
+ * @retval -2 Syscall error.
  */
 static int container_cleanup_preprocess_base(container_baseconfig_t *bc)
 {
@@ -1145,7 +1145,7 @@ static int container_cleanup_preprocess_base(container_baseconfig_t *bc)
  * @return int
  * @retval  0 Success.
  * @retval -1 mount error.
- * @retval -2 Syscall error. 
+ * @retval -2 Syscall error.
  */
 dynamic_device_elem_data_t *dynamic_device_elem_data_create(const char *devpath, const char *devtype, const char *subsystem, const char *devnode,
 															dev_t devnum, const char *diskseq, const char *partn)
@@ -1181,7 +1181,7 @@ dynamic_device_elem_data_t *dynamic_device_elem_data_create(const char *devpath,
  * @return int
  * @retval  0 Success.
  * @retval -1 mount error.
- * @retval -2 Syscall error. 
+ * @retval -2 Syscall error.
  */
 int dynamic_device_elem_data_free(dynamic_device_elem_data_t *dded)
 {

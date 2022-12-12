@@ -87,7 +87,7 @@ static int cmparser_parse_basesub_idmap(container_baseconfig_idmap_t *map, const
 	return isenable;
 }
 /**
- * Sub functinon for the disk mount mode parse. 
+ * Sub functinon for the disk mount mode parse.
  * Shall not call from other than cmparser_parse_base.
  *
  * @param [in]	str		strig of fstype
@@ -109,7 +109,7 @@ static int cmparser_parser_get_diskmountmode(const char *str)
 	return ret;
 }
 /**
- * Sub functinon for the disk mount fail operation parse. 
+ * Sub functinon for the disk mount fail operation parse.
  * Shall not call from other than cmparser_parse_base.
  *
  * @param [in]	str		strig of fstype
@@ -138,8 +138,8 @@ static int cmparser_parser_get_diskmountfailop(const char *str)
  * @return int
  * @retval  0 Success to parse.
  * @retval -1 Json file error.
- * @retval -2 Json file parse error. 
- * @retval -3 Memory allocation error. 
+ * @retval -2 Json file parse error.
+ * @retval -3 Memory allocation error.
  */
 static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *rootfs)
 {
@@ -225,8 +225,8 @@ err_ret:
  * @return int
  * @retval  0 Success to parse.
  * @retval -1 Json file error.
- * @retval -2 Json file parse error. 
- * @retval -3 Memory allocation error. 
+ * @retval -2 Json file parse error.
+ * @retval -3 Memory allocation error.
  */
 static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON *extradisk)
 {
@@ -373,8 +373,8 @@ err_ret:
  * @return int
  * @retval  0 Success to parse.
  * @retval -1 Json file error.
- * @retval -2 Json file parse error. 
- * @retval -3 Memory allocation error. 
+ * @retval -2 Json file parse error.
+ * @retval -3 Memory allocation error.
  */
 static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 {
@@ -696,7 +696,7 @@ err_ret:
 }
 
 /**
- * Sub functinon for the fstype parse. 
+ * Sub functinon for the fstype parse.
  * Shall not call from other than cmparser_parse_fs.
  *
  * @param [in]	str		strig of fstype
@@ -727,8 +727,8 @@ static int cmparser_parser_get_fstype(const char *str)
  * @return int
  * @retval  0 Success to parse.
  * @retval -1 Json file error.
- * @retval -2 Json file parse error. 
- * @retval -3 Memory allocation error. 
+ * @retval -2 Json file parse error.
+ * @retval -3 Memory allocation error.
  */
 static int cmparser_parse_fs(container_fsconfig_t *fc, const cJSON *fs)
 {
@@ -816,7 +816,7 @@ err_ret:
 }
 
 /**
- * Sub functinon for the static dev parse. 
+ * Sub functinon for the static dev parse.
  * Shall not call from other than cmparser_parse_static_dev.
  *
  * @param [in]	str		strig of devtype
@@ -847,7 +847,7 @@ static int cmparser_parser_get_devtype(const char *str)
 }
 
 /**
- * Sub functinon for the gpio direction. 
+ * Sub functinon for the gpio direction.
  * Shall not call from other than cmparser_parse_static_dev.
  *
  * @param [in]	str		strig of gpiodirection
@@ -886,8 +886,8 @@ static int cmparser_parser_get_gpiodirection(const char *str)
  * @return int
  * @retval  0 Success to parse.
  * @retval -1 Json file error.
- * @retval -2 Json file parse error. 
- * @retval -3 Memory allocation error. 
+ * @retval -2 Json file parse error.
+ * @retval -3 Memory allocation error.
  */
 static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON *sd)
 {
@@ -1046,7 +1046,7 @@ static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON
 					devnode = cJSON_GetObjectItemCaseSensitive(elem, "devnode");
 					if (cJSON_IsString(devnode) && (devnode->valuestring != NULL)) {
 						// devnode is optional
-						pdevnode = devnode->valuestring;						
+						pdevnode = devnode->valuestring;
 					}
 
 					optional = cJSON_GetObjectItemCaseSensitive(elem, "optional");
@@ -1137,8 +1137,8 @@ err_ret:
  * @return int
  * @retval  0 Success to parse.
  * @retval -1 Json file error.
- * @retval -2 Json file parse error. 
- * @retval -3 Memory allocation error. 
+ * @retval -2 Json file parse error.
+ * @retval -3 Memory allocation error.
  */
 static int cmparser_parse_dynamic_dev(container_dynamic_device_t *ddc, const cJSON *dd)
 {
@@ -1165,7 +1165,7 @@ static int cmparser_parse_dynamic_dev(container_dynamic_device_t *ddc, const cJS
 					continue;
 
 				//mode: 0: cgroups allow, 1: cgroups allow and add dev node, 2: cgroups allow and uevent injection, 3: all
-				mode = cJSON_GetObjectItemCaseSensitive(elem, "mode"); 
+				mode = cJSON_GetObjectItemCaseSensitive(elem, "mode");
 				if (cJSON_IsNumber(mode)) {
 					imode = mode->valueint;
 					if (imode < 0 || 3 < imode)
@@ -1223,8 +1223,8 @@ err_ret:
  * @return int
  * @retval  0 Success to parse.
  * @retval -1 Json file error.
- * @retval -2 Json file parse error. 
- * @retval -3 Memory allocation error. 
+ * @retval -2 Json file parse error.
+ * @retval -3 Memory allocation error.
  */
 int cmparser_parse_device(container_deviceconfig_t *dc, const cJSON *dev)
 {
@@ -1239,7 +1239,7 @@ int cmparser_parse_device(container_deviceconfig_t *dc, const cJSON *dev)
 		#endif
 		(void) cmparser_parse_static_dev(&dc->static_device, static_device);
 	}
-	// Static device is not mandatory 
+	// Static device is not mandatory
 
 	// Get static device data
 	dynamic_device = cJSON_GetObjectItemCaseSensitive(dev, "dynamic");
@@ -1249,12 +1249,12 @@ int cmparser_parse_device(container_deviceconfig_t *dc, const cJSON *dev)
 		#endif
 		(void) cmparser_parse_dynamic_dev(&dc->dynamic_device, dynamic_device);
 	}
-	// Dynamic device is not mandatory 
+	// Dynamic device is not mandatory
 
 	return 0;
 }
 /**
- * Sub functinon for the static netif. 
+ * Sub functinon for the static netif.
  * Shall not call from other than cmparser_parse_static_netif.
  *
  * @param [in]	str		strig of netif type
@@ -1278,8 +1278,8 @@ static int cmparser_parser_get_netiftype(const char *str)
  * @param [in]	file		Full file path for json file
  * @return char*
  * @retval -1 Json file error.
- * @retval -2 Json file parse error. 
- * @retval -3 Memory allocation error. 
+ * @retval -2 Json file parse error.
+ * @retval -3 Memory allocation error.
  */
 static void* cmparser_parse_static_netif_veth_create(cJSON *param)
 {
@@ -1353,8 +1353,8 @@ static void* cmparser_parse_static_netif_veth_create(cJSON *param)
  * @param [in]	file		Full file path for json file
  * @return char*
  * @retval -1 Json file error.
- * @retval -2 Json file parse error. 
- * @retval -3 Memory allocation error. 
+ * @retval -2 Json file parse error.
+ * @retval -3 Memory allocation error.
  */
 static int cmparser_parse_static_netif_veth_free(void *p)
 {
@@ -1380,8 +1380,8 @@ static int cmparser_parse_static_netif_veth_free(void *p)
  * @param [in]	file		Full file path for json file
  * @return char*
  * @retval -1 Json file error.
- * @retval -2 Json file parse error. 
- * @retval -3 Memory allocation error. 
+ * @retval -2 Json file parse error.
+ * @retval -3 Memory allocation error.
  */
 static int cmparser_parse_static_netif(container_static_netif_t *snif, const cJSON *sni)
 {
@@ -1454,8 +1454,8 @@ err_ret:
  * @param [in]	file		Full file path for json file
  * @return char*
  * @retval -1 Json file error.
- * @retval -2 Json file parse error. 
- * @retval -3 Memory allocation error. 
+ * @retval -2 Json file parse error.
+ * @retval -3 Memory allocation error.
  */
 static int cmparser_parse_dynamic_netif(container_dynamic_netif_t *dnif, const cJSON *dni)
 {
@@ -1514,8 +1514,8 @@ err_ret:
  * @param [in]	file		Full file path for json file
  * @return char*
  * @retval -1 Json file error.
- * @retval -2 Json file parse error. 
- * @retval -3 Memory allocation error. 
+ * @retval -2 Json file parse error.
+ * @retval -3 Memory allocation error.
  */
 int cmparser_parse_netif(container_netifconfig_t *nc, const cJSON *nif)
 {
@@ -1530,7 +1530,7 @@ int cmparser_parse_netif(container_netifconfig_t *nc, const cJSON *nif)
 		#endif
 		(void) cmparser_parse_static_netif(&nc->static_netif, static_netif);
 	}
-	// Static netif is not mandatory 
+	// Static netif is not mandatory
 
 	// Get static device data
 	dynamic_netif = cJSON_GetObjectItemCaseSensitive(nif, "dynamic");
@@ -1540,7 +1540,7 @@ int cmparser_parse_netif(container_netifconfig_t *nc, const cJSON *nif)
 		#endif
 		(void) cmparser_parse_dynamic_netif(&nc->dynamic_netif, dynamic_netif);
 	}
-	// Dynamic netif is not mandatory 
+	// Dynamic netif is not mandatory
 
 	return 0;
 }
@@ -1550,8 +1550,8 @@ int cmparser_parse_netif(container_netifconfig_t *nc, const cJSON *nif)
  * @param [in]	file		Full file path for json file
  * @return int
  * @retval -1 Json file error.
- * @retval -2 Json file parse error. 
- * @retval -3 Memory allocation error. 
+ * @retval -2 Json file parse error.
+ * @retval -3 Memory allocation error.
  */
 int cmparser_create_from_file(container_config_t **cc, const char *file)
 {
@@ -1619,7 +1619,7 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 			#endif
 			ret = cmparser_parse_base(&ccfg->baseconfig, base);
 		} else {
-			// Mandatory 
+			// Mandatory
 			result = -2;
 			goto err_ret;
 		}
@@ -1649,7 +1649,7 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 			#endif
 			ret = cmparser_parse_fs(&ccfg->fsconfig, fs);
 		} else {
-			// Mandatory 
+			// Mandatory
 			result = -2;
 			goto err_ret;
 		}
@@ -1665,7 +1665,7 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 			#endif
 			ret = cmparser_parse_device(&ccfg->deviceconfig, device);
 		} else {
-			// Mandatory 
+			// Mandatory
 			result = -2;
 			goto err_ret;
 		}
@@ -1682,7 +1682,7 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 			ret = cmparser_parse_netif(&ccfg->netifconfig, network);
 
 		}
-		// Not mandatory 
+		// Not mandatory
 	}
 
 	cJSON_Delete(json);
@@ -1705,7 +1705,7 @@ err_ret:
 }
 /**
  * Release container config alocated by cmparser_create_from_file
- 
+
  *
  * @param [in]	cc		Container config
  * @return void
@@ -1853,7 +1853,7 @@ void cmparser_release_config(container_config_t *cc)
 		free(cc->baseconfig.rootfs.filesystem);
 		free(cc->baseconfig.rootfs.path);
 	}
-	
+
 	// global
 	free(cc->name);
 	free(cc);

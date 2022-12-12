@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	devicemng.h
- * @brief	device management data 
+ * @brief	device management data
  */
 #ifndef DEVICE_MNG_H
 #define DEVICE_MNG_H
@@ -34,7 +34,7 @@ struct s_dynamic_device_info {
 	char *diskseq;	/** < diskseq - block device - disk/partition only */
 	char *partn;	/** < partition num - block device - partition only */
 	int ifindex;	/** < network interface index - net only */
-	//-- drop datas 
+	//-- drop datas
 	//char *sysnum; -- from udev_device_get_sysnum
 	//char *driver; -- from udev_device_get_driver
 

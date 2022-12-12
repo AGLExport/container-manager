@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	manager.h
- * @brief	container management daemon grobal config data 
+ * @brief	container management daemon grobal config data
  */
 #ifndef MAINAGER_H
 #define MAINAGER_H

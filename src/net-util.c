@@ -315,7 +315,7 @@ int netifmonitor_setup(dynamic_device_manager_t *ddm, container_control_interfac
 
 	if (ddm == NULL || cci == NULL || event == NULL)
 		return -2;
-	
+
 	netifmon = malloc(sizeof(struct s_netifmonitor));
 	if (netifmon == NULL)
 		goto err_return;

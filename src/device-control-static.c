@@ -68,7 +68,7 @@ int devc_early_device_setup(containers_t *cs)
 	return 0;
 
 err_ret:
-	
+
 	return result;
 }
 /**
@@ -146,7 +146,7 @@ static const char *gpio_direction_table[] = {
  * @retval  0 Success.
  * @retval -1 Device scan error.
  * @retval -2 Syscall error.
- * @retval -3 Memory allocation error. 
+ * @retval -3 Memory allocation error.
  */
 static const char gpio_export_node[] = "/sys/class/gpio/export";
 static int devc_gpionode_scan(container_static_device_t *sdevc)
@@ -188,7 +188,7 @@ static int devc_gpionode_scan(container_static_device_t *sdevc)
 				if (ret == -1) {
 					// gpio export errot. In this case that poart can't use gpio,
 					// that port is already assign other function may be.
-					// Skip this port 
+					// Skip this port
 					continue;
 				}
 			}
@@ -230,7 +230,7 @@ err_ret:
  * @retval  0 Success.
  * @retval -1 Device scan error.
  * @retval -2 Syscall error.
- * @retval -3 Memory allocation error. 
+ * @retval -3 Memory allocation error.
  */
 static int devc_iionode_scan(container_static_device_t *sdevc)
 {
@@ -309,7 +309,7 @@ err_ret:
  * @retval  0 Success.
  * @retval -1 Device scan error.
  * @retval -2 Syscall error.
- * @retval -3 Memory allocation error. 
+ * @retval -3 Memory allocation error.
  */
 static int devc_netbridge_setup(container_manager_config_t *cmc)
 {
