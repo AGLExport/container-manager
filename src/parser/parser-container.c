@@ -709,11 +709,14 @@ static int cmparser_parser_get_fstype(const char *str)
 {
 	static const char cfs[] = "filesystem";
 	static const char cdir[] = "directory";
+	static const char cdir_bc[] = "directry"; //backward compatibility - fix typo
 	int ret = 0;
 
 	if (strncmp(cfs, str, sizeof(cfs)) == 0)
 		ret = FSMOUNT_TYPE_FILESYSTEM;
 	else if (strncmp(cdir, str, sizeof(cdir)) == 0)
+		ret = FSMOUNT_TYPE_DIRECTORY;
+	else if (strncmp(cdir, str, sizeof(cdir_bc)) == 0) //backward compatibility - fix typo
 		ret = FSMOUNT_TYPE_DIRECTORY;
 
 	return ret;
