@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
 		goto finish;
 	}
 
-	// early device setup: commn time setup all containers, for static device, gpio,
+	// early device setup: setup all containers, for static device, gpio,
 	ret = devc_early_device_setup(cs);
 	if (ret < 0)
 		goto finish;

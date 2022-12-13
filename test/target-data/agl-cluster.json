@@ -58,14 +58,14 @@
 				"option": 	"defaults 0 0"
 			},
 			{
-				"type": 	"directry",
+				"type": 	"directory",
 				"from": 	"/sys/kernel/security",
 				"to":		"sys/kernel/security",
 				"fstype":	"none",
 				"option": 	"ro,bind,optional 0 0"
 			},
 			{
-				"type": 	"directry",
+				"type": 	"directory",
 				"from": 	"/run/drm-lease-manager/lease-cluster",
 				"to":		"var/display/drm-lease-manager/lease",
 				"fstype":	"none",

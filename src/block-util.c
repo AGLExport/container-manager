@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	block-util.c
- * @brief	block devide utility functions
+ * @brief	block device utility functions
  */
 #undef _PRINTF_DEBUG_
 

@@ -121,7 +121,7 @@ static int udev_event_handler(sd_event_source *event, int fd, uint32_t revents, 
  * Setup for the uevent monitor event loop.
  *
  * @param [out]	handle	Pointer to variable of udevmonitor_t;
- * @param [in]	event	Incetance of sd_event
+ * @param [in]	event	Instance of sd_event
  * @return int	 0 success
  * 				-2 argument error
  *				-1 internal error
@@ -166,7 +166,7 @@ static int udevmonitor_devevent(dynamic_device_manager_t *ddm)
 			// new ddinfo into list, shall not be free
 		} else if (strncmp(paction, "remove", strlen(paction)) == 0) {
 			(void)udevmonitor_devevent_remove_block(ddm, ddinfo);
-			// newd dinfo is only to use remove device scaning, shall be free
+			// new ddinfo is only to use remove device scanning, shall be free
 			dynamic_device_info_free(ddinfo);
 		} else if (strncmp(paction, "change", strlen(paction)) == 0) {
 			(void)udevmonitor_devevent_change_block(ddm, ddinfo);
@@ -193,10 +193,10 @@ static int udevmonitor_devevent(dynamic_device_manager_t *ddm)
 
 		if (strncmp(paction, "add", strlen(paction)) == 0) {
 			(void)udevmonitor_devevent_add_net(ddm, ddinfo);
-			// newd dinfo into list, shall not be free
+			// new ddinfo into list, shall not be free
 		} else if (strncmp(paction, "remove", strlen(paction)) == 0) {
 			(void)udevmonitor_devevent_remove_net(ddm, ddinfo);
-			// newd dinfo is only to use remove device scaning, shall be free
+			// new ddinfo is only to use remove device scanning, shall be free
 			dynamic_device_info_free(ddinfo);
 		} else if (strncmp(paction, "move", strlen(paction)) == 0) {
 			(void)udevmonitor_devevent_change_net(ddm, ddinfo);
@@ -220,7 +220,7 @@ error_ret:
  * device add to list with fixup.
  *
  * @param [out]	handle	Pointer to variable of udevmonitor_t;
- * @param [in]	event	Incetance of sd_event
+ * @param [in]	event	Instance of sd_event
  * @return int	 0 success
  * 				-2 argument error
  *				-1 internal error
@@ -238,7 +238,7 @@ static int udevmonitor_devevent_add_block(dynamic_device_manager_t *ddm, dynamic
 		if (ddi->devnum == new_ddi->devnum) {
 			// existing device is found -> remove
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"udevmonitorr: udevmonitor_devevent_add found existing device \n exist = %s\n new = %s\n\n"
+			fprintf(stderr,"udevmonitor: udevmonitor_devevent_add found existing device \n exist = %s\n new = %s\n\n"
 					, ddi->devpath, new_ddi->devpath);
 			#endif
 			dl_list_del(&ddi->list);
@@ -255,7 +255,7 @@ static int udevmonitor_devevent_add_block(dynamic_device_manager_t *ddm, dynamic
  * device remove from list with fixup.
  *
  * @param [out]	handle	Pointer to variable of udevmonitor_t;
- * @param [in]	event	Incetance of sd_event
+ * @param [in]	event	Instance of sd_event
  * @return int	 0 success
  * 				-2 argument error
  *				-1 internal error
@@ -273,7 +273,7 @@ static int udevmonitor_devevent_remove_block(dynamic_device_manager_t *ddm, dyna
 		if (ddi->devnum == del_ddi->devnum) {
 			// existing device is found -> remove
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"udevmonitorr: udevmonitor_devevent_del found existing device \n exist = %s\n new = %s\n\n"
+			fprintf(stderr,"udevmonitor: udevmonitor_devevent_del found existing device \n exist = %s\n new = %s\n\n"
 					, ddi->devpath, del_ddi->devpath);
 			#endif
 			dl_list_del(&ddi->list);
@@ -288,7 +288,7 @@ static int udevmonitor_devevent_remove_block(dynamic_device_manager_t *ddm, dyna
  * device change for list with fixup.
  *
  * @param [out]	handle	Pointer to variable of udevmonitor_t;
- * @param [in]	event	Incetance of sd_event
+ * @param [in]	event	Instance of sd_event
  * @return int	 0 success
  * 				-2 argument error
  *				-1 internal error
@@ -306,7 +306,7 @@ static int udevmonitor_devevent_change_block(dynamic_device_manager_t *ddm, dyna
 		if (ddi->devnum == new_ddi->devnum) {
 			// existing device is found -> remove
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"udevmonitorr: udevmonitor_devevent_del found existing device \n exist = %s\n new = %s\n\n"
+			fprintf(stderr,"udevmonitor: udevmonitor_devevent_del found existing device \n exist = %s\n new = %s\n\n"
 					, ddi->devpath, new_ddi->devpath);
 			#endif
 			dl_list_del(&ddi->list);
@@ -323,7 +323,7 @@ static int udevmonitor_devevent_change_block(dynamic_device_manager_t *ddm, dyna
  * device add to list with fixup.
  *
  * @param [out]	handle	Pointer to variable of udevmonitor_t;
- * @param [in]	event	Incetance of sd_event
+ * @param [in]	event	Instance of sd_event
  * @return int	 0 success
  * 				-2 argument error
  *				-1 internal error
@@ -341,7 +341,7 @@ static int udevmonitor_devevent_add_net(dynamic_device_manager_t *ddm, dynamic_d
 		if (ddi->ifindex == new_ddi->ifindex) {
 			// existing device is found -> remove
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"udevmonitorr: udevmonitor_devevent_add found existing device \n exist = %s\n new = %s\n\n"
+			fprintf(stderr,"udevmonitor: udevmonitor_devevent_add found existing device \n exist = %s\n new = %s\n\n"
 					, ddi->devpath, new_ddi->devpath);
 			#endif
 			dl_list_del(&ddi->list);
@@ -358,7 +358,7 @@ static int udevmonitor_devevent_add_net(dynamic_device_manager_t *ddm, dynamic_d
  * device remove from list with fixup.
  *
  * @param [out]	handle	Pointer to variable of udevmonitor_t;
- * @param [in]	event	Incetance of sd_event
+ * @param [in]	event	Instance of sd_event
  * @return int	 0 success
  * 				-2 argument error
  *				-1 internal error
@@ -373,11 +373,11 @@ static int udevmonitor_devevent_remove_net(dynamic_device_manager_t *ddm, dynami
 
 	dl_list_for_each_safe(ddi, ddi_n, &ddm->netif.devlist, dynamic_device_info_t, list) {
 
-		// In del timming, ifindex is lost. need to use ifname(=sysname).
+		// In del timing, ifindex is lost. need to use ifname(=sysname).
 		if (strcmp(ddi->sysname, del_ddi->sysname) == 0) {
 			// existing device is found -> remove
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"udevmonitorr: udevmonitor_devevent_del found existing device \n exist = %s\n new = %s\n\n"
+			fprintf(stderr,"udevmonitor: udevmonitor_devevent_del found existing device \n exist = %s\n new = %s\n\n"
 					, ddi->devpath, del_ddi->devpath);
 			#endif
 			dl_list_del(&ddi->list);
@@ -392,7 +392,7 @@ static int udevmonitor_devevent_remove_net(dynamic_device_manager_t *ddm, dynami
  * device change for list with fixup.
  *
  * @param [out]	handle	Pointer to variable of udevmonitor_t;
- * @param [in]	event	Incetance of sd_event
+ * @param [in]	event	Instance of sd_event
  * @return int	 0 success
  * 				-2 argument error
  *				-1 internal error
@@ -410,7 +410,7 @@ static int udevmonitor_devevent_change_net(dynamic_device_manager_t *ddm, dynami
 		if (ddi->ifindex == new_ddi->ifindex) {
 			// existing device is found -> remove
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"udevmonitorr: udevmonitor_devevent_del found existing device \n exist = %s\n new = %s\n\n"
+			fprintf(stderr,"udevmonitor: udevmonitor_devevent_del found existing device \n exist = %s\n new = %s\n\n"
 					, ddi->devpath, new_ddi->devpath);
 			#endif
 			dl_list_del(&ddi->list);
@@ -427,7 +427,7 @@ static int udevmonitor_devevent_change_net(dynamic_device_manager_t *ddm, dynami
  * Setup for the uevent monitor event loop.
  *
  * @param [out]	handle	Pointer to variable of udevmonitor_t;
- * @param [in]	event	Incetance of sd_event
+ * @param [in]	event	Instance of sd_event
  * @return int	 0 success
  * 				-2 argument error
  *				-1 internal error
@@ -514,7 +514,7 @@ static int udevmonitor_scan(dynamic_device_manager_t *ddm)
  * Setup for the uevent monitor event loop.
  *
  * @param [out]	handle	Pointer to variable of udevmonitor_t;
- * @param [in]	event	Incetance of sd_event
+ * @param [in]	event	Instance of sd_event
  * @return int	 0 success
  * 				-2 argument error
  *				-1 internal error
@@ -662,7 +662,7 @@ static int dynamic_device_info_create_block(dynamic_device_info_t **ddi, struct 
 	pstr = udev_device_get_devnode(pdev);
 	devnum = udev_device_get_devnum(pdev);
 	if (pstr == NULL || devnum == 0) {
-		//Mandatry data is nothing
+		//Mandatory data is nothing
 		return -1;
 	}
 
@@ -745,7 +745,7 @@ static int dynamic_device_info_create_net(dynamic_device_info_t **ddi, struct ud
 	if (pstr != NULL) {
 		ifindex = strtol(pstr, &endptr, 10);
 		if (pstr == endptr) {
-			//Can't convert str to long, mandatry data is nothing
+			//Can't convert str to long, mandatory data is nothing
 			return -1;
 		}
 	}
