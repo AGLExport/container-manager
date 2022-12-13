@@ -17,10 +17,10 @@
 #include "container-config.h"
 
 static const char DEFAULT_CONF_PATH[] = "/etc/container-manager.json";
-#define GUEST_CONTAINER_LIMIT	(8)	/** < Limit value for container nume */
+#define GUEST_CONTAINER_LIMIT	(8)	/** < Limit value for container name */
 
 /**
- * qsort compair function for container boot pri. sorting
+ * qsort compare function for container boot pri. sorting
  *
  * @param [in]	data1	data 1
  * @param [in]	data1	data 2
@@ -48,7 +48,7 @@ static int compare_bootpri(const void *data1, const void *data2)
 }
 
 /**
- * Scan and create container configration data
+ * Scan and create container configuration data
  *
  * @param [in]	config_dir	Scan dir for container configs.
  * @return containers_t*
@@ -176,7 +176,7 @@ err_ret:
 	return NULL;
 }
 /**
- * Read json string with memory alocation
+ * Read json string with memory allocation
  *
  * @param [in]	file		Full file path for json file
  * @return int

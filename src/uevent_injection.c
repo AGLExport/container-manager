@@ -81,7 +81,7 @@ static int open_namespace_fd(pid_t pid, const char *ns_name)
  * Sub function for open name space.
  *
  * @param [in]	target_pid	target process pid
- * @param [in]	uenevt	uevent string
+ * @param [in]	uevent	uevent string
  * @return int	 >=0 fd of pid's name space
  * 				-1 argument error
  *				-2 Fail to get namespace
@@ -150,7 +150,7 @@ err_return:
  * Sub function for open name space.
  *
  * @param [in]	target_pid	target process pid
- * @param [in]	uenevt	uevent string
+ * @param [in]	uevent	uevent string
  * @return int	 >=0 buf usage
  * 				-1 argument error
  *				-2 Fail to create uevent
@@ -381,7 +381,7 @@ static int uevent_injection_create_ueventdata(char *buf, int bufsize, dynamic_de
  * Sub function for open name space.
  *
  * @param [in]	target_pid	target process pid
- * @param [in]	uenevt	uevent string
+ * @param [in]	uevent	uevent string
  * @return int	 >=0 fd of pid's name space
  * 				-1 argument error
  *				-2 Fail to get namespace

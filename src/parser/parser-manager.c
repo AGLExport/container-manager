@@ -23,7 +23,7 @@
 //#undef _PRINTF_DEBUG_
 
 /**
- * Read json string with memory alocation
+ * Read json string with memory allocation
  *
  * @param [in]	file		Full file path for json file
  * @return int
@@ -133,7 +133,7 @@ err_ret:
 	return result;
 }
 /**
- * Release container config alocated by cmparser_create_from_file
+ * Release container config allocated by cmparser_create_from_file
 
  *
  * @param [in]	cc		Container config

@@ -27,7 +27,7 @@
 static const char *cstr_signal_default = "SIGTERM";	/** < default signal to use guest container termination. */
 
 /**
- * Sub functinon for the idmap parse.
+ * Sub function for the idmap parse.
  * Shall not call from other than cmparser_parse_base.
  *
  * @param [in]	map A container_baseconfig_idmap_t object
@@ -87,10 +87,10 @@ static int cmparser_parse_basesub_idmap(container_baseconfig_idmap_t *map, const
 	return isenable;
 }
 /**
- * Sub functinon for the disk mount mode parse.
+ * Sub function for the disk mount mode parse.
  * Shall not call from other than cmparser_parse_base.
  *
- * @param [in]	str		strig of fstype
+ * @param [in]	str		string of fstype
  * @return int
  * @retval DISKMOUNT_TYPE_RO	str is "ro" or other
  * @retval DISKMOUNT_TYPE_RW	str is "rw"
@@ -109,10 +109,10 @@ static int cmparser_parser_get_diskmountmode(const char *str)
 	return ret;
 }
 /**
- * Sub functinon for the disk mount fail operation parse.
+ * Sub function for the disk mount fail operation parse.
  * Shall not call from other than cmparser_parse_base.
  *
- * @param [in]	str		strig of fstype
+ * @param [in]	str		string of fstype
  * @return int
  * @retval DISKREDUNDANCY_TYPE_FAILOVER	str is "failover" or other
  * @retval DISKREDUNDANCY_TYPE_AB	str is "ab"
@@ -131,7 +131,7 @@ static int cmparser_parser_get_diskmountfailop(const char *str)
 	return ret;
 }
 /**
- * Sub functinon for the rootfs config parser.
+ * Sub function for the rootfs config parser.
  *
  * @param [out]	bc	Pointer to pre-allocated container_baseconfig_t.
  * @param [in]	rootfs	Pointer to cJSON object of top of base section.
@@ -183,7 +183,7 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 		fprintf(stdout,"cmparser: mode value = %d\n",bc->rootfs.mode);
 		#endif
 	} else {
-		// When don't have disk mount mode setting, It's use ro mount as adefault.
+		// When don't have disk mount mode setting, It's use ro mount as a default.
 		bc->rootfs.mode = DISKMOUNT_TYPE_RO;
 	}
 
@@ -218,7 +218,7 @@ err_ret:
 	return result;
 }
 /**
- * Sub functinon for the extradisk config parser.
+ * Sub function for the extradisk config parser.
  *
  * @param [out]	bc	Pointer to pre-allocated container_baseconfig_t.
  * @param [in]	extradisk	Pointer to cJSON object of top of base section.
@@ -290,7 +290,7 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 			fprintf(stdout,"cmparser: base-extradisk mode = %s\n",mode->valuestring);
 			#endif
 		} else {
-			// When don't have disk mount mode setting, It's use ro mount as adefault.
+			// When don't have disk mount mode setting, It's use ro mount as a default.
 			mntmode = DISKMOUNT_TYPE_RO;
 		}
 
@@ -301,7 +301,7 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 			fprintf(stdout,"cmparser: base-extradisk redundancy = %s\n",redundancy->valuestring);
 			#endif
 		} else {
-			// When don't have disk mount mode setting, It's use failover as adefault.
+			// When don't have disk mount mode setting, It's use failover as a default.
 			mntredundancy = DISKREDUNDANCY_TYPE_FAILOVER;
 		}
 
@@ -432,7 +432,7 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 		// When it not set, role is default = NULL
 		bc->role = NULL;
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		fprintf(stderr,"cmparser: base-role value is defule (NULL)\n");
+		fprintf(stderr,"cmparser: base-role value is default (NULL)\n");
 		#endif
 	}
 
@@ -563,7 +563,7 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 		#endif
 	}
 
-	// Get environment valiable data
+	// Get environment variable data
 	environment = cJSON_GetObjectItemCaseSensitive(base, "environment");
 	if (cJSON_IsArray(environment)) {
 		cJSON *env = NULL;
@@ -594,7 +594,7 @@ err_ret:
 	return result;
 }
 /**
- * Sub functinon for the resourcetype parse.
+ * Sub function for the resourcetype parse.
  * Shall not call from other than cmparser_parse_resource.
  *
  * @param [in]	str		string of resource control type
@@ -696,25 +696,25 @@ err_ret:
 }
 
 /**
- * Sub functinon for the fstype parse.
+ * Sub function for the fstype parse.
  * Shall not call from other than cmparser_parse_fs.
  *
- * @param [in]	str		strig of fstype
+ * @param [in]	str		string of fstype
  * @return int
  * @retval FSMOUNT_TYPE_FILESYSTEM	str is "filesystem"
- * @retval FSMOUNT_TYPE_DIRECTRY	str is "directry"
+ * @retval FSMOUNT_TYPE_DIRECTORY	str is "directory"
  * @retval 0 NON
  */
 static int cmparser_parser_get_fstype(const char *str)
 {
 	static const char cfs[] = "filesystem";
-	static const char cdir[] = "directry";
+	static const char cdir[] = "directory";
 	int ret = 0;
 
 	if (strncmp(cfs, str, sizeof(cfs)) == 0)
 		ret = FSMOUNT_TYPE_FILESYSTEM;
 	else if (strncmp(cdir, str, sizeof(cdir)) == 0)
-		ret = FSMOUNT_TYPE_DIRECTRY;
+		ret = FSMOUNT_TYPE_DIRECTORY;
 
 	return ret;
 }
@@ -816,10 +816,10 @@ err_ret:
 }
 
 /**
- * Sub functinon for the static dev parse.
+ * Sub function for the static dev parse.
  * Shall not call from other than cmparser_parse_static_dev.
  *
- * @param [in]	str		strig of devtype
+ * @param [in]	str		string of devtype
  * @return int
  * @retval DEVICE_TYPE_DEVNODE	str is devnode
  * @retval DEVICE_TYPE_DEVDIR	str is devdir
@@ -847,15 +847,15 @@ static int cmparser_parser_get_devtype(const char *str)
 }
 
 /**
- * Sub functinon for the gpio direction.
+ * Sub function for the gpio direction.
  * Shall not call from other than cmparser_parse_static_dev.
  *
- * @param [in]	str		strig of gpiodirection
+ * @param [in]	str		string of gpio direction
  * @return int
- * @retval DEVGPIO_DIRECTION_IN	dertction is input
- * @retval DEVGPIO_DIRECTION_OUT	dertction is output, default low.
- * @retval DEVGPIO_DIRECTION_LOW	dertction is output, default low.
- * @retval DEVGPIO_DIRECTION_HIGH	dertction is output, default high.
+ * @retval DEVGPIO_DIRECTION_IN	direction is input
+ * @retval DEVGPIO_DIRECTION_OUT	direction is output, default low.
+ * @retval DEVGPIO_DIRECTION_LOW	direction is output, default low.
+ * @retval DEVGPIO_DIRECTION_HIGH	direction is output, default high.
  * @retval 0 NON
  */
 static int cmparser_parser_get_gpiodirection(const char *str)
@@ -1164,7 +1164,7 @@ static int cmparser_parse_dynamic_dev(container_dynamic_device_t *ddc, const cJS
 				if (!(cJSON_IsString(devtype) && (devtype->valuestring != NULL)))
 					continue;
 
-				//mode: 0: cgroups allow, 1: cgroups allow and add dev node, 2: cgroups allow and uevent injection, 3: all
+				//mode: 0: cgroup allow, 1: cgroup allow and add dev node, 2: cgroup allow and uevent injection, 3: all
 				mode = cJSON_GetObjectItemCaseSensitive(elem, "mode");
 				if (cJSON_IsNumber(mode)) {
 					imode = mode->valueint;
@@ -1254,12 +1254,12 @@ int cmparser_parse_device(container_deviceconfig_t *dc, const cJSON *dev)
 	return 0;
 }
 /**
- * Sub functinon for the static netif.
+ * Sub function for the static netif.
  * Shall not call from other than cmparser_parse_static_netif.
  *
- * @param [in]	str		strig of netif type
+ * @param [in]	str		string of netif type
  * @return int
- * @retval STATICNETIF_VETH	netif is vetht
+ * @retval STATICNETIF_VETH	netif is veth
  * @retval 0 NON
  */
 static int cmparser_parser_get_netiftype(const char *str)
@@ -1273,7 +1273,7 @@ static int cmparser_parser_get_netiftype(const char *str)
 	return ret;
 }
 /**
- * Read json string with memory alocation
+ * Read json string with memory allocation
  *
  * @param [in]	file		Full file path for json file
  * @return char*
@@ -1300,7 +1300,7 @@ static void* cmparser_parse_static_netif_veth_create(cJSON *param)
 	if (cJSON_IsString(link) && (link->valuestring != NULL)) {
 		plink = strdup(link->valuestring);
 	} else {
-		//link is mandatry
+		//link is mandatory
 		free(pveth);
 		return NULL;
 	}
@@ -1348,7 +1348,7 @@ static void* cmparser_parse_static_netif_veth_create(cJSON *param)
 	return vp;
 }
 /**
- * Read json string with memory alocation
+ * Read json string with memory allocation
  *
  * @param [in]	file		Full file path for json file
  * @return char*
@@ -1375,7 +1375,7 @@ static int cmparser_parse_static_netif_veth_free(void *p)
 	return 0;
 }
 /**
- * Read json string with memory alocation
+ * Read json string with memory allocation
  *
  * @param [in]	file		Full file path for json file
  * @return char*
@@ -1449,7 +1449,7 @@ err_ret:
 	return -3;
 }
 /**
- * Read json string with memory alocation
+ * Read json string with memory allocation
  *
  * @param [in]	file		Full file path for json file
  * @return char*
@@ -1509,7 +1509,7 @@ err_ret:
 	return -3;
 }
 /**
- * Read json string with memory alocation
+ * Read json string with memory allocation
  *
  * @param [in]	file		Full file path for json file
  * @return char*
@@ -1545,7 +1545,7 @@ int cmparser_parse_netif(container_netifconfig_t *nc, const cJSON *nif)
 	return 0;
 }
 /**
- * Read json string with memory alocation
+ * Read json string with memory allocation
  *
  * @param [in]	file		Full file path for json file
  * @return int
@@ -1704,7 +1704,7 @@ err_ret:
 	return result;
 }
 /**
- * Release container config alocated by cmparser_create_from_file
+ * Release container config allocated by cmparser_create_from_file
 
  *
  * @param [in]	cc		Container config

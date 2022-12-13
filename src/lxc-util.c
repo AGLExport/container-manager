@@ -20,7 +20,7 @@
 #include "uevent_injection.h"
 
 /**
- * Read json string with memory alocation
+ * Read json string with memory allocation
  *
  * @param [in]	file		Full file path for json file
  * @return int
@@ -78,7 +78,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 		}
 	}
 
-	// signal - mandatoly
+	// signal - mandatory
 	bret = plxc->set_config_item(plxc, "lxc.signal.halt", bc->lifecycle.halt);
 	if (bret == false) {
 		result = -1;
@@ -192,7 +192,7 @@ err_ret:
 	return result;
 }
 /**
- * Read json string with memory alocation
+ * Read json string with memory allocation
  *
  * @param [in]	file		Full file path for json file
  * @return int
@@ -243,7 +243,7 @@ err_ret:
 	return result;
 }
 /**
- * Read json string with memory alocation
+ * Read json string with memory allocation
  *
  * @param [in]	file		Full file path for json file
  * @return int
@@ -291,7 +291,7 @@ static int lxcutil_set_config_fs(struct lxc_container *plxc, container_fsconfig_
 				#endif
 				goto err_ret;
 			}
-		} else if (melem->type == FSMOUNT_TYPE_DIRECTRY) {
+		} else if (melem->type == FSMOUNT_TYPE_DIRECTORY) {
 			if (melem->from == NULL || melem->to == NULL || melem->fstype == NULL || melem->option == NULL)
 				continue;	//drop data
 
@@ -320,7 +320,7 @@ err_ret:
 }
 
 /**
- * Read json string with memory alocation
+ * Read json string with memory allocation
  *
  * @param [in]	file		Full file path for json file
  * @return int
@@ -419,7 +419,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 		memset(buf,0,sizeof(buf));
 
 		if (gpioelem->from == NULL || gpioelem->to == NULL || develem->is_valid == 0) {
-			// gpio is mandatry device
+			// gpio is mandatory device
 			result = -2;
 			goto err_ret;
 		}
@@ -432,7 +432,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 		if (devgpio_direction_isvalid(gpioelem->portdirection) == 1) {
 			// in = read only = not need bind mount
 			// out, low, high = need to rw bind mount to set gpio value
-			// notset = shall set direction in guest = rw mount
+			// not set = shall set direction in guest = rw mount
 			if (gpioelem->portdirection != DEVGPIO_DIRECTION_IN) {
 				(void)strncat(buf, ",rw", buflen);
 				slen = sizeof(",rw");
@@ -460,7 +460,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 		buf[0] = '\0';
 
 		if (iioelem->sysfrom == NULL || iioelem->systo == NULL ) {
-			// iio(sysfs) parameter was broaken
+			// iio(sysfs) parameter was broken
 			result = -2;
 			goto err_ret;
 		}
@@ -564,7 +564,7 @@ err_ret:
 	return result;
 }
 /**
- * Read json string with memory alocation
+ * Read json string with memory allocation
  *
  * @param [in]	file		Full file path for json file
  * @return int
@@ -694,7 +694,7 @@ err_ret:
 
 
 /**
- * Read json string with memory alocation
+ * Read json string with memory allocation
  *
  * @param [in]	file		Full file path for json file
  * @return int
@@ -821,7 +821,7 @@ int lxcutil_container_shutdown(container_config_t *cc)
  * @retval 0 success
  * @retval -1 critical error.
  */
-int lxcutil_container_fourcekill(container_config_t *cc)
+int lxcutil_container_forcekill(container_config_t *cc)
 {
 	pid_t pid = -1;
 
@@ -830,7 +830,7 @@ int lxcutil_container_fourcekill(container_config_t *cc)
 		if (pid > 0) {
 			(void) kill(pid, SIGKILL);
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr, "lxcutil_container_fourcekill: kill signal send to guest %s\n", cc->name );
+			fprintf(stderr, "lxcutil_container_forcekill: kill signal send to guest %s\n", cc->name );
 			#endif
 		}
 	}
@@ -857,7 +857,7 @@ int lxcutil_release_instance(container_config_t *cc)
 }
 
 /**
- * device type chkeck sub function for lxcutil_dynamic_device_add_to_guest
+ * device type check sub function for lxcutil_dynamic_device_add_to_guest
  *
  * @param [in]	cc 	container_config_t
  * @return int
@@ -872,7 +872,7 @@ static int lxcutil_device_type_get(const char *subsystem)
 	return DEVNODE_TYPE_CHR;
 }
 /**
- * device type chkeck sub function for lxcutil_dynamic_device_add_to_guest
+ * device type check sub function for lxcutil_dynamic_device_add_to_guest
  *
  * @param [in]	cc 	container_config_t
  * @return int
@@ -919,7 +919,7 @@ static int lxcutil_add_remove_guest_node_child(pid_t target_pid, const char *pat
 	return 0;
 }
 /**
- * device type chkeck sub function for lxcutil_dynamic_device_add_to_guest
+ * device type check sub function for lxcutil_dynamic_device_add_to_guest
  *
  * @param [in]	cc 	container_config_t
  * @return int
@@ -968,7 +968,7 @@ static int lxcutil_add_remove_guest_node(pid_t target_pid, const char *path, int
  * @return int
  * @retval 0 success
  * @retval -1 critical error.
- * @retval -2 device node creatrion error.
+ * @retval -2 device node creation error.
  */
 int lxcutil_dynamic_device_add_to_guest(container_config_t *cc, dynamic_device_elem_data_t *dded, int mode)
 {
@@ -1097,7 +1097,7 @@ int lxcutil_dynamic_device_remove_from_guest(container_config_t *cc, dynamic_dev
 	}
 
 	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr, "lxcutil_dynamic_device_remove_from_guest: dynamic devide %s remove from %s\n", dded->devpath, cc->name );
+	fprintf(stderr, "lxcutil_dynamic_device_remove_from_guest: dynamic device %s remove from %s\n", dded->devpath, cc->name );
 	#endif
 
 	return 0;

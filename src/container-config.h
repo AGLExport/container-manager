@@ -15,4 +15,4 @@ containers_t *create_container_configs(const char *config_dir);
 int release_container_configs(containers_t *cs);
 
 //-----------------------------------------------------------------------------
-#endif //#ifndef CONTAINER_CONFIGL_H
+#endif //#ifndef CONTAINER_CONFIG_H

@@ -17,7 +17,7 @@
 
 //#undef _PRINTF_DEBUG_
 /**
- * Read json string with memory alocation.
+ * Read json string with memory allocation.
  * Shall free string memory using cmparser_release_jsonstring.
  *
  * @param [in]	file	Full file path for json file

@@ -34,12 +34,12 @@ struct s_dynamic_device_info {
 	char *diskseq;	/** < diskseq - block device - disk/partition only */
 	char *partn;	/** < partition num - block device - partition only */
 	int ifindex;	/** < network interface index - net only */
-	//-- drop datas
+	//-- drop data
 	//char *sysnum; -- from udev_device_get_sysnum
 	//char *driver; -- from udev_device_get_driver
 
-	//--- interal control data
-	int assignd_container_index;
+	//--- internal control data
+	int assigned_container_index;
 	uint32_t fsmagic;	/** < file system magic code. 0 is no fs> */
 };
 typedef struct s_dynamic_device_info dynamic_device_info_t;
@@ -51,25 +51,25 @@ struct s_network_interface_info {
 	int ifindex;
 	char ifname[IFNAMSIZ+1];
 
-	//--- interal control data
-	int assignd_container_index;
+	//--- internal control data
+	int assigned_container_index;
 };
 typedef struct s_network_interface_info network_interface_info_t;
 
 //-----------------------------------------------------------------------------
 struct s_block_device_manager {
-	struct dl_list list;	/** < device list for disk/parition - dynamic_device_info_t*/
+	struct dl_list list;	/** < device list for disk/partition - dynamic_device_info_t*/
 
-	//--- interal control data
+	//--- internal control data
 };
 typedef struct s_block_device_manager block_device_manager_t;
 
 //-----------------------------------------------------------------------------
 struct s_network_interface_manager {
-	struct dl_list nllist;	/** < RTNL based dnetwork interface list - network_interface_info_t*/
-	struct dl_list devlist;	/** < udev based dnetwork interface list - dynamic_device_info_t*/
+	struct dl_list nllist;	/** < RTNL based network interface list - network_interface_info_t*/
+	struct dl_list devlist;	/** < udev based network interface list - dynamic_device_info_t*/
 
-	//--- interal control data
+	//--- internal control data
 };
 typedef struct s_network_interface_manager network_interface_manager_t;
 
@@ -77,7 +77,7 @@ typedef struct s_network_interface_manager network_interface_manager_t;
 struct s_dynamic_device_manager {
 	block_device_manager_t blockdev;
 	network_interface_manager_t netif;
-	//--- interal control data
+	//--- internal control data
 
 	udevmonitor_t *udevmon;
 	netifmonitor_t *netifmon;
