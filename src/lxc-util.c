@@ -373,7 +373,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 		buflen = buflen - slen;
 		if (develem->type == DEVICE_TYPE_DEVNODE) {
 			(void)strncat(buf, ",create=file", buflen);
-			slen = sizeof(",create=dir");
+			slen = sizeof(",create=file");
 		} if (develem->type == DEVICE_TYPE_DEVDIR) {
 			(void)strncat(buf, ",create=dir", buflen);
 			slen = sizeof(",create=dir");
