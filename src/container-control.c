@@ -160,8 +160,9 @@ static int container_mngsm_commsocket_setup(containers_t *cs, sd_event *event)
 		goto err_return;
 	}
 
+	pairfd[0] = -1;
+
 	cms->socket_source = socket_source;
-	cms->primary_fd = pairfd[0];
 	cms->secondary_fd = pairfd[1];
 
 	return 0;
@@ -177,6 +178,33 @@ err_return:
 		close(pairfd[0]);
 
 	return -1;
+}
+/**
+ * Sub function for cleanup socket pair connection.
+ *
+ * @param [out]	cs	setup target for struct s_container.
+ * @return int	 0 success
+ * 				-2 argument error
+ *				-1 internal error
+ */
+static int container_mngsm_commsocket_cleanup(containers_t *cs)
+{
+	struct s_container_mngsm *cms = NULL;
+
+	if (cs == NULL)
+		return -2;
+
+	cms = (struct s_container_mngsm*)cs->cms;
+
+	if (cms == NULL)
+		return -2;
+
+	if (cms->socket_source != NULL)
+		(void)sd_event_source_disable_unref(cms->socket_source);
+	if (cms->secondary_fd != -1)
+		close(cms->secondary_fd);
+
+	return 0;
 }
 /**
  * Timer tick update
@@ -297,6 +325,30 @@ err_return:
 	return -1;
 }
 /**
+ * Sub function for cleanup socket pair connection.
+ *
+ * @param [out]	cs	setup target for struct s_container.
+ * @return int	 0 success
+ * 				-2 argument error
+ *				-1 internal error
+ */
+static int container_mngsm_internal_timer_cleanup(containers_t *cs)
+{
+	struct s_container_mngsm *cms = NULL;
+
+	if (cs == NULL)
+		return -2;
+
+	cms = (struct s_container_mngsm*)cs->cms;
+	if (cms == NULL)
+		return -2;
+
+	if (cms->timer_source != NULL)
+		(void)sd_event_source_disable_unref(cms->timer_source);
+
+	return 0;
+}
+/**
  * Register device manager to container manager state machine
  *
  * @param [in]	cs	Instance of containers_t
@@ -329,7 +381,6 @@ int container_mngsm_regist_device_manager(containers_t *cs, dynamic_device_manag
 int container_mngsm_setup(containers_t **pcs, sd_event *event, const char *config_file)
 {
 	containers_t *cs = NULL;
-	struct s_container_mngsm *cms = NULL;
 	int ret = -1;
 
 	if (pcs == NULL || event == NULL)
@@ -344,6 +395,7 @@ int container_mngsm_setup(containers_t **pcs, sd_event *event, const char *confi
 		goto err_return;
 
 	memset(cs->cms, 0, sizeof(struct s_container_mngsm));
+	cs->cms->secondary_fd = -1;
 
 	ret = container_mngsm_commsocket_setup(cs, event);
 	if (ret < 0)
@@ -362,9 +414,10 @@ int container_mngsm_setup(containers_t **pcs, sd_event *event, const char *confi
 
 err_return:
 
-	if (cms != NULL) {
-		(void)sd_event_source_disable_unref(cms->socket_source);
-		free(cms);
+	if (cs->cms != NULL) {
+		(void)container_mngsm_internal_timer_cleanup(cs);
+		(void)container_mngsm_commsocket_cleanup(cs);
+		free(cs->cms);
 	}
 
 	if (cs != NULL)
@@ -416,10 +469,10 @@ int container_mngsm_cleanup(containers_t *cs)
 
 	container_mngsm_interface_free(cs);
 
-	cms = cs->cms;
-	if (cms != NULL) {
-		(void)sd_event_source_disable_unref(cms->socket_source);
-		free(cms);
+	if (cs->cms != NULL) {
+		(void)container_mngsm_internal_timer_cleanup(cs);
+		(void)container_mngsm_commsocket_cleanup(cs);
+		free(cs->cms);
 	}
 
 	(void)release_container_configs(cs);
