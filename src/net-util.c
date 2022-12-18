@@ -56,11 +56,12 @@ static int network_interface_info_free(network_interface_info_t *nfi);
  *
  * @param [in]	nlh	nlmsghdr
  * @param [out]	ifname	buffer for ifname
+ * @param [out]	size	buffer size for ifname
  * @return int	 0 available data
  * 				-2 argument error
  *				-1 no data
  */
-static int sdutil_get_ifname(const struct nlmsghdr *nlh, char *ifname)
+static int sdutil_get_ifname(const struct nlmsghdr *nlh, char *ifname, int size)
 {
 	struct ifinfomsg *ifm = mnl_nlmsg_get_payload(nlh);
 	int type = 0, ret = 0, result = -1;
@@ -82,7 +83,7 @@ static int sdutil_get_ifname(const struct nlmsghdr *nlh, char *ifname)
 			ret = mnl_attr_validate(attr, MNL_TYPE_STRING);
 			if (ret == 0) {
 				pstr = mnl_attr_get_str(attr);
-				strncpy(ifname, pstr, sizeof(ifname));
+				strncpy(ifname, pstr, size-1);
 				result = 0;
 			}
 			break;
@@ -123,7 +124,7 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 	cci = nfm->cci;
 
 	ifindex = ifm->ifi_index; //Get if index
-	ret = sdutil_get_ifname(nlh, ifname); //Get if name
+	ret = sdutil_get_ifname(nlh, ifname, sizeof(ifname)); //Get if name
 	if (ret < 0)
 		goto out; //no data
 
