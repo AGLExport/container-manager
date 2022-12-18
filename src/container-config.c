@@ -17,7 +17,6 @@
 #include "container-config.h"
 
 static const char DEFAULT_CONF_PATH[] = "/etc/container-manager.json";
-#define GUEST_CONTAINER_LIMIT	(8)	/** < Limit value for container name */
 
 /**
  * qsort compare function for container boot pri. sorting

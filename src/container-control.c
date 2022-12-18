@@ -7,6 +7,7 @@
 
 #include "container-control.h"
 #include "container-control-internal.h"
+#include "container-external-interface.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -405,6 +406,10 @@ int container_mngsm_setup(containers_t **pcs, sd_event *event, const char *confi
 	if (ret < 0)
 		goto err_return;
 
+	ret = container_external_interface_setup(cs, event);
+	if (ret < 0)
+		goto err_return;
+
 	cs->sys_state = CM_SYSTEM_STATE_RUN;
 	cs->event = event;
 
@@ -470,6 +475,7 @@ int container_mngsm_cleanup(containers_t *cs)
 	container_mngsm_interface_free(cs);
 
 	if (cs->cms != NULL) {
+		(void)container_external_interface_cleanup(cs);
 		(void)container_mngsm_internal_timer_cleanup(cs);
 		(void)container_mngsm_commsocket_cleanup(cs);
 		free(cs->cms);

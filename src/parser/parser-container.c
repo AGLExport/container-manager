@@ -430,7 +430,7 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 		#endif
 	} else {
 		// When it not set, role is default = NULL
-		bc->role = NULL;
+		bc->role = strdup("default");
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 		fprintf(stderr,"cmparser: base-role value is default (NULL)\n");
 		#endif
@@ -1855,6 +1855,7 @@ void cmparser_release_config(container_config_t *cc)
 		free(cc->baseconfig.rootfs.blockdev[1]);
 		free(cc->baseconfig.rootfs.filesystem);
 		free(cc->baseconfig.rootfs.path);
+		free(cc->baseconfig.role);
 	}
 
 	// global

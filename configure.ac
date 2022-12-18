@@ -53,7 +53,7 @@ AC_DISABLE_STATIC
 
 # Checks for libraries.
 LT_INIT
-AM_PROG_LIBTOOL 
+AM_PROG_LIBTOOL
 
 PKG_PROG_PKG_CONFIG
 PKG_CHECK_MODULES([LIBSYSTEMD], [libsystemd])
@@ -75,6 +75,7 @@ PKG_CHECK_MODULES([GMOCK_MAIN], [gmock_main], , enable_test=no)
 
 AC_CONFIG_FILES([Makefile
 				src/Makefile
+        src/command/Makefile
 				test/unit/Makefile ])
 AC_OUTPUT
 

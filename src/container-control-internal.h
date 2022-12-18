@@ -9,14 +9,19 @@
 //-----------------------------------------------------------------------------
 #include <stdint.h>
 #include <limits.h>
+#include <systemd/sd-event.h>
 
+#include "container.h"
 //-----------------------------------------------------------------------------
 // common definition
 //-----------------------------------------------------------------------------
+struct s_cm_external_interface;
+typedef struct s_cm_external_interface cm_external_interface_t;
+
 struct s_container_mngsm {
+	cm_external_interface_t *cm_ext_if;
 	sd_event_source *timer_source;
 	sd_event_source *socket_source;
-	int primary_fd;
 	int secondary_fd;
 };
 
