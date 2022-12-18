@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	block-util.h
- * @brief	block devide utility header
+ * @brief	block device utility header
  */
 #ifndef BLOCK_UTIL_H
 #define BLOCK_UTIL_H

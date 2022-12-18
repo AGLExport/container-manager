@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
 		goto finish;
 	}
 
-	// early device setup: commn time setup all containers, for static device, gpio, 
+	// early device setup: setup all containers, for static device, gpio,
 	ret = devc_early_device_setup(cs);
 	if (ret < 0)
 		goto finish;
@@ -109,8 +109,9 @@ int main(int argc, char *argv[])
 	if (ret < 0)
 		goto finish;
 
-	//ret = lxc_container_put(plxc);
 	ret = container_mngsm_start(cs);
+	if (ret < 0)
+		goto finish;
 
 	(void) sd_notify(
 		1,

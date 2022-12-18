@@ -1,6 +1,8 @@
 AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
+SUBDIRS = command
+
 bin_PROGRAMS = containermanager
 
 containermanager_SOURCES = \
@@ -12,7 +14,7 @@ containermanager_SOURCES = \
 	lxc-util.c \
 	net-util.c \
 	udev-util.c \
-	signal-util.c \	
+	signal-util.c \
 	uevent_injection.c \
 	container-config.c \
 	device-control-static.c \
@@ -21,6 +23,7 @@ containermanager_SOURCES = \
 	container-control-interface.c \
 	container-control-exec.c \
 	container-control-monitor.c \
+	container-external-interface.c \
 	container-manager.c
 
 
@@ -62,10 +65,10 @@ containermanager_CXXFLAGS = \
 	-D_GNU_SOURCE
 
 # Linker options
-containermanager_LDFLAGS = 
+containermanager_LDFLAGS =
 
 
-# configure option 
+# configure option
 if ENABLE_ADDRESS_SANITIZER
 CFLAGS   += -fsanitize=address
 endif

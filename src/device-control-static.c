@@ -68,7 +68,7 @@ int devc_early_device_setup(containers_t *cs)
 	return 0;
 
 err_ret:
-	
+
 	return result;
 }
 /**
@@ -91,7 +91,7 @@ static int devc_static_devnode_scan(container_static_device_t *sdevc)
 		struct stat sb = {0};
 
 		if (develem->devnode == NULL) {
-			// This type data must not created in data perser.
+			// This type data must not created in data parser.
 			result = -1;
 			goto err_ret;
 		}
@@ -103,7 +103,7 @@ static int devc_static_devnode_scan(container_static_device_t *sdevc)
 			continue;
 		}
 
-		// Check devide node type
+		// Check device node type
 		if(S_ISCHR(sb.st_mode))
 			develem->devtype = DEVNODE_TYPE_CHR;
 		else if (S_ISBLK(sb.st_mode))
@@ -146,7 +146,7 @@ static const char *gpio_direction_table[] = {
  * @retval  0 Success.
  * @retval -1 Device scan error.
  * @retval -2 Syscall error.
- * @retval -3 Memory allocation error. 
+ * @retval -3 Memory allocation error.
  */
 static const char gpio_export_node[] = "/sys/class/gpio/export";
 static int devc_gpionode_scan(container_static_device_t *sdevc)
@@ -163,7 +163,7 @@ static int devc_gpionode_scan(container_static_device_t *sdevc)
 	dl_list_for_each(gpioelem, &sdevc->static_gpiolist, container_static_gpio_elem_t, list) {
 
 		if (gpioelem->from == NULL) {
-			// This type data must not created in data perser.
+			// This type data must not created in data parser.
 			result = -1;
 			goto err_ret;
 		}
@@ -171,7 +171,7 @@ static int devc_gpionode_scan(container_static_device_t *sdevc)
 		// is exported?
 		ret = node_check(gpioelem->from);
 		if (ret == -1) {
-			// gpio is not expoted, need to export
+			// gpio is not exported, need to export
 			buf[0] = '\0';
 			buflen = sizeof(buf) - 1;
 
@@ -182,13 +182,13 @@ static int devc_gpionode_scan(container_static_device_t *sdevc)
 			#ifdef _PRINTF_DEBUG_
 			fprintf(stdout,"devc: gpio node %s will export\n", buf);
 			#endif
-			ret = onece_write(gpio_export_node, buf, slen);
+			ret = once_write(gpio_export_node, buf, slen);
 			if (ret == 0) {
 				ret = node_check(gpioelem->from);
 				if (ret == -1) {
-					// gpio export errot. In this case that poart can't use gpio,
+					// gpio export error. In this case that port can't use gpio,
 					// that port is already assign other function may be.
-					// Skip this port 
+					// Skip this port
 					continue;
 				}
 			}
@@ -203,7 +203,7 @@ static int devc_gpionode_scan(container_static_device_t *sdevc)
 		if (!(slen < buflen))
 			continue; //Skip port setup, may not cause this error.
 
-		ret = onece_write(buf, gpio_direction_table[gpioelem->portdirection], strlen(gpio_direction_table[gpioelem->portdirection]));
+		ret = once_write(buf, gpio_direction_table[gpioelem->portdirection], strlen(gpio_direction_table[gpioelem->portdirection]));
 		if (ret != 0) {
 			#ifdef _PRINTF_DEBUG_
 			fprintf(stdout,"devc: gpio node %s direction set %s is fail\n", gpioelem->from,  gpio_direction_table[gpioelem->portdirection]);
@@ -230,7 +230,7 @@ err_ret:
  * @retval  0 Success.
  * @retval -1 Device scan error.
  * @retval -2 Syscall error.
- * @retval -3 Memory allocation error. 
+ * @retval -3 Memory allocation error.
  */
 static int devc_iionode_scan(container_static_device_t *sdevc)
 {
@@ -246,7 +246,7 @@ static int devc_iionode_scan(container_static_device_t *sdevc)
 	dl_list_for_each(iioelem, &sdevc->static_iiolist, container_static_iio_elem_t, list) {
 
 		if (iioelem->sysfrom == NULL || iioelem->systo == NULL) {
-			// This type data must not created in data perser.
+			// This type data must not created in data parser.
 			result = -1;
 			goto err_ret;
 		}
@@ -272,7 +272,7 @@ static int devc_iionode_scan(container_static_device_t *sdevc)
 				continue;
 			}
 
-			// Check devide node type
+			// Check device node type
 			if(!S_ISCHR(sb.st_mode)) {
 				// iio dev node must be char device, skip.
 				iioelem->is_dev_valid = 0;
@@ -309,7 +309,7 @@ err_ret:
  * @retval  0 Success.
  * @retval -1 Device scan error.
  * @retval -2 Syscall error.
- * @retval -3 Memory allocation error. 
+ * @retval -3 Memory allocation error.
  */
 static int devc_netbridge_setup(container_manager_config_t *cmc)
 {
@@ -327,7 +327,7 @@ static int devc_netbridge_setup(container_manager_config_t *cmc)
 	dl_list_for_each(elem, &cmc->bridgelist, container_manager_bridge_config_t, list) {
 
 		if (elem->name == NULL) {
-			// This type data must not created in data perser.
+			// This type data must not created in data parser.
 			result = -1;
 			continue;
 		}

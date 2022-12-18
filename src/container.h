@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	container.h
- * @brief	container management data 
+ * @brief	container management data
  */
 #ifndef CONTAINER_H
 #define CONTAINER_H
@@ -27,8 +27,6 @@ struct s_container_baseconfig_rootfs {
 	char *filesystem;	/**< rootfs file system type */
 	int mode;	/**< file system mount mode (ro/rw) */
 	char *blockdev[2];	/**< block device for rootfs with A/B update 0=a.1=b */
-	//--- interal control data
-	int rwmount;	/**< rw mount for rootfs */
 };
 typedef struct s_container_baseconfig_rootfs container_baseconfig_rootfs_t;
 
@@ -39,12 +37,12 @@ struct s_container_baseconfig_extradisk {
 	char *filesystem;	/**< rootfs file system type */
 	int mode;	/**< file system mount mode (ro/rw) */
 	int	redundancy;	/**< redundancy mode (failover/ab) */
-	char *blockdev[2];	/**< block device for rootfs primary and secoundary */
+	char *blockdev[2];	/**< block device for rootfs primary and secondary */
 };
 typedef struct s_container_baseconfig_extradisk container_baseconfig_extradisk_t;
 
 struct s_container_baseconfig_lifecycle {
-	char *halt;		/**< Shoutdown request signal for guest */
+	char *halt;		/**< Shutdown request signal for guest */
 	char *reboot;	/**< Reboot request signal for guest */
 	int timeout;	/**< Shutdown timeout for guest */
 };
@@ -72,7 +70,7 @@ typedef struct s_container_baseconfig_idmaps container_baseconfig_idmaps_t;
 
 struct s_container_baseconfig_env {
 	struct dl_list list;
-	char *envstring;	/** < Environment valiable list */
+	char *envstring;	/** < Environment variable list */
 };
 typedef struct s_container_baseconfig_env container_baseconfig_env_t;
 
@@ -86,7 +84,7 @@ struct s_container_baseconfig {
 	container_baseconfig_capability_t cap;
 	container_baseconfig_idmaps_t idmaps;
 	struct dl_list envlist;
-	//--- interal control data
+	//--- internal control data
 	int abboot;
 };
 typedef struct s_container_baseconfig container_baseconfig_t;
@@ -99,7 +97,6 @@ struct s_container_resource_elem {
 	int type;	/** < resource control type */
 	char *object;	/** < resource object */
 	char *value;	/** < value for resource object */
-	//--- interal control data
 };
 typedef struct s_container_resource_elem container_resource_elem_t;
 
@@ -115,16 +112,15 @@ typedef struct s_container_resourceconfig container_resourceconfig_t;
 //-----------------------------------------------------------------------------
 // fs config ---------------------------------
 #define FSMOUNT_TYPE_FILESYSTEM	(1)
-#define FSMOUNT_TYPE_DIRECTRY	(2)
+#define FSMOUNT_TYPE_DIRECTORY	(2)
 
 struct s_container_fsmount_elem {
 	struct dl_list list;
 	int type;	/** < mount type */
-	char *from;	/** < host side mount etry  */
-	char *to;	/** < guest side mount etry  */
+	char *from;	/** < host side mount entry  */
+	char *to;	/** < guest side mount entry  */
 	char *fstype;	/** < file system type */
 	char *option;	/** < mount option  */
-	//--- interal control data
 };
 typedef struct s_container_fsmount_elem container_fsmount_elem_t;
 
@@ -150,13 +146,13 @@ typedef struct s_container_fsconfig container_fsconfig_t;
 struct s_container_static_device_elem {
 	struct dl_list list;
 	int type;	/** < device type - DEVICE_TYPE_x */
-	char *from;	/** < host side mount etry  */
-	char *to;	/** < guest side mount etry  */
-	char *devnode;	/** < Checck device node */
+	char *from;	/** < host side mount entry  */
+	char *to;	/** < guest side mount entry  */
+	char *devnode;	/** < Check device node */
 	int optional;	/** < 0 = required, 1 = optional  */
 	int wideallow;	/** < mount type */
 	int exclusive;	/** < exclusive assign to guest */
-	//--- interal control data
+	//--- internal control data
 	int is_valid;	/** < static device was available */
 	int devtype;	/** < device driver type - DEVNODE_TYPE_x */
 	int major;	/** < major number */
@@ -183,9 +179,9 @@ struct s_container_static_gpio_elem {
 	int type;	/** < device type */
 	int port;	/** < gpio port num */
 	int portdirection;	/** < gpio port direction */
-	char *from;	/** < host side mount etry  */
-	char *to;	/** < guest side mount etry  */
-	//--- interal control data
+	char *from;	/** < host side mount entry  */
+	char *to;	/** < guest side mount entry  */
+	//--- internal control data
 	int is_valid;	/** < gpio port available */
 };
 typedef struct s_container_static_gpio_elem container_static_gpio_elem_t;
@@ -193,13 +189,13 @@ typedef struct s_container_static_gpio_elem container_static_gpio_elem_t;
 struct s_container_static_iio_elem {
 	struct dl_list list;
 	int type;	/** < device type */
-	char *sysfrom;	/** < host side mount etry sysfs */
-	char *systo;	/** < guest side mount etry sysfs */
-	char *devfrom;	/** < host side mount etry dev */
-	char *devto;	/** < guest side mount etry dev */
-	char *devnode;	/** < Checck device node */
+	char *sysfrom;	/** < host side mount entry sysfs */
+	char *systo;	/** < guest side mount entry sysfs */
+	char *devfrom;	/** < host side mount entry dev */
+	char *devto;	/** < guest side mount entry dev */
+	char *devnode;	/** < Check device node */
 	int optional;	/** < 0 = required, 1 = optional  */
-	//--- interal control data
+	//--- internal control data
 	int is_sys_valid;	/** < sysfs node available */
 	int is_dev_valid;	/** < device node available */
 	int major;	/** < major number */
@@ -216,8 +212,6 @@ typedef struct s_container_static_device container_static_device_t;
 
 struct s_dynamic_device_elem_data {
 	struct dl_list list;
-	//char *syspath;	/** < sysfs path */
-	//char *sysname;	/** < sysname  */
 	char *devpath;	/** < devpath */
 	char *devtype;	/** < device type */
 	char *subsystem;	/** < subsystem name */
@@ -225,8 +219,7 @@ struct s_dynamic_device_elem_data {
 	dev_t devnum;	/** < device major and minor number - char/block device only */
 	char *diskseq;	/** < diskseq - block device - disk/partition only */
 	char *partn;	/** < partition num - block device - partition only */
-	//--- interal control data
-	
+	//--- internal control data
 	int is_available;
 };
 typedef struct s_dynamic_device_elem_data dynamic_device_elem_data_t;
@@ -237,8 +230,7 @@ struct s_container_dynamic_device_elem {
 	char *subsystem;
 	char *devtype;
 	int mode;
-
-	//--- interal control data
+	//--- internal control data
 	struct dl_list device_list;
 };
 typedef struct s_container_dynamic_device_elem container_dynamic_device_elem_t;
@@ -255,7 +247,7 @@ struct s_container_deviceconfig {
 typedef struct s_container_deviceconfig container_deviceconfig_t;
 
 //-----------------------------------------------------------------------------
-// network initerface ---------------------------------
+// network interface ---------------------------------
 #define STATICNETIF_VETH	(1)
 
 struct s_netif_elem_veth {
@@ -273,8 +265,6 @@ struct s_container_static_netif_elem {
 	struct dl_list list;
 	int type;
 	void *setting;
-
-	//--- interal control data
 };
 typedef struct s_container_static_netif_elem container_static_netif_elem_t;
 
@@ -286,9 +276,7 @@ typedef struct s_container_static_netif container_static_netif_t;
 struct s_container_dynamic_netif_elem {
 	struct dl_list list;
 	char *ifname;
-
-	//--- interal control data
-	//struct dl_list netif_list;
+	//--- internal control data
 	int ifindex;
 	int is_available;
 };
@@ -330,13 +318,13 @@ struct s_container_config {
 	container_fsconfig_t fsconfig;
 	container_deviceconfig_t deviceconfig;
 	container_netifconfig_t netifconfig;
-
-	//--- interal control data
+	//--- internal control data
 	container_runtime_status_t runtime_stat;
-
 };
 typedef struct s_container_config container_config_t;
 //-----------------------------------------------------------------------------
+#define GUEST_CONTAINER_LIMIT	(8)	/** < Limit value for containers */
+
 struct s_container_mngsm;
 typedef struct s_container_mngsm container_mngsm_t;
 
@@ -352,7 +340,7 @@ struct s_containers {
 	int num_of_container;	/** < Num of container data */
 	int sys_state;
 	container_config_t **containers;	/** < container config array */
-	
+
 	container_mngsm_t *cms;	/** < container management state machine */
 	container_control_interface_t *cci;	/** < container control interface */
 	dynamic_device_manager_t *ddm;	/** < dynamic device manager */

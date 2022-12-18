@@ -7,6 +7,7 @@
 
 #include "container-control.h"
 #include "container-control-internal.h"
+#include "container-external-interface.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -25,8 +26,8 @@
  * Event handler for server session socket
  *
  * @param [in]	event		Socket event source object
- * @param [in]	fd			File discriptor for socket session
- * @param [in]	revents		Active event (epooll)
+ * @param [in]	fd			File descriptor for socket session
+ * @param [in]	revents		Active event (epoll)
  * @param [in]	userdata	Pointer to data_pool_service_handle
  * @return int	 0 success
  *				-1 internal error
@@ -81,8 +82,8 @@ static int container_mngsm_state_machine(containers_t *cs, const uint8_t *buf)
  * Event handler for server session socket
  *
  * @param [in]	event		Socket event source object
- * @param [in]	fd			File discriptor for socket session
- * @param [in]	revents		Active event (epooll)
+ * @param [in]	fd			File descriptor for socket session
+ * @param [in]	revents		Active event (epoll)
  * @param [in]	userdata	Pointer to data_pool_service_handle
  * @return int	 0 success
  *				-1 internal error
@@ -95,7 +96,7 @@ static int container_mngsm_commsocket_handler(sd_event_source *event, int fd, ui
 	uint64_t buf[CONTAINER_MNGSM_COMMAND_BUFSIZEMAX/sizeof(uint64_t)];
 
 	if (userdata == NULL) {
-		//  Faile safe it unref.
+		//  Fail safe it unref.
 		sd_event_source_disable_unref(event);
 		return 0;
 	}
@@ -103,7 +104,7 @@ static int container_mngsm_commsocket_handler(sd_event_source *event, int fd, ui
 	cs = (containers_t*)userdata;
 
 	if ((revents & (EPOLLHUP | EPOLLERR)) != 0) {
-		//  Faile safe it unref.
+		//  Fail safe it unref.
 		sd_event_source_disable_unref(event);
 	} else if ((revents & EPOLLIN) != 0) {
 		// Event receive
@@ -120,10 +121,10 @@ static int container_mngsm_commsocket_handler(sd_event_source *event, int fd, ui
 	return -1;
 }
 /**
- * Sub function for create socket pair connectiong.
+ * Sub function for create socket pair connection.
  *
  * @param [out]	cs	setup target for struct s_container.
- * @param [in]	event	Incetance of sd_event
+ * @param [in]	event	Instance of sd_event
  * @return int	 0 success
  * 				-2 argument error
  *				-1 internal error
@@ -138,12 +139,12 @@ static int container_mngsm_commsocket_setup(containers_t *cs, sd_event *event)
 	cms = (struct s_container_mngsm*)cs->cms;
 
 	// Create state machine control socket
-	ret = socketpair(AF_UNIX, SOCK_SEQPACKET|SOCK_CLOEXEC|SOCK_NONBLOCK, AF_UNIX, pairfd); 
+	ret = socketpair(AF_UNIX, SOCK_SEQPACKET|SOCK_CLOEXEC|SOCK_NONBLOCK, AF_UNIX, pairfd);
 	if (ret < 0) {
 		goto err_return;
 	}
 
-	//Primary fd use evelt loop
+	//Primary fd use event loop
 	ret = sd_event_add_io(event, &socket_source, pairfd[0], (EPOLLIN | EPOLLHUP | EPOLLERR), container_mngsm_commsocket_handler, cs);
 	if (ret < 0) {
 		ret = -1;
@@ -153,15 +154,16 @@ static int container_mngsm_commsocket_setup(containers_t *cs, sd_event *event)
 	// Higher priority set.
 	(void)sd_event_source_set_priority(socket_source, SD_EVENT_PRIORITY_NORMAL -10);
 
-	// Set automatically fd closen at delete object.
+	// Set automatically fd closed at delete object.
 	ret = sd_event_source_set_io_fd_own(socket_source, 1);
 	if (ret < 0) {
 		ret = -1;
 		goto err_return;
 	}
 
+	pairfd[0] = -1;
+
 	cms->socket_source = socket_source;
-	cms->primary_fd = pairfd[0];
 	cms->secondary_fd = pairfd[1];
 
 	return 0;
@@ -177,6 +179,33 @@ err_return:
 		close(pairfd[0]);
 
 	return -1;
+}
+/**
+ * Sub function for cleanup socket pair connection.
+ *
+ * @param [out]	cs	setup target for struct s_container.
+ * @return int	 0 success
+ * 				-2 argument error
+ *				-1 internal error
+ */
+static int container_mngsm_commsocket_cleanup(containers_t *cs)
+{
+	struct s_container_mngsm *cms = NULL;
+
+	if (cs == NULL)
+		return -2;
+
+	cms = (struct s_container_mngsm*)cs->cms;
+
+	if (cms == NULL)
+		return -2;
+
+	if (cms->socket_source != NULL)
+		(void)sd_event_source_disable_unref(cms->socket_source);
+	if (cms->secondary_fd != -1)
+		close(cms->secondary_fd);
+
+	return 0;
 }
 /**
  * Timer tick update
@@ -228,7 +257,7 @@ static int container_mngsm_timer_handler(sd_event_source *es, uint64_t usec, voi
 	ssize_t ret = -1;
 
 	if (userdata == NULL) {
-		//  Faile safe it unref.
+		//  Fail safe it unref.
 		sd_event_source_disable_unref(es);
 		return 0;
 	}
@@ -257,7 +286,7 @@ error_ret:
  * Sub function for timer.
  *
  * @param [in]	cs	setup target for struct s_container.
- * @param [in]	event	Incetance of sd_event
+ * @param [in]	event	Instance of sd_event
  * @return int	 0 success
  * 				-2 argument error
  *				-1 internal error
@@ -297,9 +326,33 @@ err_return:
 	return -1;
 }
 /**
- * Regist device manager to container manager state machine
+ * Sub function for cleanup socket pair connection.
  *
- * @param [in]	cs	Incetance of containers_t
+ * @param [out]	cs	setup target for struct s_container.
+ * @return int	 0 success
+ * 				-2 argument error
+ *				-1 internal error
+ */
+static int container_mngsm_internal_timer_cleanup(containers_t *cs)
+{
+	struct s_container_mngsm *cms = NULL;
+
+	if (cs == NULL)
+		return -2;
+
+	cms = (struct s_container_mngsm*)cs->cms;
+	if (cms == NULL)
+		return -2;
+
+	if (cms->timer_source != NULL)
+		(void)sd_event_source_disable_unref(cms->timer_source);
+
+	return 0;
+}
+/**
+ * Register device manager to container manager state machine
+ *
+ * @param [in]	cs	Instance of containers_t
  * @return int	 0 success
  * 				-2 argument error
  *				-1 internal error
@@ -320,7 +373,7 @@ int container_mngsm_regist_device_manager(containers_t *cs, dynamic_device_manag
  * Container management state machine setup.
  *
  * @param [out]	pcs	return to containers_t*
- * @param [in]	event	Incetance of sd_event
+ * @param [in]	event	Instance of sd_event
  * @param [in]	config_dir	Path for container config dir.
  * @return int	 0 success
  * 				-2 argument error
@@ -329,7 +382,6 @@ int container_mngsm_regist_device_manager(containers_t *cs, dynamic_device_manag
 int container_mngsm_setup(containers_t **pcs, sd_event *event, const char *config_file)
 {
 	containers_t *cs = NULL;
-	struct s_container_mngsm *cms = NULL;
 	int ret = -1;
 
 	if (pcs == NULL || event == NULL)
@@ -344,12 +396,17 @@ int container_mngsm_setup(containers_t **pcs, sd_event *event, const char *confi
 		goto err_return;
 
 	memset(cs->cms, 0, sizeof(struct s_container_mngsm));
+	cs->cms->secondary_fd = -1;
 
 	ret = container_mngsm_commsocket_setup(cs, event);
 	if (ret < 0)
 		goto err_return;
 
 	ret = container_mngsm_internal_timer_setup(cs, event);
+	if (ret < 0)
+		goto err_return;
+
+	ret = container_external_interface_setup(cs, event);
 	if (ret < 0)
 		goto err_return;
 
@@ -362,9 +419,10 @@ int container_mngsm_setup(containers_t **pcs, sd_event *event, const char *confi
 
 err_return:
 
-	if (cms != NULL) {
-		(void)sd_event_source_disable_unref(cms->socket_source);
-		free(cms);
+	if (cs->cms != NULL) {
+		(void)container_mngsm_internal_timer_cleanup(cs);
+		(void)container_mngsm_commsocket_cleanup(cs);
+		free(cs->cms);
 	}
 
 	if (cs != NULL)
@@ -375,7 +433,7 @@ err_return:
 /**
  * Container management state machine cleanup.
  *
- * @param [in]	cs	Incetance of containers_t
+ * @param [in]	cs	Instance of containers_t
  * @return int	 0 success
  * 				-2 argument error
  *				-1 internal error
@@ -390,7 +448,7 @@ int container_mngsm_exit(containers_t *cs)
 
 	ret = sd_event_exit(cs->event, 0);
 	if (ret < 0) {
-		// Fource process exit
+		// Force process exit
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 		fprintf(stderr,"[CM CRITICAL ERROR] container_mngsm_exit was fail.\n");
 		#endif
@@ -402,7 +460,7 @@ int container_mngsm_exit(containers_t *cs)
 /**
  * Container management state machine cleanup.
  *
- * @param [in]	cs	Incetance of containers_t
+ * @param [in]	cs	Instance of containers_t
  * @return int	 0 success
  * 				-2 argument error
  *				-1 internal error
@@ -416,10 +474,11 @@ int container_mngsm_cleanup(containers_t *cs)
 
 	container_mngsm_interface_free(cs);
 
-	cms = cs->cms;
-	if (cms != NULL) {
-		(void)sd_event_source_disable_unref(cms->socket_source);
-		free(cms);
+	if (cs->cms != NULL) {
+		(void)container_external_interface_cleanup(cs);
+		(void)container_mngsm_internal_timer_cleanup(cs);
+		(void)container_mngsm_commsocket_cleanup(cs);
+		free(cs->cms);
 	}
 
 	(void)release_container_configs(cs);

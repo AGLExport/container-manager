@@ -60,8 +60,8 @@ static int container_monitor_state_change(containers_t *cs, int status, int num)
  * Event handler for pidfd monitor
  *
  * @param [in]	event		Socket event source object
- * @param [in]	fd			File discriptor for socket session
- * @param [in]	revents		Active event (epooll)
+ * @param [in]	fd			File descriptor for socket session
+ * @param [in]	revents		Active event (epoll)
  * @param [in]	userdata	Pointer to data_pool_service_handle
  * @return int	 0 success
  *				-1 internal error
@@ -74,14 +74,14 @@ static int container_monitor_pidfd_handler(sd_event_source *event, int fd, uint3
 	int num = 0;
 
 	if (userdata == NULL) {
-		//  Faile safe it unref.
+		//  Fail safe it unref.
 		sd_event_source_disable_unref(event);
 		return 0;
 	}
 
 	cs = (containers_t*)userdata;
 
-	// pidfd is actived in process exit. Other case will not active
+	// pidfd is activated in process exit. Other case will not active
 	num = cs->num_of_container;
 	for(int i=0;i < num;i++) {
 		cc = cs->containers[i];
@@ -143,7 +143,7 @@ err_return:
  * @return int
  * @retval  0 Success.
  * @retval -1 mount error.
- * @retval -2 Syscall error. 
+ * @retval -2 Syscall error.
  */
 int container_monitor_removeguest(containers_t *cs, container_config_t *cc)
 {

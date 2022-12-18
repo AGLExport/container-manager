@@ -23,7 +23,7 @@ static signal_util_manage_t g_sigutil_mng;
  * Sub function for UNIX signal handling.
  * Block SIGTERM, when this process receive SIGTERM, event loop will exit.
  *
- * @param [in]	event	Incetance of sd_event
+ * @param [in]	event	Instance of sd_event
  * @return int	 0 success
  * 				-2 argument error
  *				-1 internal error
@@ -54,7 +54,7 @@ static int sd_event_signal_handler(sd_event_source *s, const struct signalfd_sig
 		if (ret < 0) {
 			(void) sd_event_exit(sigutil_mng->event, -1);
 			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			fprintf(stderr,"[CM CRITICAL ERROR] sd_event_signal_handler nofification fail. fource exit event loop.\n");
+			fprintf(stderr,"[CM CRITICAL ERROR] sd_event_signal_handler notification fail. force exit event loop.\n");
 			#endif
 		}
 	}
@@ -65,7 +65,7 @@ static int sd_event_signal_handler(sd_event_source *s, const struct signalfd_sig
  * Sub function for UNIX signal handling.
  * Block SIGTERM, when this process receive SIGTERM, event loop will exit.
  *
- * @param [in]	event	Incetance of sd_event
+ * @param [in]	event	Instance of sd_event
  * @return int	 0 success
  * 				-2 argument error
  *				-1 internal error

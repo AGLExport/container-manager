@@ -2,10 +2,10 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	manager.h
- * @brief	container management daemon grobal config data 
+ * @brief	container management daemon global config data
  */
-#ifndef MAINAGER_H
-#define MAINAGER_H
+#ifndef MANAGER_H
+#define MANAGER_H
 //-----------------------------------------------------------------------------
 #include <stdint.h>
 #include <stddef.h>
@@ -16,15 +16,15 @@
 struct s_container_manager_bridge_config {
 	struct dl_list list;
 	char *name;	 		/**< ethernet bridge name */
-	//--- interal control data
+	//--- internal control data
 };
 typedef struct s_container_manager_bridge_config container_manager_bridge_config_t;
 
 struct s_container_manager_config {
-	char *configdir;	//**< container config directry */
+	char *configdir;	//**< container config directory */
 	struct dl_list bridgelist;
 };
 typedef struct s_container_manager_config container_manager_config_t;
 
 //-----------------------------------------------------------------------------
-#endif //#ifndef MAINAGER_H
+#endif //#ifndef MANAGER_H

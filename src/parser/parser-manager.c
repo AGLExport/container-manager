@@ -23,13 +23,13 @@
 //#undef _PRINTF_DEBUG_
 
 /**
- * Read json string with memory alocation
+ * Read json string with memory allocation
  *
  * @param [in]	file		Full file path for json file
  * @return int
  * @retval -1 Json file error.
- * @retval -2 Json file parse error. 
- * @retval -3 Memory allocation error. 
+ * @retval -2 Json file parse error.
+ * @retval -3 Memory allocation error.
  */
 int cmparser_manager_create_from_file(container_manager_config_t **cm, const char *file)
 {
@@ -133,8 +133,8 @@ err_ret:
 	return result;
 }
 /**
- * Release container config alocated by cmparser_create_from_file
- 
+ * Release container config allocated by cmparser_create_from_file
+
  *
  * @param [in]	cc		Container config
  * @return void
@@ -156,7 +156,7 @@ void cmparser_manager_release_config(container_manager_config_t *cm)
 			free(elem);
 		}
 	}
-	
+
 	// global
 	free(cm->configdir);
 	free(cm);

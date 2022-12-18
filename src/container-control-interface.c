@@ -37,7 +37,7 @@ static int container_mngsm_system_shutdown(struct s_container_control_interface 
 /**
  * Container management state machine cleanup.
  *
- * @param [in]	cs	Incetance of containers_t
+ * @param [in]	cs	Instance of containers_t
  * @return int	 0 success
  * 				-2 argument error
  *				-1 internal error
@@ -69,13 +69,13 @@ int container_mngsm_interface_get(container_control_interface_t **pcci, containe
 	return 0;
 
 err_return:
-	
+
 	return -1;
 }
 /**
  * Container management state machine cleanup.
  *
- * @param [in]	cs	Incetance of containers_t
+ * @param [in]	cs	Instance of containers_t
  * @return int	 0 success
  * 				-2 argument error
  *				-1 internal error

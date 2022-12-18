@@ -155,7 +155,7 @@ int container_device_update_guest(container_config_t *cc, dynamic_device_manager
 	return 0;
 
 err_ret:
-	
+
 	return -1;
 }
 /**
@@ -212,7 +212,7 @@ int container_device_updated(containers_t *cs)
 	#ifdef _PRINTF_DEBUG_
 	fprintf(stderr, "container_device_updated exec\n");
 	#endif
-	
+
 	for(int i=0;i < num;i++) {
 		cc = cs->containers[i];
 		ret = container_device_update_guest(cc, cs->ddm);
@@ -223,7 +223,7 @@ int container_device_updated(containers_t *cs)
 	return 0;
 
 err_ret:
-	
+
 	return result;
 }
 /**
@@ -304,7 +304,7 @@ int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_
 			#ifdef _PRINTF_DEBUG_
 			fprintf(stderr, "network if update removed %s from %s\n", cdne->ifname, cc->name);
 			#endif
-		}	
+		}
 	}
 
 	return 0;
@@ -352,7 +352,7 @@ int container_netif_updated(containers_t *cs)
 	return 0;
 
 err_ret:
-	
+
 	return result;
 }
 /**
@@ -383,10 +383,10 @@ int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
 
 	if (cs->sys_state  == CM_SYSTEM_STATE_RUN) {
 		if (cc->runtime_stat.status == CONTAINER_NOT_STARTED) {
-			// not runninng, not need shutdown
+			// not running, not need shutdown
 			;
 		} else if (cc->runtime_stat.status == CONTAINER_STARTED) {
-			// now runninng, guest was dead
+			// now ruining, guest was dead
 			cc->runtime_stat.status = CONTAINER_DEAD;
 
 			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
@@ -413,9 +413,9 @@ int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
 		} else if (cc->runtime_stat.status == CONTAINER_STARTED) {
 			// cross event between crash and system shutdown, change to exit state.
 			cc->runtime_stat.status = CONTAINER_EXIT;
-	
+
 		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
-			// exit containr after shutdown request.
+			// exit container after shutdown request.
 			cc->runtime_stat.status = CONTAINER_EXIT;
 			;
 		} else if (cc->runtime_stat.status == CONTAINER_DEAD) {
@@ -454,16 +454,16 @@ static int container_request_shutdown(container_config_t *cc, int sys_state)
 
 	if (sys_state == CM_SYSTEM_STATE_RUN) {
 		if (cc->runtime_stat.status == CONTAINER_NOT_STARTED) {
-			// not runninng, not need shutdown
+			// not ruining, not need shutdown
 			;
 		} else if (cc->runtime_stat.status == CONTAINER_STARTED) {
-			// now runninng, send shutdown request
+			// now ruining, send shutdown request
 			ret = lxcutil_container_shutdown(cc);
 			if (ret < 0) {
-				//In fail case, fource kill.
-				(void) lxcutil_container_fourcekill(cc);
+				//In fail case, force kill.
+				(void) lxcutil_container_forcekill(cc);
 				(void) container_cleanup(cc);
-				cc->runtime_stat.status = CONTAINER_NOT_STARTED; // guest is fource dead
+				cc->runtime_stat.status = CONTAINER_NOT_STARTED; // guest is force dead
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 				fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
 				#endif
@@ -479,7 +479,7 @@ static int container_request_shutdown(container_config_t *cc, int sys_state)
 
 				//Requested, wait to exit.
 				cc->runtime_stat.status = CONTAINER_SHUTDOWN;
-			}			
+			}
 		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
 			// Already requested shutdown, not need new action.
 			;
@@ -498,20 +498,20 @@ static int container_request_shutdown(container_config_t *cc, int sys_state)
 		}
 	} else if (sys_state == CM_SYSTEM_STATE_SHUTDOWN) {
 		if (cc->runtime_stat.status == CONTAINER_NOT_STARTED) {
-			// not runninng, change to exit state
+			// not running, change to exit state
 			cc->runtime_stat.status = CONTAINER_EXIT;
 		} else if (cc->runtime_stat.status == CONTAINER_STARTED) {
-			// now runninng, send shutdown request
+			// now running, send shutdown request
 			#ifdef _PRINTF_DEBUG_
 			fprintf(stderr,"container_request_shutdown to %s\n", cc->name);
 			#endif
 
 			ret = lxcutil_container_shutdown(cc);
 			if (ret < 0) {
-				//In fail case, fource kill.
-				(void) lxcutil_container_fourcekill(cc);
+				//In fail case, force kill.
+				(void) lxcutil_container_forcekill(cc);
 				(void) container_cleanup(cc);
-				cc->runtime_stat.status = CONTAINER_EXIT; // guest is fource exit
+				cc->runtime_stat.status = CONTAINER_EXIT; // guest is force exit
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 				fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
 				#endif
@@ -527,7 +527,7 @@ static int container_request_shutdown(container_config_t *cc, int sys_state)
 
 				//Requested, wait to exit.
 				cc->runtime_stat.status = CONTAINER_SHUTDOWN;
-			}			
+			}
 		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
 			// Already requested shutdown, not need new action.
 			;
@@ -548,7 +548,7 @@ static int container_request_shutdown(container_config_t *cc, int sys_state)
 		// undefined state
 		result = -1;
 	}
-	
+
 	return result;
 }
 
@@ -567,7 +567,7 @@ int container_manager_shutdown(containers_t *cs)
 	int ret = -1;
 	container_config_t *cc = NULL;
 
-	cs->sys_state = CM_SYSTEM_STATE_SHUTDOWN; // chage to shutdown state
+	cs->sys_state = CM_SYSTEM_STATE_SHUTDOWN; // change to shutdown state
 
 	// Send shutdown request to each container
 	num = cs->num_of_container;
@@ -582,7 +582,7 @@ int container_manager_shutdown(containers_t *cs)
 	}
 
 	if (fail_count > 0)
-		return -1;	
+		return -1;
 
 	return 0;
 }
@@ -636,10 +636,10 @@ int container_exec_internal_event(containers_t *cs)
 
 			if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
 				if (cc->runtime_stat.timeout < timeout) {
-					// fource kill after timeout
-					(void) lxcutil_container_fourcekill(cc);
+					// force kill after timeout
+					(void) lxcutil_container_forcekill(cc);
 					(void) container_terminate(cc);
-					cc->runtime_stat.status = CONTAINER_NOT_STARTED; // guest is fource dead
+					cc->runtime_stat.status = CONTAINER_NOT_STARTED; // guest is force dead
 					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 					fprintf(stderr,"[CM CRITICAL ERROR] container %s was shutdown timeout, fourcekill.\n", cc->name);
 					#endif
@@ -670,10 +670,10 @@ int container_exec_internal_event(containers_t *cs)
 			cc = cs->containers[i];
 			if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
 				if (cc->runtime_stat.timeout < timeout) {
-					// fource kill after timeout
-					(void) lxcutil_container_fourcekill(cc);
+					// force kill after timeout
+					(void) lxcutil_container_forcekill(cc);
 					(void) container_terminate(cc);
-					cc->runtime_stat.status = CONTAINER_EXIT; // guest is fource dead
+					cc->runtime_stat.status = CONTAINER_EXIT; // guest is force dead
 					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 					fprintf(stderr,"[CM CRITICAL ERROR] container %s was shutdown timeout at sys shutdown, fourcekill.\n", cc->name);
 					#endif
@@ -702,7 +702,7 @@ int container_restart(container_config_t *cc)
 	int ret = -1;
 	bool bret = false;
 
-	// create container inctance
+	// create container instance
 	ret = lxcutil_create_instance(cc);
 	if (ret < 0) {
 		cc->runtime_stat.status = CONTAINER_DEAD;
@@ -752,7 +752,7 @@ int container_start(container_config_t *cc)
 	fprintf(stderr, "container_start %s\n", cc->name);
 	#endif
 
-	// run preprocess 
+	// run preprocess
 	ret = container_start_preprocess_base(&cc->baseconfig);
 	if (ret < 0) {
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
@@ -800,9 +800,13 @@ int container_mngsm_start(containers_t *cs)
 	int result = -1;
 	container_config_t *cc = NULL;
 	container_control_interface_t *cci = NULL;
-	
-	container_mngsm_interface_get(&cci, cs);
-	
+
+	ret = container_mngsm_interface_get(&cci, cs);
+	if (ret < 0) {
+		// May not get this error
+		return -1;
+	}
+
 	num = cs->num_of_container;
 
 	for(int i=0;i < num;i++) {
@@ -826,16 +830,20 @@ int container_mngsm_start(containers_t *cs)
 		}
 	}
 
-	// dynamic device update
-	cci->device_updated(cci);
-	cci->netif_updated(cci);
+	// dynamic device update - if these return error, recover to update timing
+	(void) cci->device_updated(cci);
+	(void) cci->netif_updated(cci);
 
-	container_mngsm_update_timertick(cs);
+	ret = container_mngsm_update_timertick(cs);
+	if (ret < 0) {
+		// May not get this error
+		return -1;
+	}
 
 	return 0;
 
 err_ret:
-	
+
 	return result;
 }
 /**
@@ -899,7 +907,7 @@ int container_mngsm_terminate(containers_t *cs)
  * @param [in]	fstype	Name of file system. When fstype == NULL, file system is auto.
  * @param [in]	mntflag	Mount flag.
  * @return int
- * @retval  1 Success - secoundary.
+ * @retval  1 Success - secondary.
  * @retval  0 Success - primary.
  * @retval -1 mount error.
  * @retval -2 Syscall error.
@@ -939,7 +947,7 @@ static int container_start_mountdisk_failover(char **devs, const char *path, con
 				mntdisk = i;
 				break;
 			} else {
-				//error - try to mount secoundary disk
+				//error - try to mount secondary disk
 				;
 			}
 		} else {
@@ -1023,14 +1031,14 @@ static int container_start_mountdisk_ab(char **devs, const char *path, const cha
  * @return int
  * @retval  0 Success.
  * @retval -1 mount error.
- * @retval -2 Syscall error. 
+ * @retval -2 Syscall error.
  */
 static int container_start_preprocess_base(container_baseconfig_t *bc)
 {
 	int ret = 1;
 	int result = -1;
 	int abboot = 0;
-	const char *dev = NULL, *path = NULL, *fstyp = NULL; 
+	const char *dev = NULL, *path = NULL, *fstyp = NULL;
 	unsigned long mntflag = 0;
 
 	// mount rootfs
@@ -1043,9 +1051,9 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 	ret = container_start_mountdisk_ab(bc->rootfs.blockdev, bc->rootfs.path
 										, bc->rootfs.filesystem, mntflag, bc->abboot);
 	if ( ret < 0) {
-		// root fs mount is Mandatry.
+		// root fs mount is mandatory.
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatry disk %s could not mount\n", bc->rootfs.blockdev[bc->abboot]);
+		fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatory disk %s could not mount\n", bc->rootfs.blockdev[bc->abboot]);
 		#endif
 		return -1;
 	}
@@ -1066,22 +1074,22 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 			{
 				ret = container_start_mountdisk_ab(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, bc->abboot);
 				if (ret < 0) {
-					// AB disk mout is mandatry function.
+					// AB disk mount is mandatory function.
 					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-					fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatry disk %s could not mount\n", exdisk->blockdev[bc->abboot]);
+					fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatory disk %s could not mount\n", exdisk->blockdev[bc->abboot]);
 					#endif
 					return -1;
 				}
 			} else {
 				ret = container_start_mountdisk_failover(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag);
 				if (ret < 0) {
-					// Failover disk mout is optional function.
+					// Failover disk mount is optional function.
 					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 					fprintf(stderr,"[CM ERROR] container_start_preprocess_base: failover disk %s could not mount\n", exdisk->blockdev[0]);
 					#endif
 					continue;
 				}
-			} 
+			}
 
 		}
 	}
@@ -1095,7 +1103,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
  * @return int
  * @retval  0 Success.
  * @retval -1 unmount error.
- * @retval -2 Syscall error. 
+ * @retval -2 Syscall error.
  */
 static int container_cleanup_preprocess_base(container_baseconfig_t *bc)
 {
@@ -1145,7 +1153,7 @@ static int container_cleanup_preprocess_base(container_baseconfig_t *bc)
  * @return int
  * @retval  0 Success.
  * @retval -1 mount error.
- * @retval -2 Syscall error. 
+ * @retval -2 Syscall error.
  */
 dynamic_device_elem_data_t *dynamic_device_elem_data_create(const char *devpath, const char *devtype, const char *subsystem, const char *devnode,
 															dev_t devnum, const char *diskseq, const char *partn)
@@ -1181,7 +1189,7 @@ dynamic_device_elem_data_t *dynamic_device_elem_data_create(const char *devpath,
  * @return int
  * @retval  0 Success.
  * @retval -1 mount error.
- * @retval -2 Syscall error. 
+ * @retval -2 Syscall error.
  */
 int dynamic_device_elem_data_free(dynamic_device_elem_data_t *dded)
 {

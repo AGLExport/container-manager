@@ -14,7 +14,7 @@
 //-----------------------------------------------------------------------------
 int lxcutil_create_instance(container_config_t *cc);
 int lxcutil_container_shutdown(container_config_t *cc);
-int lxcutil_container_fourcekill(container_config_t *cc);
+int lxcutil_container_forcekill(container_config_t *cc);
 int lxcutil_release_instance(container_config_t *cc);
 
 int lxcutil_dynamic_device_add_to_guest(container_config_t *cc, dynamic_device_elem_data_t *dded, int mode);

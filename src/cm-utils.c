@@ -26,7 +26,7 @@
  * @retval  0 Success.
  * @retval -1 Write error.
  */
-int onece_write(const char *path, const void* data, size_t size)
+int once_write(const char *path, const void* data, size_t size)
 {
 	int fd = -1;
 	ssize_t ret = -1;
@@ -53,7 +53,7 @@ int onece_write(const char *path, const void* data, size_t size)
  * @retval  0 Success.
  * @retval -1 read error.
  */
-int onece_read(const char *path, void* data, size_t size)
+int once_read(const char *path, void* data, size_t size)
 {
 	int fd = -1;
 	ssize_t ret = -1;
@@ -163,7 +163,7 @@ int64_t get_current_time_ms(void)
 	ret = clock_gettime(CLOCK_MONOTONIC, &t);
 	if (ret == 0) {
 		ms = (t.tv_sec * 1000) + (t.tv_nsec / 1000 / 1000);
-	} 
+	}
 
 	return ms;
 }
