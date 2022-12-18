@@ -323,6 +323,8 @@ struct s_container_config {
 };
 typedef struct s_container_config container_config_t;
 //-----------------------------------------------------------------------------
+#define GUEST_CONTAINER_LIMIT	(8)	/** < Limit value for containers */
+
 struct s_container_mngsm;
 typedef struct s_container_mngsm container_mngsm_t;
 

@@ -1,6 +1,8 @@
 AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
+SUBDIRS = command
+
 bin_PROGRAMS = containermanager
 
 containermanager_SOURCES = \
@@ -21,6 +23,7 @@ containermanager_SOURCES = \
 	container-control-interface.c \
 	container-control-exec.c \
 	container-control-monitor.c \
+	container-external-interface.c \
 	container-manager.c
 
 
