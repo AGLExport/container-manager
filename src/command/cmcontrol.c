@@ -156,7 +156,7 @@ void cm_get_guest_list(void)
 	}
 
 	if (response.header.command == CONTAINER_EXTIF_COMMAND_RESPONSE_GETGUESTS) {
-		fprintf(stdout, "HEADER: %16s,%16s,%16s \n", "name", "role", "status");
+		fprintf(stdout, "HEADER: %32s,%12s,%12s \n", "name", "role", "status");
 		for (int i = 0; i < response.num_of_guests; i++) {
 			if (response.guests[i].status >= CONTAINER_EXTIF_GUEST_STATUS_DISABLE
 				&& response.guests[i].status <= CONTAINER_EXTIF_GUEST_STATUS_EXIT) {

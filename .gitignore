@@ -99,13 +99,14 @@ Makefile
 *.idb
 *.pdb
 
-# covarage 
+# covarage
 coverage/*
 *.gcda
 *.gcno
 
 # execute files
 containermanager
+cmcontrol
 
 # test
 parser_test
