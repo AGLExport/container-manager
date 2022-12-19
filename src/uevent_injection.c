@@ -90,7 +90,6 @@ static int uevent_injection_child(int net_ns_fd, const char *message, int messag
 {
 	int result = -1;
 	int ret = -1;
-	int length = 0;
 	struct mnl_socket *nl = NULL;
 	struct nlmsghdr *nlh = NULL;
 	char buf[MNL_SOCKET_BUFFER_SIZE];

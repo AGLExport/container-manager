@@ -35,7 +35,7 @@ char *cmparser_read_jsonstring(const char *file)
 
 	fd = open(file, O_RDONLY);
 	if (fd < 0)
-		return NULL;
+		goto err_ret;
 
 	memset(&sb, 0, sizeof(sb));
 	ret = fstat(fd, &sb);

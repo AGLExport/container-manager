@@ -626,7 +626,6 @@ static int cmparser_parser_get_resourcetype(const char *str)
  */
 static int cmparser_parse_resource(container_resourceconfig_t *rc, const cJSON *res)
 {
-	cJSON *mount = NULL;
 	int result = -1;
 
 	// Get mount data
@@ -1482,7 +1481,6 @@ static int cmparser_parse_dynamic_netif(container_dynamic_netif_t *dnif, const c
 
 				memset(p, 0 , sizeof(container_dynamic_netif_elem_t));
 				dl_list_init(&p->list);
-				//dl_list_init(&p->netif_list);
 
 				p->ifname = strdup(ifname->valuestring);
 

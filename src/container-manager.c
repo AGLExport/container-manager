@@ -22,8 +22,6 @@
 #include <systemd/sd-daemon.h>
 #include <systemd/sd-event.h>
 
-static const char TEST_CONF_PATH[] = "test/container-manager-host.json";
-
 static int sigterm_notify(const struct signalfd_siginfo *si, void *userdata)
 {
 	int ret = -1;
