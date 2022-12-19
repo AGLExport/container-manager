@@ -733,6 +733,7 @@ int container_restart(container_config_t *cc)
  *
  * @param [in]	cs	Preconstructed containers_t
  * @return int
+ * @retval  1 Container is disabled.
  * @retval  0 Success.
  * @retval -1 Critical error.
  */
@@ -745,7 +746,7 @@ int container_start(container_config_t *cc)
 		#ifdef _PRINTF_DEBUG_
 		fprintf(stderr, "container %s is disable launch\n", cc->name);
 		#endif
-		return 0;
+		return -2;
 	}
 
 	#ifdef _PRINTF_DEBUG_

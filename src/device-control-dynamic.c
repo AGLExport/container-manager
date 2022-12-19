@@ -57,7 +57,13 @@ err_ret:
 
 	return result;
 }
-
+/**
+ * Cleanup device manager
+ *
+ * @param [in]	ddm	Pointer to dynamic_device_manager_t
+ * @return int
+ * @retval  0 Success.
+ */
 int devc_device_manager_cleanup(dynamic_device_manager_t *ddm)
 {
 	(void)netifmonitor_cleanup(ddm);
@@ -65,4 +71,6 @@ int devc_device_manager_cleanup(dynamic_device_manager_t *ddm)
 	(void)udevmonitor_cleanup(ddm);
 
 	free(ddm);
+
+	return 0;
 }

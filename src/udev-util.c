@@ -132,7 +132,6 @@ static int udevmonitor_devevent(dynamic_device_manager_t *ddm)
 	struct s_udevmonitor *udevmon = NULL;
 	struct udev_device *pdev = NULL;
 	const char *paction = NULL, *subsys = NULL;
-	dev_t devnum = 0;
 
 	udevmon = (struct s_udevmonitor*)ddm->udevmon;
 	pdev = udev_monitor_receive_device(udevmon->pudev_monitor);
@@ -227,7 +226,6 @@ error_ret:
  */
 static int udevmonitor_devevent_add_block(dynamic_device_manager_t *ddm, dynamic_device_info_t *new_ddi)
 {
-	int ret = -1;
 	dynamic_device_info_t *ddi = NULL, *ddi_n = NULL;
 
 	if (ddm == NULL || new_ddi == NULL)
