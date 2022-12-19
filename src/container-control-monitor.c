@@ -116,6 +116,9 @@ int container_monitor_addguest(containers_t *cs, container_config_t *cc)
 	if (cs == NULL || cc == NULL)
 		return -1;
 
+	if (cc->runtime_stat.lxc == NULL)
+		return -1;
+
 	pidfd = cc->runtime_stat.lxc->init_pidfd(cc->runtime_stat.lxc);
 	if (pidfd < 0)
 		return -2;
