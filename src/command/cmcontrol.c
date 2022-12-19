@@ -78,7 +78,7 @@ static int cm_socket_setup(void)
 	return fd;
 
 err_return:
-	if (fd =! -1)
+	if (fd != -1)
 		close(fd);
 
 	return -1;
@@ -270,7 +270,7 @@ int main(int argc, char *argv[])
 		} else if (ret == 10) {
 			cm_get_guest_list();
 			break;
-		} else if (ret >= 20 || ret <= 25) {
+		} else if (ret >= 20 && ret <= 25) {
 			fprintf(stderr, "request lifecycle command arg = %s\n", optarg);
 			cm_get_guest_lifecycle(ret, optarg);
 			break;
