@@ -66,6 +66,8 @@ int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data);
 int container_manager_shutdown(containers_t *cs);
 int container_exec_internal_event(containers_t *cs);
 
+int container_request_shutdown(container_config_t *cc, int sys_state);
+
 int container_start(container_config_t *cc);
 int container_terminate(container_config_t *cc);
 int container_cleanup(container_config_t *cc);

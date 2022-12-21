@@ -446,7 +446,7 @@ int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
  * @retval  0 Success.
  * @retval -1 Critical error.
  */
-static int container_request_shutdown(container_config_t *cc, int sys_state)
+int container_request_shutdown(container_config_t *cc, int sys_state)
 {
 	int num = 0, container_num = 0;
 	int ret = -1;
