@@ -161,7 +161,7 @@ void cm_get_guest_list(void)
 			if (response.guests[i].status >= CONTAINER_EXTIF_GUEST_STATUS_DISABLE
 				&& response.guests[i].status <= CONTAINER_EXTIF_GUEST_STATUS_EXIT) {
 
-				fprintf(stdout, "        %16s,%16s,%16s \n"
+				fprintf(stdout, "        %32s,%12s,%12s \n"
 					, response.guests[i].guest_name
 					, response.guests[i].role_name
 					, status_string[response.guests[i].status+1] );

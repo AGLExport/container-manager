@@ -80,7 +80,7 @@ static int container_external_interface_get_guest_info(containers_t *cs, contain
 
 	for (int i =0; i < cs->num_of_container; i++) {
 		strncpy(guests_info->guests[i].guest_name, cs->containers[i]->name, sizeof(guests_info->guests->guest_name));
-		strncpy(guests_info->guests[i].role_name, cs->containers[i]->baseconfig.role, sizeof(guests_info->guests->role_name));
+		strncpy(guests_info->guests[i].role_name, cs->containers[i]->role, sizeof(guests_info->guests->role_name));
 
 		guests_info->guests[i].status = container_external_interface_convert_status(cs->containers[i]->runtime_stat.status);
 
@@ -159,6 +159,36 @@ static int container_external_interface_force_reboot_guest(containers_t *cs, cha
 /**
  * Event handler for server session socket
  *
+ * @param [in]	cs		Pointer to containers_t
+ * @param [out]	gtests_info	Pointer to container_extif_command_get_response_t
+ * @return int
+ * @retval 0 success.
+ * @retval -1 internal error.
+ * @retval -2 arg error.
+ */
+static int container_external_interface_reboot_guest(containers_t *cs, char *name, int role)
+{
+	int ret = -1;
+	int command_accept = -1;
+
+	if (cs == NULL || name == NULL)
+		return -2;
+
+	for (int i =0; i < cs->num_of_container; i++) {
+		container_config_t *cc = cs->containers[i];
+
+		if (strncmp(cc->name, name, strlen(cc->name)) == 0) {
+			ret = container_request_shutdown(cc, cs->sys_state);
+			if (ret == 0)
+				command_accept = 0;
+		}
+	}
+
+	return command_accept;
+}
+/**
+ * Event handler for server session socket
+ *
  * @param [in]	buf		Received data buffer
  * @param [in]	size	Received data size
  * @return int
@@ -179,6 +209,14 @@ static int container_external_interface_command_lifecycle(cm_external_interface_
 		if (pcom_life->subcommand == CONTAINER_EXTIF_SUBCOMMAND_FORCEREBOOT_GUEST) {
 			// Test imp. TODO change state machine request
 			ret = container_external_interface_force_reboot_guest(pextif->cs, pcom_life->guest_name , 0);
+			if (ret == 0) {
+				response.response = CONTAINER_EXTIF_LIFECYCLE_RESPONSE_NONAME;
+			} else {
+				response.response = CONTAINER_EXTIF_LIFECYCLE_RESPONSE_ACCEPT;
+			}
+		} else if (pcom_life->subcommand == CONTAINER_EXTIF_SUBCOMMAND_REBOOT_GUEST) {
+			// Test imp. TODO change state machine request
+			ret = container_external_interface_reboot_guest(pextif->cs, pcom_life->guest_name , 0);
 			if (ret == 0) {
 				response.response = CONTAINER_EXTIF_LIFECYCLE_RESPONSE_NONAME;
 			} else {
