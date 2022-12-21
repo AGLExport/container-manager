@@ -77,7 +77,6 @@ typedef struct s_container_baseconfig_env container_baseconfig_env_t;
 struct s_container_baseconfig {
 	int	autoboot;
 	int bootpriority;
-	char *role;
 	container_baseconfig_rootfs_t rootfs;
 	struct dl_list extradisk_list;
 	container_baseconfig_lifecycle_t lifecycle;
@@ -313,6 +312,7 @@ typedef struct s_container_runtime_status container_runtime_status_t;
 //-----------------------------------------------------------------------------
 struct s_container_config {
 	char *name;
+	char *role;
 	container_baseconfig_t baseconfig;
 	container_resourceconfig_t resourceconfig;
 	container_fsconfig_t fsconfig;
