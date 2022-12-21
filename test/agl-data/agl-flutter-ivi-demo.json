@@ -1,9 +1,9 @@
 {
 	"name": "agl-flutter-ivi-demo",
+	"role": "ivi",
 	"base": {
 		"autoboot": false,
 		"bootpriority": 10,
-		"role": "ivi",
 		"rootfs": {
 			"path": "/opt/container/guests/agl-flutter-ivi-demo/rootfs",
 			"filesystem":	"ext4",
