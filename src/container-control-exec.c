@@ -143,10 +143,10 @@ int container_device_update_guest(container_config_t *cc, dynamic_device_manager
 				} else {
 					// success to remove
 					dl_list_del(&dded->list);
-					dynamic_device_elem_data_free(dded);
 					#ifdef _PRINTF_DEBUG_
 					fprintf(stderr, "device update del %s from %s\n", dded->devpath, cc->name);
 					#endif
+					dynamic_device_elem_data_free(dded);
 				}
 			}
 		}
@@ -183,10 +183,10 @@ int container_device_remove_element(container_config_t *cc)
 		dl_list_for_each_safe(dded, dded_n, &cdde->device_list, dynamic_device_elem_data_t, list) {
 			// remove
 			dl_list_del(&dded->list);
-			dynamic_device_elem_data_free(dded);
 			#ifdef _PRINTF_DEBUG_
 			fprintf(stderr, "device remove %s from %s\n", dded->devpath, cc->name);
 			#endif
+			dynamic_device_elem_data_free(dded);
 		}
 	}
 
@@ -322,7 +322,20 @@ err_ret:
  */
 int container_netif_remove_element(container_config_t *cc)
 {
-	// no work
+	container_dynamic_netif_elem_t *cdne = NULL;
+	container_dynamic_netif_t *cdn = NULL;
+
+	cdn = &cc->netifconfig.dynamic_netif;
+	// netif remove
+	dl_list_for_each(cdne, &cdn->dynamic_netiflist, container_dynamic_netif_elem_t, list) {
+		cdne->ifindex = 0;
+
+		// Don't need memory free.
+		#ifdef _PRINTF_DEBUG_
+		fprintf(stderr, "network if update removed %s from %s\n", cdne->ifname, cc->name);
+		#endif
+	}
+
 	return 0;
 }
 /**
@@ -621,10 +634,22 @@ int container_exec_internal_event(containers_t *cs)
 
 					ret = container_monitor_addguest(cs, cc);
 					if (ret < 0) {
-						// Can run guest with out monitor, critical log only.
+						// Can run guest without monitor, critical log only.
 						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 						fprintf(stderr,"[CM CRITICAL ERROR] Fail container_monitoring to %s ret = %d\n", cc->name, ret);
 						#endif
+					}
+
+					// re-assign dynamic device
+					{
+						container_control_interface_t *cci = NULL;
+
+						ret = container_mngsm_interface_get(&cci, cs);
+						if (ret == 0) {
+							(void) cci->device_updated(cci);
+							(void) cci->netif_updated(cci);
+						}
+						// dynamic device update - if these return error, recover to update timing
 					}
 				}
 			}
@@ -858,6 +883,7 @@ err_ret:
 int container_terminate(container_config_t *cc)
 {
 	(void) lxcutil_release_instance(cc);
+	(void) container_netif_remove_element(cc);
 	(void) container_device_remove_element(cc);
 
 	return 0;
