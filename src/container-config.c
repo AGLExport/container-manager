@@ -275,6 +275,7 @@ containers_t *create_container_configs(const char *config_file)
 						#endif
 						continue;
 					}
+					cc->runtime_stat.status = CONTAINER_DISABLE;
 					ca[num] = cc;
 					num = num + 1;
 					if (num >= GUEST_CONTAINER_LIMIT)

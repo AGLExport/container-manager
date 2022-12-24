@@ -804,7 +804,7 @@ int lxcutil_container_shutdown(container_config_t *cc)
 	if (cc->runtime_stat.lxc != NULL) {
 		bret = cc->runtime_stat.lxc->shutdown(cc->runtime_stat.lxc, 0);	//non block shutdown
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr, "lxcutil_container_shutdown: shutdown request to guest %s\n", cc->name );
+		fprintf(stderr, "lxcutil_container_shutdown: shutdown request to guest %s - (%d)\n", cc->name, bret );
 		#endif
 	}
 
