@@ -473,7 +473,7 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 			fprintf(stdout,"cmparser: base-timeout value = %d\n",bc->lifecycle.timeout);
 			#endif
 		} else {
-			bc->lifecycle.timeout = 1000; // Default value is 1000ms
+			bc->lifecycle.timeout = 10000; // Default value is 10000ms
 			#ifdef _PRINTF_DEBUG_
 			fprintf(stdout,"cmparser: base-timeout set default value = 1000\n");
 			#endif

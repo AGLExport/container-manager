@@ -294,12 +294,12 @@ typedef struct s_container_netifconfig container_netifconfig_t;
 
 //-----------------------------------------------------------------------------
 // runtime status ---------------------------------
-#define CONTAINER_DISABLE		(-1)
-#define CONTAINER_NOT_STARTED	(0)
-#define CONTAINER_STARTED		(1)
-#define CONTAINER_SHUTDOWN		(2)
-#define CONTAINER_DEAD			(3)
-#define CONTAINER_EXIT			(4)
+#define CONTAINER_DISABLE		(0)
+#define CONTAINER_NOT_STARTED	(1)
+#define CONTAINER_STARTED		(2)
+#define CONTAINER_SHUTDOWN		(3)
+#define CONTAINER_DEAD			(4)
+#define CONTAINER_EXIT			(5)
 
 struct s_container_runtime_status {
 	struct lxc_container *lxc;
