@@ -103,7 +103,6 @@ static int container_external_interface_get_guest_info(containers_t *cs, contain
  */
 static int container_external_interface_command_get(cm_external_interface_t *pextif, int fd, void *buf, ssize_t size)
 {
-	container_extif_command_get_t *pcom_get = (container_extif_command_get_t*)buf;
 	container_extif_command_get_response_t guests_info;
 	int ret = -1;
 	ssize_t sret = -1;
@@ -266,7 +265,6 @@ static int container_external_interface_command_change(cm_external_interface_t *
 	if(size >= sizeof(container_extif_command_change_t)) {
 		containers_t *cs = pextif->cs;
 		char *role = NULL;
-		int num_of_guest = 0;
 
 		for (int i =0; i < cs->num_of_container; i++) {
 			if (strcmp(cs->containers[i]->name, pcom_change->guest_name) == 0) {
@@ -379,11 +377,9 @@ static int container_external_interface_exec(cm_external_interface_t *pextif, in
  */
 static int container_external_interface_sessions_handler(sd_event_source *event, int fd, uint32_t revents, void *userdata)
 {
-	sd_event_source *socket_source = NULL;
 	cm_external_interface_t *pextif = (cm_external_interface_t*)userdata;
 	uint64_t buf[CONTAINER_EXTIF_COMMAND_BUFSIZEMAX/sizeof(uint64_t)];
 	ssize_t sret = -1;
-	int ret = -1;
 
 	if ((revents & (EPOLLHUP | EPOLLERR)) != 0) {
 		// Disconnect session

@@ -109,7 +109,6 @@ static int container_monitor_pidfd_handler(sd_event_source *event, int fd, uint3
 int container_monitor_addguest(containers_t *cs, container_config_t *cc)
 {
 	sd_event_source *pidfd_source = NULL;
-	struct s_container_mngsm *cms = NULL;
 	int ret = -1;
 	int pidfd = -1;
 

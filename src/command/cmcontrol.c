@@ -88,7 +88,6 @@ err_return:
 
 static int cm_socket_wait_response(int fd, int timeout)
 {
-	struct sockaddr_un name;
 	int result = -1;
 	int ret = -1;
 	struct pollfd poll_fds[1];

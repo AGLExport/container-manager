@@ -47,10 +47,10 @@ int container_device_update_guest(container_config_t *cc, dynamic_device_manager
 	int ret = 1;
 	block_device_manager_t *blockdev = NULL;
 	container_dynamic_device_t *cdd = NULL;
-	dynamic_device_info_t *ddi = NULL, *ddi_n = NULL;
-	container_dynamic_device_elem_t *cdde = NULL, *cdde_n = NULL;
+	dynamic_device_info_t *ddi = NULL;
+	container_dynamic_device_elem_t *cdde = NULL;
 	dynamic_device_elem_data_t *dded = NULL, *dded_n = NULL;
-	int cmp_devpath = 0, cmp_subsystem = 0, cmp_devtype = 0;
+	int cmp_devpath = 0, cmp_devtype = 0;
 
 	if (cc->runtime_stat.status != CONTAINER_STARTED) {
 		// Not running container, pending
@@ -168,7 +168,6 @@ err_ret:
  */
 int container_device_remove_element(container_config_t *cc)
 {
-	int ret = 1;
 	container_dynamic_device_t *cdd = NULL;
 	container_dynamic_device_elem_t *cdde = NULL;
 	dynamic_device_elem_data_t *dded = NULL, *dded_n = NULL;
@@ -241,7 +240,6 @@ int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_
 	container_dynamic_netif_t *cdn = NULL;
 	network_interface_info_t *nii = NULL;
 	container_dynamic_netif_elem_t *cdne = NULL;
-	dynamic_device_info_t *ddi = NULL;
 
 	if (cc->runtime_stat.status != CONTAINER_STARTED) {
 		// Not running container, pending
@@ -379,7 +377,6 @@ err_ret:
 int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
 {
 	int num = 0, container_num = 0;
-	int ret = 1;
 	int result = 0;
 	container_config_t *cc = NULL;
 
@@ -461,7 +458,6 @@ int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
  */
 int container_request_shutdown(container_config_t *cc, int sys_state)
 {
-	int num = 0, container_num = 0;
 	int ret = -1;
 	int result = 0;
 
@@ -616,7 +612,6 @@ int container_manager_shutdown(containers_t *cs)
 int container_exec_internal_event(containers_t *cs)
 {
 	int num = 0;
-	int fail_count = 0;
 	int ret = -1;
 	int64_t timeout = 0;
 	container_config_t *cc = NULL;
@@ -796,7 +791,6 @@ int container_restart(container_config_t *cc)
 int container_start(container_config_t *cc)
 {
 	int ret = -1;
-	bool bret = false;
 
 	if (cc->runtime_stat.status == CONTAINER_DISABLE) {
 		#ifdef _PRINTF_DEBUG_
@@ -854,8 +848,6 @@ int container_start(container_config_t *cc)
 static int container_get_active_guest_by_role(containers_t *cs, char *role, container_config_t **active_cc)
 {
 	container_manager_role_config_t *cmrc = NULL;
-	int ret = -1;
-	int result = 0;
 
 	dl_list_for_each(cmrc, &cs->cmcfg->role_list, container_manager_role_config_t, list) {
 		if (cmrc->name != NULL) {
@@ -1116,9 +1108,7 @@ static int container_start_mountdisk_ab(char **devs, const char *path, const cha
 static int container_start_preprocess_base(container_baseconfig_t *bc)
 {
 	int ret = 1;
-	int result = -1;
-	int abboot = 0;
-	const char *dev = NULL, *path = NULL, *fstyp = NULL;
+	const char *dev = NULL;
 	unsigned long mntflag = 0;
 
 	// mount rootfs
@@ -1140,7 +1130,6 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 
 	// mount extradisk - optional
 	if (!dl_list_empty(&bc->extradisk_list)) {
-		int extdiskmnt = 0;
 		container_baseconfig_extradisk_t *exdisk = NULL;
 
 		dl_list_for_each(exdisk, &bc->extradisk_list, container_baseconfig_extradisk_t, list) {
