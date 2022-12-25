@@ -14,13 +14,13 @@ cmcontrol_LDADD =
 
 # C compiler options
 cmcontrol_CFLAGS = \
-	-g \
+	-g -Wall \
 	-I$(top_srcdir)/include \
 	-D_GNU_SOURCE
 
 # C++ compiler options
 cmcontrol_CXXFLAGS = \
-	-g \
+	-g -Wall \
 	-I$(top_srcdir)/include \
 	-D_GNU_SOURCE
 
