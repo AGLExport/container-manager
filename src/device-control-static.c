@@ -235,7 +235,6 @@ static int devc_iionode_scan(container_static_device_t *sdevc)
 {
 	int ret = 1;
 	int result = -1;
-	int slen = 0, buflen = 0;
 	container_static_iio_elem_t *iioelem = NULL;
 
 	// static device node

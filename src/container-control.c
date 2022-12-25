@@ -377,7 +377,6 @@ int container_mngsm_regist_device_manager(containers_t *cs, dynamic_device_manag
 int container_mngsm_start(containers_t *cs)
 {
 	int ret = 1;
-	int result = -1;
 	container_manager_role_config_t *cmrc = NULL;
 
 	dl_list_for_each(cmrc, &cs->cmcfg->role_list, container_manager_role_config_t, list) {
@@ -409,10 +408,6 @@ int container_mngsm_start(containers_t *cs)
 	}
 
 	return 0;
-
-err_ret:
-
-	return result;
 }
 /**
  * Container start up
