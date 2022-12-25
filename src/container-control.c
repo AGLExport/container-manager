@@ -92,7 +92,6 @@ static int container_mngsm_commsocket_handler(sd_event_source *event, int fd, ui
 {
 	containers_t *cs = NULL;
 	ssize_t rret = -1;
-	int ret = -1;
 	uint64_t buf[CONTAINER_MNGSM_COMMAND_BUFSIZEMAX/sizeof(uint64_t)];
 
 	if (userdata == NULL) {
@@ -359,7 +358,6 @@ static int container_mngsm_internal_timer_cleanup(containers_t *cs)
  */
 int container_mngsm_regist_device_manager(containers_t *cs, dynamic_device_manager_t *ddm)
 {
-	struct s_container_mngsm *cms = NULL;
 
 	if (cs == NULL || ddm == NULL)
 		return -2;
@@ -368,7 +366,76 @@ int container_mngsm_regist_device_manager(containers_t *cs, dynamic_device_manag
 
 	return 0;
 }
+/**
+ * Container start up
+ *
+ * @param [in]	cs	Preconstructed containers_t
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Critical error.
+ */
+int container_mngsm_start(containers_t *cs)
+{
+	int ret = 1;
+	int result = -1;
+	container_manager_role_config_t *cmrc = NULL;
 
+	dl_list_for_each(cmrc, &cs->cmcfg->role_list, container_manager_role_config_t, list) {
+		if (cmrc->name != NULL) {
+			ret = container_start_by_role(cs, cmrc->name);
+			if (ret < 0) {
+				if (ret == -2) {
+					#ifdef _PRINTF_DEBUG_
+					fprintf(stderr,"container start: no active guest in role : %s.\n", cmrc->name);
+					#endif
+					; //Critical log was out in sub function.
+				} else {
+					#ifdef _PRINTF_DEBUG_
+					fprintf(stderr,"container start: fail to start active guest in role : %s.\n", cmrc->name);
+					#endif
+					; //Critical log was out in sub function.
+				}
+			}
+		}
+	}
+
+	// dynamic device update - if these return error, recover to update timing
+	(void) container_all_dynamic_device_update_notification(cs);
+
+	ret = container_mngsm_update_timertick(cs);
+	if (ret < 0) {
+		// May not get this error
+		return -1;
+	}
+
+	return 0;
+
+err_ret:
+
+	return result;
+}
+/**
+ * Container start up
+ *
+ * @param [in]	cs	Preconstructed containers_t
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Critical error.
+ */
+int container_mngsm_terminate(containers_t *cs)
+{
+	int num;
+	container_config_t *cc = NULL;
+
+	num = cs->num_of_container;
+
+	for(int i=0;i < num;i++) {
+		cc = cs->containers[i];
+		(void) container_cleanup(cc);
+	}
+
+	return 0;
+}
 /**
  * Container management state machine setup.
  *
@@ -441,7 +508,6 @@ err_return:
 int container_mngsm_exit(containers_t *cs)
 {
 	int ret = -1;
-	struct s_container_mngsm *cms = NULL;
 
 	if (cs == NULL)
 		return -2;
@@ -467,7 +533,6 @@ int container_mngsm_exit(containers_t *cs)
  */
 int container_mngsm_cleanup(containers_t *cs)
 {
-	struct s_container_mngsm *cms = NULL;
 
 	if (cs == NULL)
 		return -2;

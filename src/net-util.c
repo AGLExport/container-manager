@@ -200,7 +200,6 @@ static int nml_event_handler(sd_event_source *event, int fd, uint32_t revents, v
 	int ret = 0;
 	dynamic_device_manager_t *ddm = NULL;
 	struct s_netifmonitor *nfm = NULL;
-	container_control_interface_t *cci = NULL;
 	struct mnl_socket *nl = NULL;
 
 	if (userdata == NULL) {

@@ -380,7 +380,6 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 {
 	cJSON *autoboot = NULL;
 	cJSON *bootpriority = NULL;
-	cJSON *role = NULL;
 	cJSON *rootfs = NULL;
 	cJSON *extradisk = NULL;
 	cJSON *lifecycle = NULL;

@@ -156,7 +156,6 @@ static int devc_gpionode_scan(container_static_device_t *sdevc)
 	char buf[1024];
 	char directionbuf[128];
 	int slen = 0, buflen = 0;
-	const char *pdevtype = NULL;
 	container_static_gpio_elem_t *gpioelem = NULL;
 
 	// static device node
@@ -236,10 +235,7 @@ static int devc_iionode_scan(container_static_device_t *sdevc)
 {
 	int ret = 1;
 	int result = -1;
-	char buf[1024];
-	char directionbuf[128];
 	int slen = 0, buflen = 0;
-	const char *pdevtype = NULL;
 	container_static_iio_elem_t *iioelem = NULL;
 
 	// static device node

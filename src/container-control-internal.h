@@ -68,6 +68,9 @@ int container_exec_internal_event(containers_t *cs);
 
 int container_request_shutdown(container_config_t *cc, int sys_state);
 
+int container_all_dynamic_device_update_notification(containers_t *cs);
+
+int container_start_by_role(containers_t *cs, char *role);
 int container_start(container_config_t *cc);
 int container_terminate(container_config_t *cc);
 int container_cleanup(container_config_t *cc);

@@ -82,7 +82,6 @@ err_return:
  */
 int container_mngsm_interface_free(containers_t *cs)
 {
-	struct s_container_mngsm *cms = NULL;
 
 	if (cs == NULL)
 		return -2;

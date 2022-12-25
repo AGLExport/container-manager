@@ -59,7 +59,7 @@ static int bind_container_to_role_list(containers_t* cs)
 
 							memset(pelem, 0 , sizeof(container_manager_role_elem_t));
 							dl_list_init(&pelem->list);
-							pelem->cc = cc;	//set guest info;
+							pelem->cc = cc;	//set guest info
 
 							if (cc->baseconfig.autoboot == 1) {
 								// add top
@@ -101,7 +101,7 @@ static int bind_container_to_role_list(containers_t* cs)
 
 					memset(pelem, 0 , sizeof(container_manager_role_elem_t));
 					dl_list_init(&pelem->list);
-					pelem->cc = NULL;	//dummy guest info;
+					pelem->cc = NULL;	//dummy guest info
 
 					dl_list_add_tail(&cmrc->container_list, &pelem->list);
 					dl_list_add_tail(&cs->cmcfg->role_list, &cmrc->list);
@@ -117,7 +117,7 @@ static int bind_container_to_role_list(containers_t* cs)
 
 					memset(pelem, 0 , sizeof(container_manager_role_elem_t));
 					dl_list_init(&pelem->list);
-					pelem->cc = cc;	//set guest info;
+					pelem->cc = cc;	//set guest info
 
 					if (pelem->cc->baseconfig.autoboot == 1) {
 						// add top

@@ -202,7 +202,6 @@ err_ret:
  */
 static int lxcutil_set_config_resource(struct lxc_container *plxc, container_resourceconfig_t *rsc)
 {
-	int ret = 1;
 	int result = -1;
 	bool bret = false;
 	char buf[1024];
@@ -253,7 +252,6 @@ err_ret:
  */
 static int lxcutil_set_config_fs(struct lxc_container *plxc, container_fsconfig_t *fsc)
 {
-	int ret = 1;
 	int result = -1;
 	bool bret = false;
 	char buf[1024];
@@ -330,7 +328,6 @@ err_ret:
  */
 static int lxcutil_set_config_static_device(struct lxc_container *plxc, container_deviceconfig_t *devc)
 {
-	int ret = 1;
 	int result = -1;
 	bool bret = false;
 	char buf[1024];
