@@ -32,10 +32,7 @@ static int container_get_active_guest_by_role(containers_t *cs, char *role, cont
 dynamic_device_elem_data_t *dynamic_device_elem_data_create(const char *devpath, const char *devtype, const char *subsystem, const char *devnode,
 															dev_t devnum, const char *diskseq, const char *partn);
 int dynamic_device_elem_data_free(dynamic_device_elem_data_t *dded);
-
 int container_restart(container_config_t *cc);
-int container_start_by_role(containers_t *cs, char *role);
-int container_all_dynamic_device_update_notification(containers_t *cs);
 
 /**
  * Container start up
@@ -953,54 +950,6 @@ int container_all_dynamic_device_update_notification(containers_t *cs)
 	return 0;
 }
 /**
- * Container start up
- *
- * @param [in]	cs	Preconstructed containers_t
- * @return int
- * @retval  0 Success.
- * @retval -1 Critical error.
- */
-int container_mngsm_start(containers_t *cs)
-{
-	int ret = 1;
-	int result = -1;
-	container_manager_role_config_t *cmrc = NULL;
-
-	dl_list_for_each(cmrc, &cs->cmcfg->role_list, container_manager_role_config_t, list) {
-		if (cmrc->name != NULL) {
-			ret = container_start_by_role(cs, cmrc->name);
-			if (ret < 0) {
-				if (ret == -2) {
-					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"container start: no active guest in role : %s.\n", cmrc->name);
-					#endif
-					; //Critical log was out in sub function.
-				} else {
-					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"container start: fail to start active guest in role : %s.\n", cmrc->name);
-					#endif
-					; //Critical log was out in sub function.
-				}
-			}
-		}
-	}
-
-	// dynamic device update - if these return error, recover to update timing
-	(void) container_all_dynamic_device_update_notification(cs);
-
-	ret = container_mngsm_update_timertick(cs);
-	if (ret < 0) {
-		// May not get this error
-		return -1;
-	}
-
-	return 0;
-
-err_ret:
-
-	return result;
-}
-/**
  * Container terminated
  *
  * @param [in]	cs	Preconstructed containers_t
@@ -1028,29 +977,6 @@ int container_cleanup(container_config_t *cc)
 {
 	(void) container_terminate(cc);
 	(void) container_cleanup_preprocess_base(&cc->baseconfig);
-
-	return 0;
-}
-/**
- * Container start up
- *
- * @param [in]	cs	Preconstructed containers_t
- * @return int
- * @retval  0 Success.
- * @retval -1 Critical error.
- */
-int container_mngsm_terminate(containers_t *cs)
-{
-	int num;
-	bool bret = false;
-	container_config_t *cc = NULL;
-
-	num = cs->num_of_container;
-
-	for(int i=0;i < num;i++) {
-		cc = cs->containers[i];
-		(void) container_cleanup(cc);
-	}
 
 	return 0;
 }
