@@ -37,7 +37,6 @@ int cmparser_manager_create_from_file(container_manager_config_t **cm, const cha
 	char *jsonstring = NULL;
 	container_manager_config_t *cmcfg = NULL;
 	int result = -1;
-	int ret = -1;
 
 	if (cm == NULL || file == NULL)
 		return -1;

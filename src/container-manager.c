@@ -53,8 +53,6 @@ int main(int argc, char *argv[])
 	containers_t *cs = NULL;
 	container_control_interface_t *cci = NULL;
 	dynamic_device_manager_t *ddm = NULL;
-	struct lxc_container *plxc = NULL;
-	block_device_info_t bdi;
 
 	ret = sd_event_default(&event);
 	if (ret < 0)

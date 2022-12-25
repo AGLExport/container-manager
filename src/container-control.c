@@ -92,7 +92,6 @@ static int container_mngsm_commsocket_handler(sd_event_source *event, int fd, ui
 {
 	containers_t *cs = NULL;
 	ssize_t rret = -1;
-	int ret = -1;
 	uint64_t buf[CONTAINER_MNGSM_COMMAND_BUFSIZEMAX/sizeof(uint64_t)];
 
 	if (userdata == NULL) {
@@ -359,7 +358,6 @@ static int container_mngsm_internal_timer_cleanup(containers_t *cs)
  */
 int container_mngsm_regist_device_manager(containers_t *cs, dynamic_device_manager_t *ddm)
 {
-	struct s_container_mngsm *cms = NULL;
 
 	if (cs == NULL || ddm == NULL)
 		return -2;
@@ -427,7 +425,6 @@ err_ret:
 int container_mngsm_terminate(containers_t *cs)
 {
 	int num;
-	bool bret = false;
 	container_config_t *cc = NULL;
 
 	num = cs->num_of_container;
@@ -511,7 +508,6 @@ err_return:
 int container_mngsm_exit(containers_t *cs)
 {
 	int ret = -1;
-	struct s_container_mngsm *cms = NULL;
 
 	if (cs == NULL)
 		return -2;
@@ -537,7 +533,6 @@ int container_mngsm_exit(containers_t *cs)
  */
 int container_mngsm_cleanup(containers_t *cs)
 {
-	struct s_container_mngsm *cms = NULL;
 
 	if (cs == NULL)
 		return -2;

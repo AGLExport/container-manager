@@ -31,10 +31,8 @@
  */
 int devc_device_manager_setup(dynamic_device_manager_t **pddm, container_control_interface_t *cci, sd_event *event)
 {
-	int num;
 	int ret = 1;
 	int result = -1;
-	container_config_t *cc = NULL;
 	dynamic_device_manager_t *ddm = NULL;
 
 	ddm = (dynamic_device_manager_t*)malloc(sizeof(dynamic_device_manager_t));

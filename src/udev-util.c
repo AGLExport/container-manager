@@ -260,7 +260,6 @@ static int udevmonitor_devevent_add_block(dynamic_device_manager_t *ddm, dynamic
  */
 static int udevmonitor_devevent_remove_block(dynamic_device_manager_t *ddm, dynamic_device_info_t *del_ddi)
 {
-	int ret = -1;
 	dynamic_device_info_t *ddi = NULL, *ddi_n = NULL;
 
 	if (ddm == NULL || del_ddi == NULL)
@@ -293,7 +292,6 @@ static int udevmonitor_devevent_remove_block(dynamic_device_manager_t *ddm, dyna
  */
 static int udevmonitor_devevent_change_block(dynamic_device_manager_t *ddm, dynamic_device_info_t *new_ddi)
 {
-	int ret = -1;
 	dynamic_device_info_t *ddi = NULL, *ddi_n = NULL;
 
 	if (ddm == NULL || new_ddi == NULL)
@@ -328,7 +326,6 @@ static int udevmonitor_devevent_change_block(dynamic_device_manager_t *ddm, dyna
  */
 static int udevmonitor_devevent_add_net(dynamic_device_manager_t *ddm, dynamic_device_info_t *new_ddi)
 {
-	int ret = -1;
 	dynamic_device_info_t *ddi = NULL, *ddi_n = NULL;
 
 	if (ddm == NULL || new_ddi == NULL)
@@ -363,7 +360,6 @@ static int udevmonitor_devevent_add_net(dynamic_device_manager_t *ddm, dynamic_d
  */
 static int udevmonitor_devevent_remove_net(dynamic_device_manager_t *ddm, dynamic_device_info_t *del_ddi)
 {
-	int ret = -1;
 	dynamic_device_info_t *ddi = NULL, *ddi_n = NULL;
 
 	if (ddm == NULL || del_ddi == NULL)
@@ -397,7 +393,6 @@ static int udevmonitor_devevent_remove_net(dynamic_device_manager_t *ddm, dynami
  */
 static int udevmonitor_devevent_change_net(dynamic_device_manager_t *ddm, dynamic_device_info_t *new_ddi)
 {
-	int ret = -1;
 	dynamic_device_info_t *ddi = NULL, *ddi_n = NULL;
 
 	if (ddm == NULL || new_ddi == NULL)
@@ -461,7 +456,6 @@ static int udevmonitor_scan(dynamic_device_manager_t *ddm)
 
 	udev_list_entry_foreach(dev_list_entry, devices) {
 		const char *path = NULL, *subsys = NULL;
-		dev_t devnum = 0;
 		dynamic_device_info_t *ddinfo = NULL;
 
 		path = udev_list_entry_get_name(dev_list_entry);
@@ -646,9 +640,6 @@ int udevmonitor_cleanup(dynamic_device_manager_t *ddm)
 static int dynamic_device_info_create_block(dynamic_device_info_t **ddi, struct udev_device *pdev, const char* subsys)
 {
 	int ret = -1;
-	const char *paction = NULL, *devpath = NULL;
-	const char *devnode = NULL, *syspath = NULL;
-	const char *sysname = NULL, *devtype = NULL;
 	const char *pstr = NULL;
 	dev_t devnum = 0;
 	dynamic_device_info_t *ddinfo = NULL;
@@ -728,9 +719,6 @@ static int dynamic_device_info_create_block(dynamic_device_info_t **ddi, struct 
  */
 static int dynamic_device_info_create_net(dynamic_device_info_t **ddi, struct udev_device *pdev, const char* subsys)
 {
-	const char *paction = NULL, *devpath = NULL;
-	const char *syspath = NULL;
-	const char *sysname = NULL, *devtype = NULL;
 	int ifindex = -1;
 	const char *pstr = NULL;
 	char *endptr = NULL;;
