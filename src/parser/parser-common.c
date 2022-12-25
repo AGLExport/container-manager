@@ -15,7 +15,7 @@
 #include <string.h>
 #include "parser/parser-common.h"
 
-//#undef _PRINTF_DEBUG_
+#undef _PRINTF_DEBUG_
 /**
  * Read json string with memory allocation.
  * Shall free string memory using cmparser_release_jsonstring.

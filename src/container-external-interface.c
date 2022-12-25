@@ -46,6 +46,9 @@ static int32_t container_external_interface_convert_status(int status_inner)
 	case CONTAINER_STARTED :
 		ret = CONTAINER_EXTIF_GUEST_STATUS_STARTED;
 		break;
+	case CONTAINER_REBOOT :
+		ret = CONTAINER_EXTIF_GUEST_STATUS_REBOOT;
+		break;
 	case CONTAINER_SHUTDOWN :
 		ret = CONTAINER_EXTIF_GUEST_STATUS_SHUTDOWN;
 		break;
@@ -180,6 +183,39 @@ static int container_external_interface_reboot_guest(containers_t *cs, char *nam
 			#ifdef _PRINTF_DEBUG_
 			fprintf(stderr,"container_external_interface_reboot_guest: reboot to %s, command req %s\n", cc->name, name);
 			#endif
+			ret = container_request_reboot(cc, cs->sys_state);
+			if (ret == 0)
+				command_accept = 0;
+		}
+	}
+
+	return command_accept;
+}
+/**
+ * Event handler for server session socket
+ *
+ * @param [in]	cs		Pointer to containers_t
+ * @param [out]	gtests_info	Pointer to container_extif_command_get_response_t
+ * @return int
+ * @retval 0 success.
+ * @retval -1 internal error.
+ * @retval -2 arg error.
+ */
+static int container_external_interface_shutdown_guest(containers_t *cs, char *name, int role)
+{
+	int ret = -1;
+	int command_accept = -1;
+
+	if (cs == NULL || name == NULL)
+		return -2;
+
+	for (int i =0; i < cs->num_of_container; i++) {
+		container_config_t *cc = cs->containers[i];
+
+		if (strncmp(cc->name, name, strlen(cc->name)) == 0) {
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stderr,"container_external_interface_shutdown_guest: shutdown to %s, command req %s\n", cc->name, name);
+			#endif
 			ret = container_request_shutdown(cc, cs->sys_state);
 			if (ret == 0)
 				command_accept = 0;
@@ -219,6 +255,14 @@ static int container_external_interface_command_lifecycle(cm_external_interface_
 		} else if (pcom_life->subcommand == CONTAINER_EXTIF_SUBCOMMAND_REBOOT_GUEST) {
 			// Test imp. TODO change state machine request
 			ret = container_external_interface_reboot_guest(pextif->cs, pcom_life->guest_name , 0);
+			if (ret == 0) {
+				response.response = CONTAINER_EXTIF_LIFECYCLE_RESPONSE_NONAME;
+			} else {
+				response.response = CONTAINER_EXTIF_LIFECYCLE_RESPONSE_ACCEPT;
+			}
+		} else if (pcom_life->subcommand == CONTAINER_EXTIF_SUBCOMMAND_SHUTDOWN_GUEST) {
+			// Test imp. TODO change state machine request
+			ret = container_external_interface_shutdown_guest(pextif->cs, pcom_life->guest_name , 0);
 			if (ret == 0) {
 				response.response = CONTAINER_EXTIF_LIFECYCLE_RESPONSE_NONAME;
 			} else {
@@ -269,7 +313,6 @@ static int container_external_interface_command_change(cm_external_interface_t *
 		for (int i =0; i < cs->num_of_container; i++) {
 			if (strcmp(cs->containers[i]->name, pcom_change->guest_name) == 0) {
 				role = cs->containers[i]->role;
-				fprintf(stderr,"container_external_interface_command_change role = %s\n",role);
 				break;
 			}
 		}
@@ -278,7 +321,6 @@ static int container_external_interface_command_change(cm_external_interface_t *
 			container_manager_role_config_t *cmrc = NULL;
 			dl_list_for_each(cmrc, &cs->cmcfg->role_list, container_manager_role_config_t, list) {
 				if (cmrc->name != NULL) {
-					fprintf(stderr,"container_external_interface_command_change cmrc->name = %s\n",cmrc->name);
 					if (strcmp(cmrc->name, role) == 0) {
 						container_manager_role_elem_t *pelem = NULL;
 
@@ -297,8 +339,6 @@ static int container_external_interface_command_change(cm_external_interface_t *
 											// latest active guest move to disable
 											dl_list_del(&pelem2->list);
 											dl_list_add(&cmrc->container_list, &pelem2->list);
-
-											fprintf(stderr,"container_external_interface_command_change %s was activated.\n",pelem2->cc->name);
 
 											response.response = CONTAINER_EXTIF_CHANGE_RESPONSE_ACCEPT;
 											break;
@@ -387,14 +427,8 @@ static int container_external_interface_sessions_handler(sd_event_source *event,
 		pextif->interface_session_evsource = NULL;
 	} else if ((revents & EPOLLIN) != 0) {
 		// Receive
-		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr,"container_external_interface_sessions_handler: in\n");
-		#endif
 		sret = read(fd, buf, sizeof(buf));
 		if (sret > 0) {
-			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"container_external_interface_sessions_handler: receive size = %ld\n", sret);
-			#endif
 			(void)container_external_interface_exec(pextif, fd, buf, sret);
 		}
 		// close session

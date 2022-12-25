@@ -297,9 +297,10 @@ typedef struct s_container_netifconfig container_netifconfig_t;
 #define CONTAINER_DISABLE		(0)
 #define CONTAINER_NOT_STARTED	(1)
 #define CONTAINER_STARTED		(2)
-#define CONTAINER_SHUTDOWN		(3)
-#define CONTAINER_DEAD			(4)
-#define CONTAINER_EXIT			(5)
+#define CONTAINER_REBOOT		(3)
+#define CONTAINER_SHUTDOWN		(4)
+#define CONTAINER_DEAD			(5)
+#define CONTAINER_EXIT			(6)
 
 struct s_container_runtime_status {
 	struct lxc_container *lxc;

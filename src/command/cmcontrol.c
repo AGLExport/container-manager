@@ -336,11 +336,9 @@ int main(int argc, char *argv[])
 			cm_get_guest_list();
 			break;
 		} else if (ret >= 20 && ret <= 25) {
-			fprintf(stderr, "request lifecycle command arg = %s\n", optarg);
 			cm_get_guest_lifecycle(ret, optarg);
 			break;
 		} else if (ret == 30) {
-			fprintf(stderr, "request change command arg = %s\n", optarg);
 			cm_get_guest_change(ret, optarg);
 			break;
 		} else {

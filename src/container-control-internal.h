@@ -65,8 +65,8 @@ int container_netif_updated(containers_t *cs);
 int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data);
 int container_manager_shutdown(containers_t *cs);
 int container_exec_internal_event(containers_t *cs);
-
 int container_request_shutdown(container_config_t *cc, int sys_state);
+int container_request_reboot(container_config_t *cc, int sys_state);
 
 int container_all_dynamic_device_update_notification(containers_t *cs);
 
