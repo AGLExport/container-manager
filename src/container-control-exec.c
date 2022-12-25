@@ -153,10 +153,6 @@ int container_device_update_guest(container_config_t *cc, dynamic_device_manager
 	}
 
 	return 0;
-
-err_ret:
-
-	return -1;
 }
 /**
  * Container start up
@@ -266,7 +262,7 @@ int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_
 			continue;
 
 		dl_list_for_each(cdne, &cdn->dynamic_netiflist, container_dynamic_netif_elem_t, list) {
-			if (cdne->ifindex == 0 && strncmp(cdne->ifname, nii->ifname, sizeof(cdne->ifname)) == 0) {
+			if (cdne->ifindex == 0 && strncmp(nii->ifname, cdne->ifname, sizeof(nii->ifname)) == 0) {
 				// found new interface for own
 				cdne->ifindex = nii->ifindex;
 				cdne->is_available = 1;
@@ -306,9 +302,6 @@ int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_
 	}
 
 	return 0;
-
-err_ret:
-	return -1;
 }
 /**
  * Container start up
@@ -1108,7 +1101,6 @@ static int container_start_mountdisk_ab(char **devs, const char *path, const cha
 static int container_start_preprocess_base(container_baseconfig_t *bc)
 {
 	int ret = 1;
-	const char *dev = NULL;
 	unsigned long mntflag = 0;
 
 	// mount rootfs
