@@ -26,6 +26,7 @@ static struct option long_options[] = {
 	{"reboot-guest-role", required_argument, NULL, 23},
 	{"force-reboot-guest-name", required_argument, NULL, 24},
 	{"force-reboot-guest-role", required_argument, NULL, 25},
+	{"change-active-guest-name", required_argument, NULL, 30},
 	{0, 0, 0, 0},
 };
 
@@ -47,9 +48,10 @@ static void usage(void)
 	    " --shutdown-guest-name=N  shutdown request to container manager. (N=guest name)\n"
 	    " --shutdown-guest-role=R  shutdown request to container manager. (R=guest role)\n"
 	    " --reboot-guest-name=N    reboot request to container manager. (N=guest name)\n"
-	    " --reboot-guest-role=R    shutdown request to container manager. (R=guest role)\n\n"
+	    " --reboot-guest-role=R    shutdown request to container manager. (R=guest role)\n"
 	    " --force-reboot-guest-name=N    reboot request to container manager. (N=guest name)\n"
-	    " --force-reboot-guest-role=R    shutdown request to container manager. (R=guest role)\n\n"
+	    " --force-reboot-guest-role=R    shutdown request to container manager. (R=guest role)\n"
+		" --change-active-guest-name=N    change active guest request to container manager. (N=guest name)\n"
 	);
 }
 
@@ -161,7 +163,7 @@ void cm_get_guest_list(void)
 			if (response.guests[i].status >= CONTAINER_EXTIF_GUEST_STATUS_DISABLE
 				&& response.guests[i].status <= CONTAINER_EXTIF_GUEST_STATUS_EXIT) {
 
-				fprintf(stdout, "        %16s,%16s,%16s \n"
+				fprintf(stdout, "        %32s,%12s,%12s \n"
 					, response.guests[i].guest_name
 					, response.guests[i].role_name
 					, status_string[response.guests[i].status+1] );
@@ -176,7 +178,7 @@ error_return:
 	return;
 }
 
-void cm_get_guest_lifecycle(int code, char * name)
+void cm_get_guest_lifecycle(int code, char *name)
 {
 	int fd = -1;
 	int ret = -1;
@@ -258,6 +260,70 @@ error_return:
 	return;
 }
 
+void cm_get_guest_change(int code, char *name)
+{
+	int fd = -1;
+	int ret = -1;
+	int sret = -1;
+	container_extif_command_change_t packet;
+	container_extif_command_change_response_t response;
+
+	memset(&packet, 0, sizeof(packet));
+	memset(&response, 0, sizeof(response));
+
+	// Create client socket
+	fd = cm_socket_setup();
+	if (fd < 0) {
+		fprintf(stderr,"Container manager is busy.\n");
+		goto error_return;
+	}
+
+	if (code == 30) {
+		packet.header.command = CONTAINER_EXTIF_COMMAND_CHANGE_ACTIVE_GUEST_NAME;
+	} else {
+		goto error_return;
+	}
+
+	strncpy(packet.guest_name, name, sizeof(packet.guest_name));
+
+	sret = write(fd, &packet, sizeof(packet));
+	if (sret < sizeof(packet)) {
+		fprintf(stderr,"Container manager is confuse.\n");
+		goto error_return;
+	}
+
+	ret = cm_socket_wait_response(fd, 1000);
+	if (ret < 0) {
+		fprintf(stderr,"Container manager communication is un available.\n");
+		goto error_return;
+	}
+
+	sret = read(fd, &response, sizeof(response));
+	if (sret < sizeof(response)) {
+		fprintf(stderr,"Container manager is confuse. sret = %d errno = %d\n", sret, errno);
+		goto error_return;
+	}
+
+	if (response.header.command == CONTAINER_EXTIF_COMMAND_RESPONSE_CHANGE) {
+
+		if (response.response == CONTAINER_EXTIF_CHANGE_RESPONSE_ACCEPT) {
+			fprintf(stdout, "Command accept.\n");
+		} else if (response.response == CONTAINER_EXTIF_CHANGE_RESPONSE_NONAME) {
+			fprintf(stdout, "Command no guest name of %s.\n", name);
+		} else if (response.response == CONTAINER_EXTIF_CHANGE_RESPONSE_ERROR) {
+			fprintf(stdout, "Command error.\n");
+		} else {
+			fprintf(stdout, "Command unknown error.\n");
+		}
+	}
+
+error_return:
+	if (fd != -1)
+		close(fd);
+
+	return;
+}
+
 int main(int argc, char *argv[])
 {
 	int ret = -1;
@@ -273,6 +339,10 @@ int main(int argc, char *argv[])
 		} else if (ret >= 20 && ret <= 25) {
 			fprintf(stderr, "request lifecycle command arg = %s\n", optarg);
 			cm_get_guest_lifecycle(ret, optarg);
+			break;
+		} else if (ret == 30) {
+			fprintf(stderr, "request change command arg = %s\n", optarg);
+			cm_get_guest_change(ret, optarg);
 			break;
 		} else {
 			//TODO

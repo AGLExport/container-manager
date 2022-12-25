@@ -1,9 +1,9 @@
 {
 	"name": "agl-qt-ivi-demo",
+	"role": "ivi",
 	"base": {
 		"autoboot": true,
 		"bootpriority": 10,
-		"role": "ivi",
 		"rootfs": {
 			"path": "/opt/container/guests/agl-qt-ivi-demo/rootfs",
 			"filesystem":	"ext4",

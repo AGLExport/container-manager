@@ -60,6 +60,7 @@ int cmparser_manager_create_from_file(container_manager_config_t **cm, const cha
 		goto err_ret;
 	}
 	memset(cmcfg, 0, sizeof(container_manager_config_t));
+	dl_list_init(&cmcfg->role_list);
 	dl_list_init(&cmcfg->bridgelist);
 
 	// Get configdir

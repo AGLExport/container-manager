@@ -27,12 +27,15 @@
 
 static int container_start_preprocess_base(container_baseconfig_t *bc);
 static int container_cleanup_preprocess_base(container_baseconfig_t *bc);
+static int container_get_active_guest_by_role(containers_t *cs, char *role, container_config_t **active_cc);
 
 dynamic_device_elem_data_t *dynamic_device_elem_data_create(const char *devpath, const char *devtype, const char *subsystem, const char *devnode,
 															dev_t devnum, const char *diskseq, const char *partn);
 int dynamic_device_elem_data_free(dynamic_device_elem_data_t *dded);
 
 int container_restart(container_config_t *cc);
+int container_start_by_role(containers_t *cs, char *role);
+int container_all_dynamic_device_update_notification(containers_t *cs);
 
 /**
  * Container start up
@@ -52,10 +55,6 @@ int container_device_update_guest(container_config_t *cc, dynamic_device_manager
 	dynamic_device_elem_data_t *dded = NULL, *dded_n = NULL;
 	int cmp_devpath = 0, cmp_subsystem = 0, cmp_devtype = 0;
 
-	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr, "container_device_update_guest : %s\n", cc->name);
-	#endif
-
 	if (cc->runtime_stat.status != CONTAINER_STARTED) {
 		// Not running container, pending
 		return 0;
@@ -66,6 +65,10 @@ int container_device_update_guest(container_config_t *cc, dynamic_device_manager
 		// Not running dynamic device manager, pending
 		return 0;
 	}
+
+	#ifdef _PRINTF_DEBUG_
+	fprintf(stderr, "container_device_update_guest : %s\n", cc->name);
+	#endif
 
 	cdd = &cc->deviceconfig.dynamic_device;
 
@@ -143,10 +146,10 @@ int container_device_update_guest(container_config_t *cc, dynamic_device_manager
 				} else {
 					// success to remove
 					dl_list_del(&dded->list);
-					dynamic_device_elem_data_free(dded);
 					#ifdef _PRINTF_DEBUG_
 					fprintf(stderr, "device update del %s from %s\n", dded->devpath, cc->name);
 					#endif
+					dynamic_device_elem_data_free(dded);
 				}
 			}
 		}
@@ -183,10 +186,10 @@ int container_device_remove_element(container_config_t *cc)
 		dl_list_for_each_safe(dded, dded_n, &cdde->device_list, dynamic_device_elem_data_t, list) {
 			// remove
 			dl_list_del(&dded->list);
-			dynamic_device_elem_data_free(dded);
 			#ifdef _PRINTF_DEBUG_
 			fprintf(stderr, "device remove %s from %s\n", dded->devpath, cc->name);
 			#endif
+			dynamic_device_elem_data_free(dded);
 		}
 	}
 
@@ -322,7 +325,20 @@ err_ret:
  */
 int container_netif_remove_element(container_config_t *cc)
 {
-	// no work
+	container_dynamic_netif_elem_t *cdne = NULL;
+	container_dynamic_netif_t *cdn = NULL;
+
+	cdn = &cc->netifconfig.dynamic_netif;
+	// netif remove
+	dl_list_for_each(cdne, &cdn->dynamic_netiflist, container_dynamic_netif_elem_t, list) {
+		cdne->ifindex = 0;
+
+		// Don't need memory free.
+		#ifdef _PRINTF_DEBUG_
+		fprintf(stderr, "network if update removed %s from %s\n", cdne->ifname, cc->name);
+		#endif
+	}
+
 	return 0;
 }
 /**
@@ -446,7 +462,7 @@ int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
  * @retval  0 Success.
  * @retval -1 Critical error.
  */
-static int container_request_shutdown(container_config_t *cc, int sys_state)
+int container_request_shutdown(container_config_t *cc, int sys_state)
 {
 	int num = 0, container_num = 0;
 	int ret = -1;
@@ -459,6 +475,7 @@ static int container_request_shutdown(container_config_t *cc, int sys_state)
 		} else if (cc->runtime_stat.status == CONTAINER_STARTED) {
 			// now ruining, send shutdown request
 			ret = lxcutil_container_shutdown(cc);
+			fprintf(stderr,"container_request_shutdown ret = %d : %s.\n", ret, cc->name);
 			if (ret < 0) {
 				//In fail case, force kill.
 				(void) lxcutil_container_forcekill(cc);
@@ -474,8 +491,13 @@ static int container_request_shutdown(container_config_t *cc, int sys_state)
 				timeout = get_current_time_ms();
 				if (timeout < 0)
 					timeout = 0;
+
+				fprintf(stderr,"container_request_shutdown set timeout %s - current %ld.\n", cc->name, timeout);
+
 				timeout = timeout + cc->baseconfig.lifecycle.timeout;
 				cc->runtime_stat.timeout = timeout;
+
+				fprintf(stderr,"container_request_shutdown set timeout %s - timeout %ld.\n", cc->name, timeout);
 
 				//Requested, wait to exit.
 				cc->runtime_stat.status = CONTAINER_SHUTDOWN;
@@ -621,10 +643,47 @@ int container_exec_internal_event(containers_t *cs)
 
 					ret = container_monitor_addguest(cs, cc);
 					if (ret < 0) {
-						// Can run guest with out monitor, critical log only.
+						// Can run guest without monitor, critical log only.
 						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 						fprintf(stderr,"[CM CRITICAL ERROR] Fail container_monitoring to %s ret = %d\n", cc->name, ret);
 						#endif
+					}
+
+					// re-assign dynamic device
+					// dynamic device update - if these return error, recover to update timing
+					(void) container_all_dynamic_device_update_notification(cs);
+				}
+			} else if (cc->runtime_stat.status == CONTAINER_NOT_STARTED) {
+				// checking to enabled container guest in own role
+				container_config_t *active_cc = NULL;
+				char *role = cc->role;
+
+				// Find own role
+				ret = container_get_active_guest_by_role(cs, role, &active_cc);
+				if (ret == 0) {
+					// Change active guest cc to active_cc
+					// Disable cc
+					cc->runtime_stat.status = CONTAINER_DISABLE;
+					(void) container_cleanup(cc);
+
+					// Enable active_cc
+					active_cc->runtime_stat.status = CONTAINER_NOT_STARTED;
+					ret = container_start(active_cc);
+					if (ret == 0) {
+						#ifdef _PRINTF_DEBUG_
+						fprintf(stdout,"container_start: Container guest %s was launched. role = %s\n", active_cc->name, role);
+						#endif
+
+						ret = container_monitor_addguest(cs, active_cc);
+						if (ret < 0) {
+							// Can run guest with out monitor, critical log only.
+							#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+							fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_monitor_addguest ret = %d\n", ret);
+							#endif
+						}
+						// re-assign dynamic device
+						// dynamic device update - if these return error, recover to update timing
+						(void) container_all_dynamic_device_update_notification(cs);
 					}
 				}
 			}
@@ -786,6 +845,114 @@ int container_start(container_config_t *cc)
 	return 0;
 }
 /**
+ * Get active guest container in selected role.
+ *
+ * @param [in]	cs			Preconstructed containers_t.
+ * @param [in]	role		role name.
+ * @param [out]	active_cc	Active container config in role.
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 No active guest.
+ */
+static int container_get_active_guest_by_role(containers_t *cs, char *role, container_config_t **active_cc)
+{
+	container_manager_role_config_t *cmrc = NULL;
+	int ret = -1;
+	int result = 0;
+
+	dl_list_for_each(cmrc, &cs->cmcfg->role_list, container_manager_role_config_t, list) {
+		if (cmrc->name != NULL) {
+			container_manager_role_elem_t *pelem = NULL;
+
+			if (strcmp(cmrc->name, role) != 0)
+				continue;
+
+			pelem = dl_list_first(&cmrc->container_list, container_manager_role_elem_t, list) ;
+			if (pelem != NULL) {
+				if (pelem->cc != NULL) {
+					(*active_cc) = pelem->cc;
+					return 0;
+				}
+			}
+
+			return -1;
+		}
+	}
+
+	return -1;
+}
+/**
+ * Container start up
+ *
+ * @param [in]	cs		Preconstructed containers_t
+ * @param [in]	role	role name.
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Critical error.
+ * @retval -2 No active guest.
+ */
+int container_start_by_role(containers_t *cs, char *role)
+{
+	//container_manager_role_config_t *cmrc = NULL;
+	container_config_t *cc = NULL;
+	int ret = -1;
+	int result = -2;
+
+	ret = container_get_active_guest_by_role(cs, role, &cc);
+	if (ret == 0) {
+		// Got active guest
+		cc->runtime_stat.status = CONTAINER_NOT_STARTED;
+
+		ret = container_start(cc);
+		if (ret == 0) {
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stdout,"container_start: Container guest %s was launched. role = %s\n", cc->name, role);
+			#endif
+
+			ret = container_monitor_addguest(cs, cc);
+			if (ret < 0) {
+				// Can run guest with out monitor, critical log only.
+				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+				fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_monitor_addguest ret = %d\n", ret);
+				#endif
+			}
+			result = 0;
+		} else {
+			result = -1;
+		}
+	} else {
+		result = -2;
+	}
+
+	return result;
+}
+/**
+ * All device update notification for all container
+ * For force device assignment to new container guest.
+ *
+ * @param [in]	cs	Preconstructed containers_t
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Critical error.
+ */
+int container_all_dynamic_device_update_notification(containers_t *cs)
+{
+	int ret = 1;
+	container_control_interface_t *cci = NULL;
+
+	ret = container_mngsm_interface_get(&cci, cs);
+	if (ret < 0) {
+		// May not get this error
+		return -1;
+	}
+
+	// dynamic device update - if these return error, recover to update timing
+	(void) cci->device_updated(cci);
+	(void) cci->netif_updated(cci);
+
+	return 0;
+}
+/**
  * Container start up
  *
  * @param [in]	cs	Preconstructed containers_t
@@ -795,45 +962,31 @@ int container_start(container_config_t *cc)
  */
 int container_mngsm_start(containers_t *cs)
 {
-	int num;
 	int ret = 1;
-	bool bret = false;
 	int result = -1;
-	container_config_t *cc = NULL;
-	container_control_interface_t *cci = NULL;
+	container_manager_role_config_t *cmrc = NULL;
 
-	ret = container_mngsm_interface_get(&cci, cs);
-	if (ret < 0) {
-		// May not get this error
-		return -1;
-	}
-
-	num = cs->num_of_container;
-
-	for(int i=0;i < num;i++) {
-		cc = cs->containers[i];
-
-		// Initial launch select
-		if (cc->baseconfig.autoboot == 1)
-			 cc->runtime_stat.status = CONTAINER_NOT_STARTED;
-		else
-			cc->runtime_stat.status = CONTAINER_DISABLE;
-
-		ret = container_start(cc);
-		if (ret == 0) {
-			ret = container_monitor_addguest(cs, cc);
+	dl_list_for_each(cmrc, &cs->cmcfg->role_list, container_manager_role_config_t, list) {
+		if (cmrc->name != NULL) {
+			ret = container_start_by_role(cs, cmrc->name);
 			if (ret < 0) {
-				// Can run guest with out monitor, critical log only.
-				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_monitor_addguest ret = %d\n", ret);
-				#endif
+				if (ret == -2) {
+					#ifdef _PRINTF_DEBUG_
+					fprintf(stderr,"container start: no active guest in role : %s.\n", cmrc->name);
+					#endif
+					; //Critical log was out in sub function.
+				} else {
+					#ifdef _PRINTF_DEBUG_
+					fprintf(stderr,"container start: fail to start active guest in role : %s.\n", cmrc->name);
+					#endif
+					; //Critical log was out in sub function.
+				}
 			}
 		}
 	}
 
 	// dynamic device update - if these return error, recover to update timing
-	(void) cci->device_updated(cci);
-	(void) cci->netif_updated(cci);
+	(void) container_all_dynamic_device_update_notification(cs);
 
 	ret = container_mngsm_update_timertick(cs);
 	if (ret < 0) {
@@ -858,6 +1011,7 @@ err_ret:
 int container_terminate(container_config_t *cc)
 {
 	(void) lxcutil_release_instance(cc);
+	(void) container_netif_remove_element(cc);
 	(void) container_device_remove_element(cc);
 
 	return 0;

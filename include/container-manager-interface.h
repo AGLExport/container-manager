@@ -41,6 +41,12 @@ typedef struct s_container_extif_command_lifecycle {
     char guest_name[CONTAINER_EXTIF_STR_LEN_MAX];
 } container_extif_command_lifecycle_t;
 
+#define CONTAINER_EXTIF_COMMAND_CHANGE_ACTIVE_GUEST_NAME  (0x3000u)
+typedef struct s_container_extif_command_change {
+	container_extif_command_header_t header;
+    char guest_name[CONTAINER_EXTIF_STR_LEN_MAX];
+} container_extif_command_change_t;
+
 //-----------------------------------------------------------------------------
 // Container manager -> Client
 typedef struct s_container_extif_command_response_header {
@@ -77,6 +83,16 @@ typedef struct s_container_extif_command_lifecycle_response {
 #define CONTAINER_EXTIF_LIFECYCLE_RESPONSE_NONAME   (-1)
 #define CONTAINER_EXTIF_LIFECYCLE_RESPONSE_NOROLE   (-2)
 #define CONTAINER_EXTIF_LIFECYCLE_RESPONSE_ERROR    (-100)
+
+#define CONTAINER_EXTIF_COMMAND_RESPONSE_CHANGE      (0xa3000u)
+typedef struct s_container_extif_command_change_response {
+	container_extif_command_response_header_t header;
+    int32_t response;
+} container_extif_command_change_response_t;
+
+#define CONTAINER_EXTIF_CHANGE_RESPONSE_ACCEPT   (0)
+#define CONTAINER_EXTIF_CHANGE_RESPONSE_NONAME   (-1)
+#define CONTAINER_EXTIF_CHANGE_RESPONSE_ERROR    (-100)
 
 
 //-----------------------------------------------------------------------------

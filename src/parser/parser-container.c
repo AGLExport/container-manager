@@ -421,21 +421,6 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 		#endif
 	}
 
-	// Get container role
-	role = cJSON_GetObjectItemCaseSensitive(base, "role");
-	if (cJSON_IsString(role) && (role->valuestring != NULL)) {
-		bc->role = strdup(role->valuestring);
-		#ifdef _PRINTF_DEBUG_
-		fprintf(stdout,"cmparser: base-role value = %s\n",bc->role);
-		#endif
-	} else {
-		// When it not set, role is default = NULL
-		bc->role = strdup("default");
-		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		fprintf(stderr,"cmparser: base-role value is default (NULL)\n");
-		#endif
-	}
-
 	// Get rootfs part
 	rootfs = cJSON_GetObjectItemCaseSensitive(base, "rootfs");
 	if (cJSON_IsObject(rootfs)) {
@@ -488,7 +473,7 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 			fprintf(stdout,"cmparser: base-timeout value = %d\n",bc->lifecycle.timeout);
 			#endif
 		} else {
-			bc->lifecycle.timeout = 1000; // Default value is 1000ms
+			bc->lifecycle.timeout = 10000; // Default value is 10000ms
 			#ifdef _PRINTF_DEBUG_
 			fprintf(stdout,"cmparser: base-timeout set default value = 1000\n");
 			#endif
@@ -1610,6 +1595,24 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 		}
 	}
 
+	// Get container role
+	{
+		const cJSON *role = NULL;
+		role = cJSON_GetObjectItemCaseSensitive(json, "role");
+		if (cJSON_IsString(role) && (role->valuestring != NULL)) {
+			ccfg->role = strdup(role->valuestring);
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stdout,"cmparser: base-role value = %s\n",bc->role);
+			#endif
+		} else {
+			// When it not set, role is set container name
+			ccfg->role = strdup(ccfg->name);
+			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+			fprintf(stderr,"cmparser: base-role value is default (same of container name %s)\n", ccfg->name);
+			#endif
+		}
+	}
+
 	// Get base data
 	{
 		const cJSON *base = NULL;
@@ -1853,10 +1856,10 @@ void cmparser_release_config(container_config_t *cc)
 		free(cc->baseconfig.rootfs.blockdev[1]);
 		free(cc->baseconfig.rootfs.filesystem);
 		free(cc->baseconfig.rootfs.path);
-		free(cc->baseconfig.role);
 	}
 
 	// global
 	free(cc->name);
+	free(cc->role);
 	free(cc);
 }

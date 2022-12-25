@@ -80,7 +80,7 @@ static int container_external_interface_get_guest_info(containers_t *cs, contain
 
 	for (int i =0; i < cs->num_of_container; i++) {
 		strncpy(guests_info->guests[i].guest_name, cs->containers[i]->name, sizeof(guests_info->guests->guest_name));
-		strncpy(guests_info->guests[i].role_name, cs->containers[i]->baseconfig.role, sizeof(guests_info->guests->role_name));
+		strncpy(guests_info->guests[i].role_name, cs->containers[i]->role, sizeof(guests_info->guests->role_name));
 
 		guests_info->guests[i].status = container_external_interface_convert_status(cs->containers[i]->runtime_stat.status);
 
@@ -159,6 +159,39 @@ static int container_external_interface_force_reboot_guest(containers_t *cs, cha
 /**
  * Event handler for server session socket
  *
+ * @param [in]	cs		Pointer to containers_t
+ * @param [out]	gtests_info	Pointer to container_extif_command_get_response_t
+ * @return int
+ * @retval 0 success.
+ * @retval -1 internal error.
+ * @retval -2 arg error.
+ */
+static int container_external_interface_reboot_guest(containers_t *cs, char *name, int role)
+{
+	int ret = -1;
+	int command_accept = -1;
+
+	if (cs == NULL || name == NULL)
+		return -2;
+
+	for (int i =0; i < cs->num_of_container; i++) {
+		container_config_t *cc = cs->containers[i];
+
+		if (strncmp(cc->name, name, strlen(cc->name)) == 0) {
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stderr,"container_external_interface_reboot_guest: reboot to %s, command req %s\n", cc->name, name);
+			#endif
+			ret = container_request_shutdown(cc, cs->sys_state);
+			if (ret == 0)
+				command_accept = 0;
+		}
+	}
+
+	return command_accept;
+}
+/**
+ * Event handler for server session socket
+ *
  * @param [in]	buf		Received data buffer
  * @param [in]	size	Received data size
  * @return int
@@ -184,6 +217,14 @@ static int container_external_interface_command_lifecycle(cm_external_interface_
 			} else {
 				response.response = CONTAINER_EXTIF_LIFECYCLE_RESPONSE_ACCEPT;
 			}
+		} else if (pcom_life->subcommand == CONTAINER_EXTIF_SUBCOMMAND_REBOOT_GUEST) {
+			// Test imp. TODO change state machine request
+			ret = container_external_interface_reboot_guest(pextif->cs, pcom_life->guest_name , 0);
+			if (ret == 0) {
+				response.response = CONTAINER_EXTIF_LIFECYCLE_RESPONSE_NONAME;
+			} else {
+				response.response = CONTAINER_EXTIF_LIFECYCLE_RESPONSE_ACCEPT;
+			}
 		} else  {
 			// other is not support
 			// TODO
@@ -195,6 +236,89 @@ static int container_external_interface_command_lifecycle(cm_external_interface_
 		} else {
 			ret = -1;
 		}
+	} else {
+		ret = -1;
+	}
+
+	return ret;
+}
+/**
+ * Event handler for server session socket
+ *
+ * @param [in]	buf		Received data buffer
+ * @param [in]	size	Received data size
+ * @return int
+ * @retval 1 success (need keep session).
+ * @retval 0 success (need disconnect session).
+ * @retval -1 internal error.
+ */
+static int container_external_interface_command_change(cm_external_interface_t *pextif, int fd, void *buf, ssize_t size)
+{
+	container_extif_command_change_t *pcom_change = (container_extif_command_change_t*)buf;
+	container_extif_command_change_response_t response;
+	ssize_t sret = -1;
+	int ret = -1;
+
+	memset(&response, 0 , sizeof(response));
+	response.header.command = CONTAINER_EXTIF_COMMAND_RESPONSE_CHANGE;
+	response.response = CONTAINER_EXTIF_CHANGE_RESPONSE_ERROR;
+
+	if(size >= sizeof(container_extif_command_change_t)) {
+		containers_t *cs = pextif->cs;
+		char *role = NULL;
+		int num_of_guest = 0;
+
+		for (int i =0; i < cs->num_of_container; i++) {
+			if (strcmp(cs->containers[i]->name, pcom_change->guest_name) == 0) {
+				role = cs->containers[i]->role;
+				fprintf(stderr,"container_external_interface_command_change role = %s\n",role);
+				break;
+			}
+		}
+
+		if (role != NULL) {
+			container_manager_role_config_t *cmrc = NULL;
+			dl_list_for_each(cmrc, &cs->cmcfg->role_list, container_manager_role_config_t, list) {
+				if (cmrc->name != NULL) {
+					fprintf(stderr,"container_external_interface_command_change cmrc->name = %s\n",cmrc->name);
+					if (strcmp(cmrc->name, role) == 0) {
+						container_manager_role_elem_t *pelem = NULL;
+
+						pelem = dl_list_first(&cmrc->container_list, container_manager_role_elem_t, list) ;
+						if (pelem != NULL && pelem->cc != NULL) {
+							// latest active guest move to disable
+							dl_list_del(&pelem->list);
+							dl_list_add_tail(&cmrc->container_list, &pelem->list);
+
+							{
+								container_manager_role_elem_t *pelem2 = NULL;
+
+								dl_list_for_each(pelem2, &cmrc->container_list, container_manager_role_elem_t, list) {
+									if (pelem2->cc != NULL) {
+										if (strcmp(pelem2->cc->name, pcom_change->guest_name) == 0) {
+											// latest active guest move to disable
+											dl_list_del(&pelem2->list);
+											dl_list_add(&cmrc->container_list, &pelem2->list);
+
+											fprintf(stderr,"container_external_interface_command_change %s was activated.\n",pelem2->cc->name);
+
+											response.response = CONTAINER_EXTIF_CHANGE_RESPONSE_ACCEPT;
+											break;
+										}
+									}
+								}
+							}
+						}
+						break;
+					}
+				}
+			}
+		} else {
+			response.response = CONTAINER_EXTIF_CHANGE_RESPONSE_NONAME;
+		}
+
+		sret = write(fd, &response, sizeof(response));
+
 	} else {
 		ret = -1;
 	}
@@ -231,6 +355,9 @@ static int container_external_interface_exec(cm_external_interface_t *pextif, in
 		break;
 	case CONTAINER_EXTIF_COMMAND_LIFECYCLE_GUEST_ROLE :
 		ret = container_external_interface_command_lifecycle(pextif, fd, buf, size, 1);
+		break;
+	case CONTAINER_EXTIF_COMMAND_CHANGE_ACTIVE_GUEST_NAME :
+		ret = container_external_interface_command_change(pextif, fd, buf, size);
 		break;
 	default:
 		ret = -1;
@@ -269,6 +396,9 @@ static int container_external_interface_sessions_handler(sd_event_source *event,
 		#endif
 		sret = read(fd, buf, sizeof(buf));
 		if (sret > 0) {
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stderr,"container_external_interface_sessions_handler: receive size = %ld\n", sret);
+			#endif
 			(void)container_external_interface_exec(pextif, fd, buf, sret);
 		}
 		// close session

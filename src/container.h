@@ -77,7 +77,6 @@ typedef struct s_container_baseconfig_env container_baseconfig_env_t;
 struct s_container_baseconfig {
 	int	autoboot;
 	int bootpriority;
-	char *role;
 	container_baseconfig_rootfs_t rootfs;
 	struct dl_list extradisk_list;
 	container_baseconfig_lifecycle_t lifecycle;
@@ -295,12 +294,12 @@ typedef struct s_container_netifconfig container_netifconfig_t;
 
 //-----------------------------------------------------------------------------
 // runtime status ---------------------------------
-#define CONTAINER_DISABLE		(-1)
-#define CONTAINER_NOT_STARTED	(0)
-#define CONTAINER_STARTED		(1)
-#define CONTAINER_SHUTDOWN		(2)
-#define CONTAINER_DEAD			(3)
-#define CONTAINER_EXIT			(4)
+#define CONTAINER_DISABLE		(0)
+#define CONTAINER_NOT_STARTED	(1)
+#define CONTAINER_STARTED		(2)
+#define CONTAINER_SHUTDOWN		(3)
+#define CONTAINER_DEAD			(4)
+#define CONTAINER_EXIT			(5)
 
 struct s_container_runtime_status {
 	struct lxc_container *lxc;
@@ -313,6 +312,7 @@ typedef struct s_container_runtime_status container_runtime_status_t;
 //-----------------------------------------------------------------------------
 struct s_container_config {
 	char *name;
+	char *role;
 	container_baseconfig_t baseconfig;
 	container_resourceconfig_t resourceconfig;
 	container_fsconfig_t fsconfig;

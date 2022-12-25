@@ -19,6 +19,166 @@
 static const char DEFAULT_CONF_PATH[] = "/etc/container-manager.json";
 
 /**
+ * Container bind to role
+ *
+ * @param [in]	data1	data 1
+ * @param [in]	data1	data 2
+ * @return int
+ * @retval 0 same boot pri between data1 and data2.
+ * @retval -1 data1 is higher than data2.
+ * @retval 1 data2 is higher than data1.
+ */
+static int bind_container_to_role_list(containers_t* cs)
+{
+    int ret = 0;
+
+	// create role list and set guest link.
+	for(int i=0; i< cs->num_of_container; i++) {
+		container_config_t *cc = NULL;
+		char *role = NULL;
+		int is_set = 0;
+
+		cc = cs->containers[i];
+		role = cc->role;
+		{
+			container_manager_role_config_t *cmrc = NULL;
+
+			dl_list_for_each(cmrc, &cs->cmcfg->role_list, container_manager_role_config_t, list) {
+				if (cmrc->name != NULL) {
+					ret = strcmp(cmrc->name, role);
+					if (ret == 0) {
+						// add guest info to existing role
+						container_manager_role_elem_t *pelem = NULL;
+
+						#ifdef _PRINTF_DEBUG_
+						fprintf(stdout,"bind_container_to_role: add %s to existing role %s\n", cc->name, cmrc->name);
+						#endif
+
+						pelem = (container_manager_role_elem_t*)malloc(sizeof(container_manager_role_elem_t));
+						if (pelem != NULL) {
+
+							memset(pelem, 0 , sizeof(container_manager_role_elem_t));
+							dl_list_init(&pelem->list);
+							pelem->cc = cc;	//set guest info;
+
+							if (cc->baseconfig.autoboot == 1) {
+								// add top
+								dl_list_add(&cmrc->container_list, &pelem->list);
+							} else {
+								// add tail
+								dl_list_add_tail(&cmrc->container_list, &pelem->list);
+							}
+						} else {
+							;	//skip data creation
+						}
+
+						is_set = 1;
+					}
+				}
+			}
+		}
+
+		if (is_set == 0) {
+			// create new role
+			container_manager_role_config_t *cmrc = NULL;
+
+			cmrc = (container_manager_role_config_t*)malloc(sizeof(container_manager_role_config_t));
+			if (cmrc != NULL) {
+				container_manager_role_elem_t *pelem = NULL;
+
+				memset(cmrc, 0 , sizeof(container_manager_role_config_t));
+				dl_list_init(&cmrc->list);
+				dl_list_init(&cmrc->container_list);
+
+				cmrc->name = strdup(role);
+				#ifdef _PRINTF_DEBUG_
+				fprintf(stdout,"cmcfg: create new role %s\n", cmrc->name);
+				#endif
+
+				// create terminator
+				pelem = (container_manager_role_elem_t*)malloc(sizeof(container_manager_role_elem_t));
+				if (pelem != NULL) {
+
+					memset(pelem, 0 , sizeof(container_manager_role_elem_t));
+					dl_list_init(&pelem->list);
+					pelem->cc = NULL;	//dummy guest info;
+
+					dl_list_add_tail(&cmrc->container_list, &pelem->list);
+					dl_list_add_tail(&cs->cmcfg->role_list, &cmrc->list);
+				} else {
+					free(cmrc->name);
+					free(cmrc);
+					continue;	//skip data creation
+				}
+
+				// add guest info to new role
+				pelem = (container_manager_role_elem_t*)malloc(sizeof(container_manager_role_elem_t));
+				if (pelem != NULL) {
+
+					memset(pelem, 0 , sizeof(container_manager_role_elem_t));
+					dl_list_init(&pelem->list);
+					pelem->cc = cc;	//set guest info;
+
+					if (pelem->cc->baseconfig.autoboot == 1) {
+						// add top
+						dl_list_add(&cmrc->container_list, &pelem->list);
+					} else {
+						// add tail
+						dl_list_add_tail(&cmrc->container_list, &pelem->list);
+					}
+				} else {
+					;	//skip data creation
+				}
+			} else {
+				;	//skip data creation
+			}
+
+		}
+
+	}
+
+	return 0;
+}
+/**
+ * Container bind to role
+ *
+ * @param [in]	data1	data 1
+ * @param [in]	data1	data 2
+ * @return int
+ * @retval 0 same boot pri between data1 and data2.
+ * @retval -1 data1 is higher than data2.
+ * @retval 1 data2 is higher than data1.
+ */
+static int role_list_cleanup(containers_t* cs)
+{
+    int ret = 0;
+
+	if (cs == NULL)
+		return -1;
+
+	if (cs->cmcfg == NULL)
+		return -1;
+
+	while(dl_list_empty(&cs->cmcfg->role_list) == 0) {
+		container_manager_role_config_t *cmrc = NULL;
+
+		cmrc = dl_list_last(&cs->cmcfg->role_list, container_manager_role_config_t, list);
+
+		while(dl_list_empty(&cmrc->container_list) == 0) {
+			container_manager_role_elem_t *pelem = NULL;
+			pelem = dl_list_last(&cmrc->container_list, container_manager_role_elem_t, list);
+			dl_list_del(&pelem->list);
+			free(pelem);
+		}
+
+		dl_list_del(&cmrc->list);
+		free(cmrc->name);
+		free(cmrc);
+	}
+
+	return ret;
+}
+/**
  * qsort compare function for container boot pri. sorting
  *
  * @param [in]	data1	data 1
@@ -115,6 +275,7 @@ containers_t *create_container_configs(const char *config_file)
 						#endif
 						continue;
 					}
+					cc->runtime_stat.status = CONTAINER_DISABLE;
 					ca[num] = cc;
 					num = num + 1;
 					if (num >= GUEST_CONTAINER_LIMIT)
@@ -156,10 +317,15 @@ containers_t *create_container_configs(const char *config_file)
 	cs->num_of_container = num;
 
 	cs->cmcfg = cm;
+	ret = bind_container_to_role_list(cs);
+	if(ret < 0)
+		goto err_ret;
 
 	return cs;
 
 err_ret:
+	(void) role_list_cleanup(cs);
+
 	for(int i=0; i < num;i++) {
 		cmparser_release_config(ca[i]);
 	}
@@ -189,6 +355,8 @@ int release_container_configs(containers_t *cs)
 
 	if (cs == NULL)
 		return -1;
+
+	(void) role_list_cleanup(cs);
 
 	num = cs->num_of_container;
 
