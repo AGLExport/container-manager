@@ -389,16 +389,18 @@ int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
 			// not running, not need shutdown
 			;
 		} else if (cc->runtime_stat.status == CONTAINER_STARTED) {
-			// now ruining, guest was dead
+			// now running, guest was dead
 			cc->runtime_stat.status = CONTAINER_DEAD;
 
 			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 			fprintf(stderr,"[CM CRITICAL ERROR] container %s was dead.\n", cc->name);
 			#endif
+		} else if (cc->runtime_stat.status == CONTAINER_REBOOT) {
+			// Current status is reboot, guest status change to dead
+			cc->runtime_stat.status = CONTAINER_DEAD;
 		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
 			// Already requested shutdown, change to not start state.
 			cc->runtime_stat.status = CONTAINER_NOT_STARTED;
-
 		} else if (cc->runtime_stat.status == CONTAINER_DEAD) {
 			// Already dead container, no update status.
 			;
@@ -416,11 +418,12 @@ int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
 		} else if (cc->runtime_stat.status == CONTAINER_STARTED) {
 			// cross event between crash and system shutdown, change to exit state.
 			cc->runtime_stat.status = CONTAINER_EXIT;
-
-		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
-			// exit container after shutdown request.
+		} else if (cc->runtime_stat.status == CONTAINER_REBOOT) {
+			// exit container after system shutdown request.
 			cc->runtime_stat.status = CONTAINER_EXIT;
-			;
+		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
+			// exit container after system shutdown request.
+			cc->runtime_stat.status = CONTAINER_EXIT;
 		} else if (cc->runtime_stat.status == CONTAINER_DEAD) {
 			// May not get this state, change to exit state. (fail safe)
 			cc->runtime_stat.status = CONTAINER_EXIT;
@@ -440,7 +443,6 @@ int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
 
 	return result;
 }
-
 /**
  * Container start up
  *
@@ -454,6 +456,10 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 	int ret = -1;
 	int result = 0;
 
+	#ifdef _PRINTF_DEBUG_
+	fprintf(stderr,"container_request_shutdown to %s (%d)\n", cc->name, sys_state);
+	#endif
+
 	if (sys_state == CM_SYSTEM_STATE_RUN) {
 		if (cc->runtime_stat.status == CONTAINER_NOT_STARTED) {
 			// not ruining, not need shutdown
@@ -461,7 +467,6 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 		} else if (cc->runtime_stat.status == CONTAINER_STARTED) {
 			// now ruining, send shutdown request
 			ret = lxcutil_container_shutdown(cc);
-			fprintf(stderr,"container_request_shutdown ret = %d : %s.\n", ret, cc->name);
 			if (ret < 0) {
 				//In fail case, force kill.
 				(void) lxcutil_container_forcekill(cc);
@@ -477,17 +482,15 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 				timeout = get_current_time_ms();
 				if (timeout < 0)
 					timeout = 0;
-
-				fprintf(stderr,"container_request_shutdown set timeout %s - current %ld.\n", cc->name, timeout);
-
 				timeout = timeout + cc->baseconfig.lifecycle.timeout;
 				cc->runtime_stat.timeout = timeout;
-
-				fprintf(stderr,"container_request_shutdown set timeout %s - timeout %ld.\n", cc->name, timeout);
 
 				//Requested, wait to exit.
 				cc->runtime_stat.status = CONTAINER_SHUTDOWN;
 			}
+		} else if (cc->runtime_stat.status == CONTAINER_REBOOT) {
+			// When reboot state, state not need to change.
+			;
 		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
 			// Already requested shutdown, not need new action.
 			;
@@ -510,9 +513,6 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 			cc->runtime_stat.status = CONTAINER_EXIT;
 		} else if (cc->runtime_stat.status == CONTAINER_STARTED) {
 			// now running, send shutdown request
-			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"container_request_shutdown to %s\n", cc->name);
-			#endif
 
 			ret = lxcutil_container_shutdown(cc);
 			if (ret < 0) {
@@ -536,6 +536,9 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 				//Requested, wait to exit.
 				cc->runtime_stat.status = CONTAINER_SHUTDOWN;
 			}
+		} else if (cc->runtime_stat.status == CONTAINER_REBOOT) {
+			// Already requested reboot, change to shutdown state.
+			cc->runtime_stat.status = CONTAINER_SHUTDOWN;
 		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
 			// Already requested shutdown, not need new action.
 			;
@@ -559,7 +562,125 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 
 	return result;
 }
+/**
+ * Container start up
+ *
+ * @param [in]	cs	Preconstructed containers_t
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Critical error.
+ */
+int container_request_reboot(container_config_t *cc, int sys_state)
+{
+	int ret = -1;
+	int result = 0;
 
+	#ifdef _PRINTF_DEBUG_
+	fprintf(stderr,"container_request_reboot to %s (%d)\n", cc->name, sys_state);
+	#endif
+
+	if (sys_state == CM_SYSTEM_STATE_RUN) {
+		if (cc->runtime_stat.status == CONTAINER_NOT_STARTED) {
+			// not ruining, not need reboot
+			;
+		} else if (cc->runtime_stat.status == CONTAINER_STARTED) {
+			// now ruining, send reboot(shutdown) request
+			ret = lxcutil_container_shutdown(cc);
+			if (ret < 0) {
+				//In fail case, force kill.
+				(void) lxcutil_container_forcekill(cc);
+				(void) container_cleanup(cc);
+				cc->runtime_stat.status = CONTAINER_DEAD; // guest is force dead
+				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+				fprintf(stderr,"[CM CRITICAL ERROR] container_request_reboot fourcekill to %s.\n", cc->name);
+				#endif
+			} else {
+				int64_t timeout = 0;
+
+				// Set timeout
+				timeout = get_current_time_ms();
+				if (timeout < 0)
+					timeout = 0;
+				timeout = timeout + cc->baseconfig.lifecycle.timeout;
+				cc->runtime_stat.timeout = timeout;
+
+				//Requested, wait to exit.
+				cc->runtime_stat.status = CONTAINER_REBOOT;
+			}
+		} else if (cc->runtime_stat.status == CONTAINER_REBOOT) {
+			// When reboot state, state not need to change.
+			;
+		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
+			// Already requested shutdown, not need new action.
+			;
+		} else if (cc->runtime_stat.status == CONTAINER_DEAD) {
+			// Already dead container, disable to re-launch.
+			cc->runtime_stat.status = CONTAINER_NOT_STARTED;
+		} else if (cc->runtime_stat.status == CONTAINER_EXIT) {
+			// undefined state
+			result = -1;
+		} else if (cc->runtime_stat.status == CONTAINER_DISABLE) {
+			// disabled container, not need new action
+			;
+		} else {
+			// undefined state
+			result = -1;
+		}
+	} else if (sys_state == CM_SYSTEM_STATE_SHUTDOWN) {
+		if (cc->runtime_stat.status == CONTAINER_NOT_STARTED) {
+			// not running, change to exit state
+			cc->runtime_stat.status = CONTAINER_EXIT;
+		} else if (cc->runtime_stat.status == CONTAINER_STARTED) {
+			// now running, send shutdown request
+
+			ret = lxcutil_container_shutdown(cc);
+			if (ret < 0) {
+				//In fail case, force kill.
+				(void) lxcutil_container_forcekill(cc);
+				(void) container_cleanup(cc);
+				cc->runtime_stat.status = CONTAINER_EXIT; // guest is force exit
+				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+				fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
+				#endif
+			} else {
+				int64_t timeout = 0;
+
+				// Set timeout
+				timeout = get_current_time_ms();
+				if (timeout < 0)
+					timeout = 0;
+				timeout = timeout + cc->baseconfig.lifecycle.timeout;
+				cc->runtime_stat.timeout = timeout;
+
+				//Requested, wait to exit.
+				cc->runtime_stat.status = CONTAINER_SHUTDOWN;
+			}
+		} else if (cc->runtime_stat.status == CONTAINER_REBOOT) {
+			// Already requested reboot, change to shutdown state.
+			cc->runtime_stat.status = CONTAINER_SHUTDOWN;
+		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
+			// Already requested shutdown, not need new action.
+			;
+		} else if (cc->runtime_stat.status == CONTAINER_DEAD) {
+			// Already dead container, it's already exit.
+			cc->runtime_stat.status = CONTAINER_EXIT;
+		} else if (cc->runtime_stat.status == CONTAINER_EXIT) {
+			// Already exit, not need new action
+			;
+		} else if (cc->runtime_stat.status == CONTAINER_DISABLE) {
+			// disabled container, not need new action
+			;
+		} else {
+			// undefined state
+			result = -1;
+		}
+	} else {
+		// undefined state
+		result = -1;
+	}
+
+	return result;
+}
 /**
  * Container start up
  *
@@ -645,9 +766,8 @@ int container_exec_internal_event(containers_t *cs)
 
 				// Find own role
 				ret = container_get_active_guest_by_role(cs, role, &active_cc);
-				if (ret == 0) {
-					// Change active guest cc to active_cc
-					// Disable cc
+				if (ret == 0 && cc != active_cc) {
+					// When cc != active_cc, change active guest cc to active_cc and disable cc.
 					cc->runtime_stat.status = CONTAINER_DISABLE;
 					(void) container_cleanup(cc);
 
@@ -819,12 +939,6 @@ int container_start(container_config_t *cc)
 	}
 
 	cc->runtime_stat.status = CONTAINER_STARTED;
-
-	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr,"container_start: guest %s launch.\n", cc->name);
-	fprintf(stderr, "Container state: %s\n", cc->runtime_stat.lxc->state(cc->runtime_stat.lxc));
-	fprintf(stderr, "Container PID: %d\n", cc->runtime_stat.lxc->init_pid(cc->runtime_stat.lxc));
-	#endif
 
 	return 0;
 }
