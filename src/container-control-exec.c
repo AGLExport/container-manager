@@ -890,7 +890,6 @@ static int container_get_active_guest_by_role(containers_t *cs, char *role, cont
  */
 int container_start_by_role(containers_t *cs, char *role)
 {
-	//container_manager_role_config_t *cmrc = NULL;
 	container_config_t *cc = NULL;
 	int ret = -1;
 	int result = -2;
