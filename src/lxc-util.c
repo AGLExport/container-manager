@@ -583,6 +583,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 	dl_list_for_each(netelem, &netc->static_netif.static_netiflist, container_static_netif_elem_t, list) {
 		buf[0] = '\0';
 
+		// veth support
 		if (netelem->type == STATICNETIF_VETH) {
 			netif_elem_veth_t *veth = (netif_elem_veth_t*)netelem->setting;
 
@@ -596,6 +597,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 				goto err_ret;
 			}
 
+			// name is optional, lxc default is ethX.
 			if (veth->name != NULL) {
 				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.name", num);
 				bret = plxc->set_config_item(plxc, buf, veth->name);
@@ -608,6 +610,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 				}
 			}
 
+			// link - linking bridge device - is optional, lxc default is not linking.
 			if (veth->link != NULL) {
 				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.link", num);
 				bret = plxc->set_config_item(plxc, buf, veth->link);
@@ -620,6 +623,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 				}
 			}
 
+			// flags is optional, lxc default is link down.
 			if (veth->flags != NULL) {
 				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.flags", num);
 				bret = plxc->set_config_item(plxc, buf, veth->flags);
@@ -632,6 +636,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 				}
 			}
 
+			// hwaddr is optional, lxc default is random mac address.
 			if (veth->hwaddr != NULL) {
 				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.hwaddr", num);
 				bret = plxc->set_config_item(plxc, buf, veth->hwaddr);
@@ -644,6 +649,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 				}
 			}
 
+			// mode is optional, lxc default is bridge mode.
 			if (veth->mode != NULL) {
 				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.veth.mode", num);
 				bret = plxc->set_config_item(plxc, buf, veth->mode);
@@ -656,6 +662,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 				}
 			}
 
+			// address is optional, lxc default is not set ip address.
 			if (veth->address != NULL) {
 				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.ipv4.address", num);
 				bret = plxc->set_config_item(plxc, buf, veth->address);
@@ -668,6 +675,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 				}
 			}
 
+			// gateway is optional, lxc default is not set default gateway.
 			if (veth->gateway != NULL) {
 				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.ipv4.gateway", num);
 				bret = plxc->set_config_item(plxc, buf, veth->gateway);

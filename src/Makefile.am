@@ -40,7 +40,7 @@ containermanager_LDADD = \
 
 # C compiler options
 containermanager_CFLAGS = \
-	-g \
+	-g -Wall -Wno-unused-but-set-variable \
 	-I$(top_srcdir)/3rdparty/wpa-supplicant \
 	-I$(top_srcdir)/include \
 	@LIBSYSTEMD_CFLAGS@ \
@@ -53,7 +53,7 @@ containermanager_CFLAGS = \
 
 # C++ compiler options
 containermanager_CXXFLAGS = \
-	-g \
+	-g -Wall -Wno-unused-but-set-variable \
 	-I$(top_srcdir)/3rdparty/wpa-supplicant \
 	-I$(top_srcdir)/include \
 	@LIBSYSTEMD_CFLAGS@ \
