@@ -21,6 +21,7 @@
 #include "lxc-util.h"
 #include "container-config.h"
 
+#undef _PRINTF_DEBUG_
 
 /**
  * Event handler for server session socket

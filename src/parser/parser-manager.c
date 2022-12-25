@@ -20,7 +20,7 @@
 #include "parser/parser-common.h"
 #include "parser/parser-manager.h"
 
-//#undef _PRINTF_DEBUG_
+#undef _PRINTF_DEBUG_
 
 /**
  * Read json string with memory allocation
