@@ -87,13 +87,15 @@ static int container_monitor_pidfd_handler(sd_event_source *event, int fd, uint3
 		cc = cs->containers[i];
 
 		if (cc->runtime_stat.pidfd_source == event) {
-			fprintf(stderr,"%s is exited\n", cc->name);
 			ret = container_monitor_state_change(cs, CONTAINER_DEAD, i);
-			//TODO error handling
+			if (ret == 0) {
+				sd_event_source_disable_unref(event);
+				cc->runtime_stat.pidfd_source = NULL;
+			}
+			// if command send fail...
+			// A main state machine event is highest priority. This event will retry after state machine event exced.
 		}
 	}
-
-	sd_event_source_disable_unref(event);
 
 	return 0;
 }
