@@ -34,6 +34,7 @@ static char *status_string[] = {
 	"disable",
 	"not started",
 	"started",
+	"reboot",
 	"shutdown",
 	"dead",
 	"exit"
@@ -165,7 +166,7 @@ void cm_get_guest_list(void)
 				fprintf(stdout, "        %32s,%12s,%12s \n"
 					, response.guests[i].guest_name
 					, response.guests[i].role_name
-					, status_string[response.guests[i].status+1] );
+					, status_string[response.guests[i].status] );
 			}
 		}
 	}
