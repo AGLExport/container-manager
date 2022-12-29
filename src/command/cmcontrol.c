@@ -20,6 +20,7 @@
 static struct option long_options[] = {
 	{"help", no_argument, 0, 1},
 	{"get-guest-list", no_argument, NULL, 10},
+	{"get-guest-list-json", no_argument, NULL, 11},
 	{"shutdown-guest-name", required_argument, NULL, 20},
 	{"shutdown-guest-role", required_argument, NULL, 21},
 	{"reboot-guest-name", required_argument, NULL, 22},
@@ -46,6 +47,7 @@ static void usage(void)
 		"usage: [options] \n\n"
 	    " --help                   print help strings.\n"
 	    " --get-guest-list         get guest container list from container manager.\n"
+		" --get-guest-list-json    get guest container list from container manager by json.\n"
 	    " --shutdown-guest-name=N  shutdown request to container manager. (N=guest name)\n"
 	    " --shutdown-guest-role=R  shutdown request to container manager. (R=guest role)\n"
 	    " --reboot-guest-name=N    reboot request to container manager. (N=guest name)\n"
@@ -120,7 +122,7 @@ return_function:
 	return result;
 }
 
-void cm_get_guest_list(void)
+void cm_get_guest_list(int json)
 {
 	int fd = -1;
 	int ret = -1;
@@ -158,15 +160,40 @@ void cm_get_guest_list(void)
 	}
 
 	if (response.header.command == CONTAINER_EXTIF_COMMAND_RESPONSE_GETGUESTS) {
-		fprintf(stdout, "HEADER: %32s,%12s,%12s \n", "name", "role", "status");
-		for (int i = 0; i < response.num_of_guests; i++) {
-			if (response.guests[i].status >= CONTAINER_EXTIF_GUEST_STATUS_DISABLE
-				&& response.guests[i].status <= CONTAINER_EXTIF_GUEST_STATUS_EXIT) {
+		if (json == 1) {
+			int i = 0;
+			fprintf(stdout, "{\n");
+			fprintf(stdout, "	\"guest-status\": [\n");
+			while (1) {
+				if (response.guests[i].status >= CONTAINER_EXTIF_GUEST_STATUS_DISABLE
+					&& response.guests[i].status <= CONTAINER_EXTIF_GUEST_STATUS_EXIT) {
+					fprintf(stdout, "		{\n");
+					fprintf(stdout, "			\"guest-name\": \"%s\",\n", response.guests[i].guest_name);
+					fprintf(stdout, "			\"role-name\": \"%s\",\n", response.guests[i].role_name);
+					fprintf(stdout, "			\"status\": \"%s\"\n", status_string[response.guests[i].status]);
+				}
 
-				fprintf(stdout, "        %32s,%12s,%12s \n"
-					, response.guests[i].guest_name
-					, response.guests[i].role_name
-					, status_string[response.guests[i].status] );
+				i++;
+				if (i < response.num_of_guests) {
+					fprintf(stdout, "		},\n");
+				} else {
+					fprintf(stdout, "		}\n");
+					break;
+				}
+			}
+			fprintf(stdout, "	]\n");
+			fprintf(stdout, "}\n");
+		} else {
+			fprintf(stdout, "HEADER: %32s,%12s,%12s \n", "name", "role", "status");
+			for (int i = 0; i < response.num_of_guests; i++) {
+				if (response.guests[i].status >= CONTAINER_EXTIF_GUEST_STATUS_DISABLE
+					&& response.guests[i].status <= CONTAINER_EXTIF_GUEST_STATUS_EXIT) {
+
+					fprintf(stdout, "        %32s,%12s,%12s \n"
+						, response.guests[i].guest_name
+						, response.guests[i].role_name
+						, status_string[response.guests[i].status] );
+				}
 			}
 		}
 	}
@@ -333,8 +360,11 @@ int main(int argc, char *argv[])
 		if (ret <= 1) {
 			usage();
 			break;
-		} else if (ret == 10) {
-			cm_get_guest_list();
+		} else if (ret == 10 || ret == 11) {
+			if (ret == 11)
+				cm_get_guest_list(1);
+			else
+				cm_get_guest_list(0);
 			break;
 		} else if (ret >= 20 && ret <= 25) {
 			cm_get_guest_lifecycle(ret, optarg);
