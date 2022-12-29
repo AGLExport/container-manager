@@ -124,10 +124,6 @@ static int container_external_interface_command_get(cm_external_interface_t *pex
 		ret = -1;
 	}
 
-	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr,"container_external_interface_command_get: ret = %d\n", ret);
-	#endif
-
 	return ret;
 }
 /**
