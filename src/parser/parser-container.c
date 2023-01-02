@@ -1351,6 +1351,7 @@ static int cmparser_parse_static_netif_veth_free(void *p)
 
 	pveth = (netif_elem_veth_t*)p;
 	free(pveth->link);
+	free(pveth->name);
 	free(pveth->flags);
 	free(pveth->hwaddr);
 	free(pveth->mode);
