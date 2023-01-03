@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	device-control.c
- * @brief	device control block for container manager
+ * @file	device-control-dynamic.c
+ * @brief	device control sub block for dynamic device management.
  */
 
 #include "device-control.h"
@@ -22,12 +22,15 @@
 #include "net-util.h"
 
 /**
- * Start up time device initialization
+ * Setup dynamic device manager.
+ * This function initialize to udevmonitor sub block and netifmonitor sub block.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [out]	pddm	Double pointer to get constructed dynamic_device_manager_t.
+ * @param [in]	cci		Pointer to container_control_interface_t, it use for notification from dynamic device sub blocks.
+ * @param [in]	event	A sd event. (main event loop)
  * @return int
- * @retval  0 Success.
- * @retval -1 Device scan critical error.
+ * @retval  0	Success to setup dynamic device manager.
+ * @retval -1	Critical error.
  */
 int devc_device_manager_setup(dynamic_device_manager_t **pddm, container_control_interface_t *cci, sd_event *event)
 {
@@ -60,7 +63,8 @@ err_ret:
  *
  * @param [in]	ddm	Pointer to dynamic_device_manager_t
  * @return int
- * @retval  0 Success.
+ * @retval  0	Success to cleanup.
+ * @retval  -1	Critical error. (Reserve)
  */
 int devc_device_manager_cleanup(dynamic_device_manager_t *ddm)
 {

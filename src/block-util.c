@@ -13,14 +13,14 @@
 #include <string.h>
 
 /**
- * Once write util
+ * The function of filesystem scan for block device.
+ * This function support filesystem type(magic) and volume label probing.
  *
- * @param [in]	path	File path
- * @param [in]	data	Write data
- * @param [in]	size	Write data size
+ * @param [in]	devpath	Device node path.  Ex. "/dev/sda1"
+ * @param [out]	bdi		Pointer to block_device_info_t
  * @return int
  * @retval  0 Success.
- * @retval -1 Write error.
+ * @retval -1 No or not probing support file system.
  */
 int block_util_getfs(const char *devpath, block_device_info_t *bdi)
 {

@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	cluster-service.c
- * @brief	main source file for cluster-service
+ * @file	container-config.c
+ * @brief	This file include implementation for create and release top level container configs.
  */
 #include "parser/parser-manager.h"
 #include "parser/parser-container.h"
@@ -16,17 +16,22 @@
 
 #include "container-config.h"
 
+/**
+ * @var		DEFAULT_CONF_PATH
+ * @brief	Default container manager config path.
+ */
 static const char DEFAULT_CONF_PATH[] = "/etc/container-manager.json";
 
 /**
- * Container bind to role
+ * Bind all guest container to role list.
+ * Container manager launch one guest container per one role.
+ * The role list manage which container is active, which container is inactive.
+ * This function create role list from all guest container config data.
  *
- * @param [in]	data1	data 1
- * @param [in]	data1	data 2
+ * @param [in]	cs	Pointer to constructed containers_t data.
  * @return int
- * @retval 0 same boot pri between data1 and data2.
- * @retval -1 data1 is higher than data2.
- * @retval 1 data2 is higher than data1.
+ * @retval 0	Success to role list creation.
+ * @retval -1	Fail to role list creation. (Reserve)
  */
 static int bind_container_to_role_list(containers_t* cs)
 {
@@ -140,14 +145,12 @@ static int bind_container_to_role_list(containers_t* cs)
 	return 0;
 }
 /**
- * Container bind to role
+ * Role list cleanup.
  *
- * @param [in]	data1	data 1
- * @param [in]	data1	data 2
+ * @param [in]	cs	Pointer to constructed containers_t data.
  * @return int
- * @retval 0 same boot pri between data1 and data2.
- * @retval -1 data1 is higher than data2.
- * @retval 1 data2 is higher than data1.
+ * @retval 0	Success to role list cleanup with memory free.
+ * @retval -1	Fail to role list cleanup.
  */
 static int role_list_cleanup(containers_t* cs)
 {
@@ -181,8 +184,8 @@ static int role_list_cleanup(containers_t* cs)
 /**
  * qsort compare function for container boot pri. sorting
  *
- * @param [in]	data1	data 1
- * @param [in]	data1	data 2
+ * @param [in]	data1	Pointer to data no 1.
+ * @param [in]	data2	Pointer to data no 2.
  * @return int
  * @retval 0 same boot pri between data1 and data2.
  * @retval -1 data1 is higher than data2.
@@ -209,7 +212,7 @@ static int compare_bootpri(const void *data1, const void *data2)
 /**
  * Scan and create container configuration data
  *
- * @param [in]	config_dir	Scan dir for container configs.
+ * @param [in]	config_file	File path for container manager configs.
  * @return containers_t*
  * @retval NULL Fail to create config.
  * @retval != NULL Available containers_t* data.
@@ -345,13 +348,12 @@ err_ret:
 	return NULL;
 }
 /**
- * Read json string with memory allocation
+ * Release container configs with sub sections cleanup.
  *
- * @param [in]	file		Full file path for json file
+ * @param [in]	cs	Pointer to constructed containers_t data.
  * @return int
- * @retval -1 Json file error.
- * @retval -2 Json file parse error.
- * @retval -3 Memory allocation error.
+ * @retval 0	Success to container configs cleanup with memory free.
+ * @retval -1	Fail to container configs cleanup.
  */
 int release_container_configs(containers_t *cs)
 {

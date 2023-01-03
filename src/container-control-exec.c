@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	device-control.c
- * @brief	device control block for container manager
+ * @file	container-control-exec.c
+ * @brief	This file include implementation for container manager event operations.
  */
 
 #include "container-control.h"
@@ -35,12 +35,14 @@ int dynamic_device_elem_data_free(dynamic_device_elem_data_t *dded);
 int container_restart(container_config_t *cc);
 
 /**
- * Container start up
+ * The function for dynamic device add/remove event handling.
+ * Current implementation support block device only.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cc	Pointer to container_config_t.
+ * @param [in]	ddm	Pointer to dynamic_device_manager_t.
  * @return int
- * @retval  0 Success.
- * @retval -1 Critical error.
+ * @retval  0 Success to operation.
+ * @retval -1 Critical error.(Reserve)
  */
 int container_device_update_guest(container_config_t *cc, dynamic_device_manager_t *ddm)
 {
@@ -155,12 +157,12 @@ int container_device_update_guest(container_config_t *cc, dynamic_device_manager
 	return 0;
 }
 /**
- * Container start up
+ * The function for dynamic device cleanup for stopped (exited, dead) guest container.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cc	Pointer to container_config_t.
  * @return int
- * @retval  0 Success.
- * @retval -1 Critical error.
+ * @retval  0 Success to operation.
+ * @retval -1 Critical error.(Reserve)
  */
 int container_device_remove_element(container_config_t *cc)
 {
@@ -168,9 +170,6 @@ int container_device_remove_element(container_config_t *cc)
 	container_dynamic_device_elem_t *cdde = NULL;
 	dynamic_device_elem_data_t *dded = NULL, *dded_n = NULL;
 
-	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr, "container_device_remove_element : %s\n", cc->name);
-	#endif
 	cdd = &cc->deviceconfig.dynamic_device;
 
 	// remove all dynamic device elem data
@@ -188,9 +187,9 @@ int container_device_remove_element(container_config_t *cc)
 	return 0;
 }
 /**
- * Container start up
+ * Dispatch dynamic device update operation to all guest container.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cs	Pointer to containers_t
  * @return int
  * @retval  0 Success.
  * @retval -1 Critical error.
@@ -203,10 +202,6 @@ int container_device_updated(containers_t *cs)
 	container_config_t *cc = NULL;
 
 	num = cs->num_of_container;
-
-	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr, "container_device_updated exec\n");
-	#endif
 
 	for(int i=0;i < num;i++) {
 		cc = cs->containers[i];
@@ -222,12 +217,13 @@ err_ret:
 	return result;
 }
 /**
- * Container start up
+ * The function for dynamic network interface add (remove) event handling.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cc	Pointer to container_config_t.
+ * @param [in]	ddm	Pointer to dynamic_device_manager_t.
  * @return int
- * @retval  0 Success.
- * @retval -1 Critical error.
+ * @retval  0 Success to operation.
+ * @retval -1 Critical error.(Reserve)
  */
 int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_t *ddm)
 {
@@ -304,12 +300,12 @@ int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_
 	return 0;
 }
 /**
- * Container start up
+ * The function for dynamic network interface cleanup for stopped (exited, dead) guest container.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cc	Pointer to container_config_t.
  * @return int
- * @retval  0 Success.
- * @retval -1 Critical error.
+ * @retval  0 Success to operation.
+ * @retval -1 Critical error.(Reserve)
  */
 int container_netif_remove_element(container_config_t *cc)
 {
@@ -330,9 +326,9 @@ int container_netif_remove_element(container_config_t *cc)
 	return 0;
 }
 /**
- * Container start up
+ * Dispatch dynamic network interface update operation to all guest container.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cs	Pointer to containers_t
  * @return int
  * @retval  0 Success.
  * @retval -1 Critical error.
@@ -360,12 +356,14 @@ err_ret:
 	return result;
 }
 /**
- * Container start up
+ * Container status change event handler in container exit.
+ * This handler is judging next container status using system state, current status and exit event.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cs		Pointer to containers_t
+ * @param [in]	data	Pointer to container_mngsm_guest_exit_data_t, it's include detail of exit event.
  * @return int
- * @retval  0 Success.
- * @retval -1 Critical error.
+ * @retval  0 Success to change next state.
+ * @retval -1 Got undefined state.
  */
 int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
 {
@@ -444,12 +442,15 @@ int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
 	return result;
 }
 /**
- * Container start up
+ * Container status change event handler in requested container shutdown.
+ * This handler is judging next container status using system state, current status and shutdown request event.
+ * When status change from CONTAINER_STARTED, this function send container shutdown request to guest container.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cc			Pointer to container_config_t
+ * @param [in]	sys_state	Current system state. ( CM_SYSTEM_STATE_RUN or CM_SYSTEM_STATE_SHUTDOWN )
  * @return int
- * @retval  0 Success.
- * @retval -1 Critical error.
+ * @retval  0 Success to change next state.
+ * @retval -1 Got undefined state.
  */
 int container_request_shutdown(container_config_t *cc, int sys_state)
 {
@@ -563,12 +564,15 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 	return result;
 }
 /**
- * Container start up
+ * Container status change event handler in requested container reboot.
+ * This handler is judging next container status using system state, current status and reboot request event.
+ * When status change from CONTAINER_STARTED, this function send container shutdown request to guest container.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cc			Pointer to container_config_t
+ * @param [in]	sys_state	Current system state. ( CM_SYSTEM_STATE_RUN or CM_SYSTEM_STATE_SHUTDOWN )
  * @return int
- * @retval  0 Success.
- * @retval -1 Critical error.
+ * @retval  0 Success to change next state.
+ * @retval -1 Got undefined state.
  */
 int container_request_reboot(container_config_t *cc, int sys_state)
 {
@@ -682,12 +686,14 @@ int container_request_reboot(container_config_t *cc, int sys_state)
 	return result;
 }
 /**
- * Container start up
+ * Container shutdown event handler.
+ * This handler handle shutdown event that receive from system management daemon (typically init).
+ * This function set CM_SYSTEM_STATE_SHUTDOWN to system state of container manager.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cs		Pointer to containers_t
  * @return int
- * @retval  0 Success.
- * @retval -1 Critical error.
+ * @retval  0 Success to change next state.
+ * @retval -1 Failed to request shutdown in one or more guest.
  */
 int container_manager_shutdown(containers_t *cs)
 {
@@ -716,12 +722,17 @@ int container_manager_shutdown(containers_t *cs)
 	return 0;
 }
 /**
- * Container start up
+ * Cyclic event handler for container manager state machine.
+ * This handler handle to;
+ *  Launch retry in dead state.
+ *  Exchange active guest and launch after exit old active guest.
+ *  Timeout test for guest container when that state is shutdown or reboot.
+ *  Exit test for all guest container when system state is shutdown.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cs		Pointer to containers_t
  * @return int
- * @retval  0 Success.
- * @retval -1 Critical error.
+ * @retval  0 Success to change next state.
+ * @retval -1 Got undefined state.
  */
 int container_exec_internal_event(containers_t *cs)
 {
@@ -855,7 +866,7 @@ out:
 /**
  * Container launch common part of start and restart.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cc	Pointer to container_config_t.
  * @return int
  * @retval  0 Success.
  * @retval -1 Create instance fail.
@@ -895,11 +906,12 @@ int container_restart(container_config_t *cc)
 /**
  * Container start up
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cc	Pointer to container_config_t.
  * @return int
  * @retval  1 Container is disabled.
  * @retval  0 Success.
  * @retval -1 Critical error.
+ * @retval -2 Target container is disable.
  */
 int container_start(container_config_t *cc)
 {
@@ -945,9 +957,9 @@ int container_start(container_config_t *cc)
 /**
  * Get active guest container in selected role.
  *
- * @param [in]	cs			Preconstructed containers_t.
+ * @param [in]	cs			Pointer to containers_t.
  * @param [in]	role		role name.
- * @param [out]	active_cc	Active container config in role.
+ * @param [out]	active_cc	Double pointer to container_config_t. That is set pointer to active container config (container_config_t) in selected role.
  * @return int
  * @retval  0 Success.
  * @retval -1 No active guest.
@@ -978,12 +990,12 @@ static int container_get_active_guest_by_role(containers_t *cs, char *role, cont
 	return -1;
 }
 /**
- * Container start up
+ * Container start up by role.
  *
- * @param [in]	cs		Preconstructed containers_t
+ * @param [in]	cs		Pointer to containers_t.
  * @param [in]	role	role name.
  * @return int
- * @retval  0 Success.
+ * @retval  0 Success to start gest.
  * @retval -1 Critical error.
  * @retval -2 No active guest.
  */
@@ -1025,7 +1037,7 @@ int container_start_by_role(containers_t *cs, char *role)
  * All device update notification for all container
  * For force device assignment to new container guest.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cs	Preconstructed containers_t.
  * @return int
  * @retval  0 Success.
  * @retval -1 Critical error.
@@ -1048,12 +1060,13 @@ int container_all_dynamic_device_update_notification(containers_t *cs)
 	return 0;
 }
 /**
- * Container terminated
+ * This function use in case of container terminated such as dead and exit.
+ * This function remove per container runtime resource and remove assigned dynamic devices from container_config_t.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cc	Pointer to container_config_t.
  * @return int
  * @retval  0 Success.
- * @retval -1 Critical error.
+ * @retval -1 Critical error.(Reserve)
  */
 int container_terminate(container_config_t *cc)
 {
@@ -1064,12 +1077,13 @@ int container_terminate(container_config_t *cc)
 	return 0;
 }
 /**
- * Container cleanup
+ * This function is preprocess for container manager exit and post process for runtime shutdown.
+ * This function exec to filesystem unmount and same function of container_terminate.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cc	Pointer to container_config_t.
  * @return int
  * @retval  0 Success.
- * @retval -1 Critical error.
+ * @retval -1 Critical error.(Reserve)
  */
 int container_cleanup(container_config_t *cc)
 {
@@ -1079,7 +1093,8 @@ int container_cleanup(container_config_t *cc)
 	return 0;
 }
 /**
- * Disk mount procedure for failover
+ * Disk mount procedure for failover.
+ * This function is sub function for container_start_preprocess_base.
  *
  * @param [in]	devs	Array of disk block device. A and B.
  * @param [in]	path	Mount path.
@@ -1142,7 +1157,8 @@ static int container_start_mountdisk_failover(char **devs, const char *path, con
 	return mntdisk;
 }
 /**
- * Disk mount procedure for a/b
+ * Disk mount procedure for a/b.
+ * This function is sub function for container_start_preprocess_base.
  *
  * @param [in]	devs	Array of disk block device. A and B.
  * @param [in]	path	Mount path.
@@ -1204,9 +1220,10 @@ static int container_start_mountdisk_ab(char **devs, const char *path, const cha
 
 
 /**
- * Preprocess for container start base
+ * Preprocess for container start.
+ * This function exec mount operation a part of base config operation.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	bc	Pointer to container_baseconfig_t.
  * @return int
  * @retval  0 Success.
  * @retval -1 mount error.
@@ -1272,9 +1289,10 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 	return 0;
 }
 /**
- * Cleanup for container start base preprocess
+ * Cleanup for container start base preprocess.
+ * This function exec unmount operation a part of base config cleanup operation.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	bc	Pointer to container_baseconfig_t.
  * @return int
  * @retval  0 Success.
  * @retval -1 unmount error.
@@ -1322,13 +1340,18 @@ static int container_cleanup_preprocess_base(container_baseconfig_t *bc)
 	return 0;
 }
 /**
- * Preprocess for container start base
+ * Create dynamic_device_elem_data_t object from dynamic device informations.
  *
- * @param [in]	cs	Preconstructed containers_t
- * @return int
- * @retval  0 Success.
- * @retval -1 mount error.
- * @retval -2 Syscall error.
+ * @param [in]	devpath		device path of target device.
+ * @param [in]	devtype		device typeof target device.
+ * @param [in]	subsystem	subsystem name of target device.
+ * @param [in]	devnode		device node name of target device.
+ * @param [in]	devnum		device major and minor number of target device.
+ * @param [in]	diskseq		diskseq of target device.
+ * @param [in]	partn		partition number of target device.
+ * @return dynamic_device_elem_data_t*
+ * @retval !=NULL Success to create dynamic_device_elem_data_t object.
+ * @retval ==NULL memory allocation error.
  */
 dynamic_device_elem_data_t *dynamic_device_elem_data_create(const char *devpath, const char *devtype, const char *subsystem, const char *devnode,
 															dev_t devnum, const char *diskseq, const char *partn)
@@ -1358,13 +1381,12 @@ dynamic_device_elem_data_t *dynamic_device_elem_data_create(const char *devpath,
 	return dded;
 }
 /**
- * Preprocess for container start base
+ * Release dynamic_device_elem_data_t object.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	dded	Pointer to dynamic_device_elem_data_t.
  * @return int
- * @retval  0 Success.
- * @retval -1 mount error.
- * @retval -2 Syscall error.
+ * @retval  0 Success to free memory.
+ * @retval -1 Argument error.
  */
 int dynamic_device_elem_data_free(dynamic_device_elem_data_t *dded)
 {

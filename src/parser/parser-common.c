@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	parser.c
+ * @file	parser-common.c
  * @brief	config file parser using cjson
  */
 

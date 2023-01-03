@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	container-external-interface.c
- * @brief	external interface for container manager
+ * @brief	This file include experimental external interface implementation of container manager.
  */
 #include "container-manager-interface.h"
 #include "container-external-interface.h"
@@ -25,7 +25,7 @@
 
 
 /**
- * Convert inner container status to external container status
+ * Convert from inner container status to external container status.
  *
  * @param [in]	status_inner	container status
  * @return int32_t
@@ -65,14 +65,14 @@ static int32_t container_external_interface_convert_status(int status_inner)
 	return ret;
 }
 /**
- * Event handler for server session socket
+ * Command handler for "get-guest-info".
  *
- * @param [in]	cs		Pointer to containers_t
- * @param [out]	gtests_info	Pointer to container_extif_command_get_response_t
+ * @param [in]	cs			Pointer to containers_t
+ * @param [out]	guests_info	Pointer to container_extif_command_get_response_t
  * @return int
- * @retval 0 success.
- * @retval -1 internal error.
- * @retval -2 arg error.
+ * @retval 0	Success to get information.
+ * @retval -1	Internal error.(Reserve)
+ * @retval -2	Argment error.
  */
 static int container_external_interface_get_guest_info(containers_t *cs, container_extif_command_get_response_t *guests_info)
 {
@@ -95,14 +95,15 @@ static int container_external_interface_get_guest_info(containers_t *cs, contain
 	return 0;
 }
 /**
- * Event handler for server session socket
+ * Command group handler for "get".
  *
+ * @param [in]	pextif	Pointer to cm_external_interface_t
+ * @param [in]	fd		File descriptor to use send response.
  * @param [in]	buf		Received data buffer
  * @param [in]	size	Received data size
  * @return int
- * @retval 1 success (need keep session).
- * @retval 0 success (need disconnect session).
- * @retval -1 internal error.
+ * @retval 0	Success to exec command.
+ * @retval -1	Internal error.
  */
 static int container_external_interface_command_get(cm_external_interface_t *pextif, int fd, void *buf, ssize_t size)
 {
@@ -127,14 +128,15 @@ static int container_external_interface_command_get(cm_external_interface_t *pex
 	return ret;
 }
 /**
- * Event handler for server session socket
+ * Event handler for force reboot guest.
  *
  * @param [in]	cs		Pointer to containers_t
- * @param [out]	gtests_info	Pointer to container_extif_command_get_response_t
+ * @param [in]	name	Name of guest container or guest role. It depend on argument role.
+ * @param [in]	role	Argument name is guest name (=0) or role name (=1).
  * @return int
- * @retval 0 success.
- * @retval -1 internal error.
- * @retval -2 arg error.
+ * @retval 0	Success to force reboot request.
+ * @retval -1	No selected name or role container.
+ * @retval -2	Argument error.
  */
 static int container_external_interface_force_reboot_guest(containers_t *cs, char *name, int role)
 {
@@ -164,14 +166,15 @@ static int container_external_interface_force_reboot_guest(containers_t *cs, cha
 	return command_accept;
 }
 /**
- * Event handler for server session socket
+ * Event handler for reboot guest.
  *
  * @param [in]	cs		Pointer to containers_t
- * @param [out]	gtests_info	Pointer to container_extif_command_get_response_t
+ * @param [in]	name	Name of guest container or guest role. It depend on argument role.
+ * @param [in]	role	Argument name is guest name (=0) or role name (=1).
  * @return int
- * @retval 0 success.
- * @retval -1 internal error.
- * @retval -2 arg error.
+ * @retval 0	Success to reboot request.
+ * @retval -1	No selected name or role container.
+ * @retval -2	Argument error.
  */
 static int container_external_interface_reboot_guest(containers_t *cs, char *name, int role)
 {
@@ -210,14 +213,15 @@ static int container_external_interface_reboot_guest(containers_t *cs, char *nam
 	return command_accept;
 }
 /**
- * Event handler for server session socket
+ * Event handler for shutdown guest.
  *
  * @param [in]	cs		Pointer to containers_t
- * @param [out]	gtests_info	Pointer to container_extif_command_get_response_t
+ * @param [in]	name	Name of guest container or guest role. It depend on argument role.
+ * @param [in]	role	Argument name is guest name (=0) or role name (=1).
  * @return int
- * @retval 0 success.
- * @retval -1 internal error.
- * @retval -2 arg error.
+ * @retval 0	Success to reboot request.
+ * @retval -1	No selected name or role container.
+ * @retval -2	Argument error.
  */
 static int container_external_interface_shutdown_guest(containers_t *cs, char *name, int role)
 {
@@ -256,14 +260,16 @@ static int container_external_interface_shutdown_guest(containers_t *cs, char *n
 	return command_accept;
 }
 /**
- * Event handler for server session socket
+ * Command group handler for "lifecycle".
  *
+ * @param [in]	pextif	Pointer to cm_external_interface_t
+ * @param [in]	fd		File descriptor to use send response.
  * @param [in]	buf		Received data buffer
  * @param [in]	size	Received data size
+ * @param [in]	role	Argument name is guest name (=0) or role name (=1).
  * @return int
- * @retval 1 success (need keep session).
- * @retval 0 success (need disconnect session).
- * @retval -1 internal error.
+ * @retval 0	Success to exec command.
+ * @retval -1	Internal error.
  */
 static int container_external_interface_command_lifecycle(cm_external_interface_t *pextif, int fd, void *buf, ssize_t size, int role)
 {
@@ -317,14 +323,15 @@ static int container_external_interface_command_lifecycle(cm_external_interface_
 	return ret;
 }
 /**
- * Event handler for server session socket
+ * Command group handler for "change".
  *
+ * @param [in]	pextif	Pointer to cm_external_interface_t
+ * @param [in]	fd		File descriptor to use send response.
  * @param [in]	buf		Received data buffer
  * @param [in]	size	Received data size
  * @return int
- * @retval 1 success (need keep session).
- * @retval 0 success (need disconnect session).
- * @retval -1 internal error.
+ * @retval 0	Success to exec command.
+ * @retval -1	Internal error.
  */
 static int container_external_interface_command_change(cm_external_interface_t *pextif, int fd, void *buf, ssize_t size)
 {
@@ -395,13 +402,13 @@ static int container_external_interface_command_change(cm_external_interface_t *
 	return ret;
 }
 /**
- * Event handler for server session socket
+ * Event handler for external interface session socket
  *
  * @param [in]	pextif	Pointer to cm_external_interface_t
+ * @param [in]	fd		File descriptor to use send response.
  * @param [in]	buf		Received data buffer
  * @param [in]	size	Received data size
  * @return int
- * @retval 1 success (need keep session).
  * @retval 0 success (need disconnect session).
  * @retval -1 internal error.
  */
@@ -436,7 +443,7 @@ static int container_external_interface_exec(cm_external_interface_t *pextif, in
 	return ret;
 }
 /**
- * Event handler for server session socket
+ * Event handler for external interface session socket.
  *
  * @param [in]	event		Socket event source object
  * @param [in]	fd			File descriptor for socket session
@@ -545,14 +552,14 @@ error_return:
 	return 0;
 }
 /**
- * Function for data pool passenger setup
+ * Setup to container manager external interface.
  *
+ * @param [in]	cs		Pointer to containers_t.
  * @param [in]	event	sd event loop handle
- * @param [out]	handle	Return pointer for data pool service handle.
  * @return int
- * @retval 0 success
- * @retval -1 internal error.
- * @retval -2 arg. error.
+ * @retval 0	Success to setup container manager external interface.
+ * @retval -1	Internal error.
+ * @retval -2	Argument error.
  */
 int container_external_interface_setup(containers_t *cs, sd_event *event)
 {
@@ -610,7 +617,7 @@ int container_external_interface_setup(containers_t *cs, sd_event *event)
 		goto err_return;
 	}
 
-	// Set automatically fd closen at delete object.
+	// Set automatically fd close at delete object.
 	ret = sd_event_source_set_io_fd_own(socket_source, 1);
 	if (ret < 0) {
 		ret = -1;
@@ -637,12 +644,12 @@ err_return:
 }
 
 /**
- * Function for data pool passenger cleanup
+ * Cleanup container manager external interface.
  *
- * @param [in]	pextif	Instance of cm_external_interface_t
- * @retval 0 success
- * @retval -1 internal error.
- * @retval -2 arg. error.
+ * @param [in]	cs		Pointer to containers_t.
+ * @retval 0	Success to cleanup container manager external interface.
+ * @retval -1	Internal error.
+ * @retval -2	Argument error.
  */
 int container_external_interface_cleanup(containers_t *cs)
 {

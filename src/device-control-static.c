@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	device-control.c
- * @brief	device control block for container manager
+ * @file	device-control-static.c
+ * @brief	device control sub block for static device management.
  */
 #undef _PRINTF_DEBUG_
 
@@ -27,14 +27,14 @@ static int devc_gpionode_scan(container_static_device_t *devc);
 static int devc_iionode_scan(container_static_device_t *sdevc);
 static int devc_netbridge_setup(container_manager_config_t *cmc);
 
-
 /**
- * Start up time device initialization
+ * Start up time device initialization.
+ * This function scan and setup device node, sysfs gpio and sysfs iio with device node.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cs	Pointer to containers_t.
  * @return int
  * @retval  0 Success.
- * @retval -1 Device scan critical error.
+ * @retval -1 Device scan and/or setup critical error.
  */
 int devc_early_device_setup(containers_t *cs)
 {
@@ -72,11 +72,12 @@ err_ret:
 	return result;
 }
 /**
- * Start up time device initialization device node sub
+ * Start up time device initialization device node sub.
+ * This function do device node scanning only.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	sdevc	Pointer to container_static_device_t.
  * @return int
- * @retval  0 Success.
+ * @retval  0 Success to scan device node.
  * @retval -1 Device scan error.
  * @retval -2 Syscall error.
  */
@@ -130,7 +131,10 @@ err_ret:
 
 	return result;
 }
-
+/**
+ * @var		gpio_direction_table
+ * @brief	Table of gpio direction setting to use convert from string to code.
+ */
 static const char *gpio_direction_table[] = {
 	"in",	// default - not set 0 - in
 	"in",	// DEVGPIO_DIRECTION_IN
@@ -139,16 +143,19 @@ static const char *gpio_direction_table[] = {
 	"high"	// DEVGPIO_DIRECTION_HIGH
 };
 /**
- * Start up time device initialization
- *
- * @param [in]	cs	Preconstructed containers_t
- * @return int
- * @retval  0 Success.
- * @retval -1 Device scan error.
- * @retval -2 Syscall error.
- * @retval -3 Memory allocation error.
+ * @var		gpio_export_node
+ * @brief	Static string data for gpio sysfs exportation.
  */
 static const char gpio_export_node[] = "/sys/class/gpio/export";
+/**
+ * Start up time device initialization gpio sub.
+ * This function export gpio port and set direction and initial value.
+ *
+ * @param [in]	sdevc	Pointer to
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Configuration error.
+ */
 static int devc_gpionode_scan(container_static_device_t *sdevc)
 {
 	int ret = 1;
@@ -222,14 +229,13 @@ err_ret:
 	return result;
 }
 /**
- * Start up time device initialization
+ * Start up time device initialization iio sub.
+ * This function scan sysfs node and device node.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	sdevc	Pointer to container_static_device_t.
  * @return int
  * @retval  0 Success.
- * @retval -1 Device scan error.
- * @retval -2 Syscall error.
- * @retval -3 Memory allocation error.
+ * @retval -1 Configuration error.
  */
 static int devc_iionode_scan(container_static_device_t *sdevc)
 {
@@ -297,14 +303,14 @@ err_ret:
 	return result;
 }
 /**
- * Start up time device initialization
+ * Start up time network initialization for bridge device.
+ * This function create network bridge.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cmc	Pointer to container_manager_config_t.
  * @return int
- * @retval  0 Success.
- * @retval -1 Device scan error.
+ * @retval  0 Success to operations.
+ * @retval -1 Configuration error. (Reserve)
  * @retval -2 Syscall error.
- * @retval -3 Memory allocation error.
  */
 static int devc_netbridge_setup(container_manager_config_t *cmc)
 {
@@ -332,7 +338,7 @@ static int devc_netbridge_setup(container_manager_config_t *cmc)
 
 		ret = ioctl(sock, SIOCBRADDBR, buf);
 		if (ret < 0 && errno != EEXIST) {
-			result = -1;
+			result = -2;
 		}
 	}
 
