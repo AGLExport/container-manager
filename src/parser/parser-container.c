@@ -375,9 +375,11 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 			exdisk->blockdev[1] = strdup(bdev[1]);
 
 		dl_list_add_tail(&bc->extradisk_list, &exdisk->list);
+
+		result = 0;
 	}
 
-	return 0;
+	return result;
 
 err_ret:
 
