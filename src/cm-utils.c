@@ -17,11 +17,13 @@
 #include <string.h>
 
 /**
- * Once write util
+ * Once write util.
+ * This function do three operation by one call. 'open, write and close'
+ * This function support only to less than 4KByte operation.
  *
  * @param [in]	path	File path
- * @param [in]	data	Write data
- * @param [in]	size	Write data size
+ * @param [in]	data	Pointer to write data buffer.
+ * @param [in]	size	Write data size.
  * @return int
  * @retval  0 Success.
  * @retval -1 Write error.
@@ -44,11 +46,13 @@ int once_write(const char *path, const void* data, size_t size)
 	return 0;
 }
 /**
- * Once read util
+ * Once read util.
+ * This function do three operation by one call. 'open, read and close'
+ * This function support only to less than 4KByte operation.
  *
  * @param [in]	path	File path
- * @param [in]	data	read data buffer
- * @param [in]	size	read data buffer size
+ * @param [in]	data	Pointer to read data buffer.
+ * @param [in]	size	Read data buffer size
  * @return int
  * @retval  0 Success.
  * @retval -1 read error.
@@ -71,7 +75,9 @@ int once_read(const char *path, void* data, size_t size)
 	return 0;
 }
 /**
- * File node check
+ * File node check.
+ * Test to path is existing or not.
+ * This function is not checked that is directory or file. Only to check existing or not.
  *
  * @param [in]	path	File path
  * @return int
@@ -92,11 +98,14 @@ int node_check(const char *path)
 }
 /**
  * Recursive make dir.
+ * This function create directory '/a/b/c/..'.  Similar to  mkdir -p command.
+ * When directory '/a' was exist in case of dir equal '/a/b/c', this function is not return exist error.
  *
- * @param [in]	path	File path
+ * @param [in]	dir		Path of creating directory.
+ * @param [in]	mode	Access permission of creating directory. Must be set X flag.
  * @return int
- * @retval  0 Find node.
- * @retval -1 Not find node.
+ * @retval  0 Success to create directory.
+ * @retval -1 Fail to create directory.
  */
 int mkdir_p(const char *dir, mode_t mode)
 {
@@ -122,12 +131,13 @@ int mkdir_p(const char *dir, mode_t mode)
 	return result;
 }
 /**
- * File node check
+ * Wait to exit child process by pid.
  *
- * @param [in]	path	File path
+ * @param [in]	pid	A pid of waiting child process.
  * @return int
- * @retval  0 Find node.
- * @retval -1 Not find node.
+ * @retval  0 A child process was normal exit without error.
+ * @retval -1 A child process was abnormal exit such as SIGSEGV, SIGABRT etc.
+ * @retval -2 A child process was normal exit with error.
  */
 int wait_child_pid(pid_t pid)
 {
@@ -148,7 +158,7 @@ int wait_child_pid(pid_t pid)
 	return 0;
 }
 /**
- * Get ms time
+ * Get monotonic time counter value by ms resolutions.
  *
  * @return int64_t
  * @retval  >0 current time.

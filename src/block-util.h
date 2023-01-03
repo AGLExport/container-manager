@@ -13,8 +13,8 @@
 
 //-----------------------------------------------------------------------------
 typedef struct s_block_device_info {
-    uint32_t    fsmagic;
-    char volume_label[32];
+    uint32_t    fsmagic;    /**< Filesystem magic for probed device. */
+    char volume_label[32];  /**< Volume label for probed device. */
 } block_device_info_t;
 
 int block_util_getfs(const char *devpath, block_device_info_t *bdi);

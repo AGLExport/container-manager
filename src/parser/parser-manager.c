@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	parser.c
+ * @file	parser-manager.c
  * @brief	config file parser using cjson
  */
 
@@ -23,11 +23,13 @@
 #undef _PRINTF_DEBUG_
 
 /**
- * Read json string with memory allocation
+ * Create container manager config object from json file.
  *
- * @param [in]	file		Full file path for json file
+ * @param [out]	cm		Double pointer to container_manager_config_t to out container_manager_config_t object.
+ * @param [in]	file	Full file path for json file
  * @return int
- * @retval -1 Json file error.
+ * @retval  0 Success create container_config_t object.
+ * @retval -1 Argument error.
  * @retval -2 Json file parse error.
  * @retval -3 Memory allocation error.
  */
