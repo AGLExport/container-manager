@@ -155,7 +155,7 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 	} else {
 		// Mandatory value
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-path not set. It's mandatory value\n");
+		fprintf(stderr,"[CM CRITICAL ERROR] cmparser: The root path is not set. It's mandatory value\n");
 		#endif
 		result = -2;
 		goto err_ret;
@@ -170,7 +170,7 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 	} else {
 		// Mandatory value
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		fprintf(stderr,"[CM CRITICAL ERROR] cmparser: filesystem not set. It's mandatory value\n");
+		fprintf(stderr,"[CM CRITICAL ERROR] cmparser: The rootfs filesystem is not set. It's mandatory value\n");
 		#endif
 		result = -2;
 		goto err_ret;
@@ -211,9 +211,28 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 		}
 	}
 
+	if (bc->rootfs.blockdev[0] == NULL) {
+		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+		fprintf(stderr,"[CM CRITICAL ERROR] cmparser: The block device for rootfs is not set. It's mandatory value\n");
+		#endif
+		result = -2;
+		goto err_ret;
+	}
+
 	return 0;
 
 err_ret:
+	(void) free(bc->rootfs.blockdev[1]);
+	bc->rootfs.blockdev[1] = NULL;
+
+	(void) free(bc->rootfs.blockdev[0]);
+	bc->rootfs.blockdev[0] = NULL;
+
+	(void) free(bc->rootfs.filesystem);
+	bc->rootfs.filesystem = NULL;
+
+	(void) free(bc->rootfs.path);
+	bc->rootfs.path = NULL;
 
 	return result;
 }
