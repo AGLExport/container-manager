@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	udev-util.c
- * @brief	udev utility functions
+ * @brief	This file include device management functions using libudev for container manager.
  */
 #include "udev-util.h"
 

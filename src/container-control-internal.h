@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	container-control-internal.h
- * @brief	internal header for the container management state machine.
+ * @brief	The internal common header for the container management state machine.
  */
 #ifndef CONTAINER_CONTROL_INTERNAL_H
 #define CONTAINER_CONTROL_INTERNAL_H
@@ -69,6 +69,8 @@ int container_request_shutdown(container_config_t *cc, int sys_state);
 int container_request_reboot(container_config_t *cc, int sys_state);
 
 int container_all_dynamic_device_update_notification(containers_t *cs);
+
+int container_monitor_addguest(containers_t *cs, container_config_t *cc);
 
 int container_start_by_role(containers_t *cs, char *role);
 int container_start(container_config_t *cc);

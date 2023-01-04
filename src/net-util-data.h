@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	net-util-data.h
- * @brief	utility header
+ * @brief	The header for network utility common data.
  */
 #ifndef NET_UTIL_DATA_H
 #define NET_UTIL_DATA_H
@@ -21,7 +21,6 @@ typedef struct s_netifinfo_table {
 	int num;
 	netifinfo_t tbl[NETIFINFO_TABLE_MAX];
 } netifinfo_table_t;
-
 
 //-----------------------------------------------------------------------------
 #endif //#ifndef NET_UTIL_DATA_H

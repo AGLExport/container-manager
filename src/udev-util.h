@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	udev-util.h
- * @brief	udev utility header
+ * @brief	The header for device management functions using libudev.
  */
 #ifndef UDEV_UTIL_H
 #define UDEV_UTIL_H

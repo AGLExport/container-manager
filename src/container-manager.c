@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	container-manager.c
- * @brief	main source file for container-manager
+ * @brief	main source file for container manager
  */
 
 #include <stdlib.h>

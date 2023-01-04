@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	device-control.c
- * @brief	device control block for container manager
+ * @file	container-control-exec.c
+ * @brief	This file include implementation for container manager event operations.
  */
 
 #include "container-control.h"
@@ -35,12 +35,14 @@ int dynamic_device_elem_data_free(dynamic_device_elem_data_t *dded);
 int container_restart(container_config_t *cc);
 
 /**
- * Container start up
+ * The function for dynamic device add/remove event handling.
+ * Current implementation support block device only.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cc	Pointer to container_config_t.
+ * @param [in]	ddm	Pointer to dynamic_device_manager_t.
  * @return int
- * @retval  0 Success.
- * @retval -1 Critical error.
+ * @retval  0 Success to operation.
+ * @retval -1 Critical error.(Reserve)
  */
 int container_device_update_guest(container_config_t *cc, dynamic_device_manager_t *ddm)
 {
@@ -157,10 +159,10 @@ int container_device_update_guest(container_config_t *cc, dynamic_device_manager
 /**
  * Container start up
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cc	Pointer to container_config_t.
  * @return int
- * @retval  0 Success.
- * @retval -1 Critical error.
+ * @retval  0 Success to operation.
+ * @retval -1 Critical error.(Reserve)
  */
 int container_device_remove_element(container_config_t *cc)
 {

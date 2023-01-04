@@ -1,11 +1,10 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	device-control.c
- * @brief	device control block for container manager
+ * @file	container-control-monitor.c
+ * @brief	This file include implementation for guest container monitoring feature.
  */
 
-#include "container-control.h"
 #include "container-control-internal.h"
 
 #include <stdio.h>

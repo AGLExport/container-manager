@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	cm-util.h
+ * @file	cm-utils.h
  * @brief	container manager utility header
  */
 #ifndef CM_UTIL_H

@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	device-control.c
- * @brief	device control block for container manager
+ * @file	device-control-static.c
+ * @brief	device control sub block for static device management.
  */
 #undef _PRINTF_DEBUG_
 
@@ -26,7 +26,6 @@ static int devc_static_devnode_scan(container_static_device_t *sdevc);
 static int devc_gpionode_scan(container_static_device_t *devc);
 static int devc_iionode_scan(container_static_device_t *sdevc);
 static int devc_netbridge_setup(container_manager_config_t *cmc);
-
 
 /**
  * Start up time device initialization

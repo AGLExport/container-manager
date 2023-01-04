@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	cluster-service.c
- * @brief	main source file for cluster-service
+ * @file	lxc-util.c
+ * @brief	LXC control interface for container manager use.
  */
 
 #include "lxc-util.h"
@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <sys/sysmacros.h>
 #include <sys/stat.h>
+#include <lxc/lxccontainer.h>
 
 #include "cm-utils.h"
 #include "uevent_injection.h"
@@ -78,7 +79,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 		}
 	}
 
-	// signal - mandatory
+	// halt and reboot signal - mandatory, if this entry didn't have config, default value set in parser.
 	bret = plxc->set_config_item(plxc, "lxc.signal.halt", bc->lifecycle.halt);
 	if (bret == false) {
 		result = -1;

@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	util.c
- * @brief	utility functions
+ * @file	signal-util.c
+ * @brief	This file include UNIX signal utility functions for container manager.
  */
 #include "signal-util.h"
 

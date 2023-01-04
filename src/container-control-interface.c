@@ -1,11 +1,10 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	device-control.c
- * @brief	device control block for container manager
+ * @file	container-control-interface.c
+ * @brief	This file include implementation for container manager control interface.
  */
 
-#include "container-control.h"
 #include "container-control-interface.h"
 #include "container-control-internal.h"
 

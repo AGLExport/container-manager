@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	ns-util.c
- * @brief	name space control utility functions
+ * @file	uevent_injection.c
+ * @brief	This file implement to utility functions for uevent injection.
  */
 
 #undef _PRINTF_DEBUG_

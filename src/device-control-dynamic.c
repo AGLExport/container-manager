@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	device-control.c
- * @brief	device control block for container manager
+ * @file	device-control-dynamic.c
+ * @brief	device control sub block for dynamic device management.
  */
 
 #include "device-control.h"

@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	config.h
- * @brief	config utility header
+ * @file	container-config.h
+ * @brief	Header file for the implementation for create and release top level container configs.
  */
 #ifndef CONTAINER_CONFIG_H
 #define CONTAINER_CONFIG_H

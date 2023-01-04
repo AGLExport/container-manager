@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	signal-util.h
- * @brief	signal utility header
+ * @brief	The header for signal utility.
  */
 #ifndef SIGNAL_UTIL_H
 #define SIGNAL_UTIL_H

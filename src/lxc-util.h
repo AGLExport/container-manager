@@ -2,14 +2,13 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	lxc-util.h
- * @brief	lxc utility header
+ * @brief	The header for LXC control interface.
  */
 #ifndef LXC_UTIL_H
 #define LXC_UTIL_H
 //-----------------------------------------------------------------------------
 #include <stdint.h>
 #include "container.h"
-#include <lxc/lxccontainer.h>
 
 //-----------------------------------------------------------------------------
 int lxcutil_create_instance(container_config_t *cc);

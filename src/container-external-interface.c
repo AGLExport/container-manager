@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	container-external-interface.c
- * @brief	external interface for container manager
+ * @brief	This file include experimental external interface implementation of container manager.
  */
 #include "container-manager-interface.h"
 #include "container-external-interface.h"

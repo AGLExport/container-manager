@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	container-control-interface.h
- * @brief	container control interface header
+ * @brief	The header file for container control interface.
  */
 #ifndef CONTAINER_CONTROL_INTERFACE_H
 #define CONTAINER_CONTROL_INTERFACE_H

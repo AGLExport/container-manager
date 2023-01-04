@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	net-util.c
- * @brief	netlink utility functions
+ * @brief	This file include netlink utility functions using libnml for container manager network interface management.
  */
 #include "net-util.h"
 

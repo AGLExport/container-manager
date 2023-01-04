@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	lxc-util.h
+ * @file	container-control.h
  * @brief	lxc utility header
  */
 #ifndef CONTAINER_CONTROL_H
@@ -16,9 +16,6 @@
 int container_mngsm_start(containers_t *cs);
 int container_mngsm_exit(containers_t *cs);
 int container_mngsm_terminate(containers_t *cs);
-
-int container_monitor_addguest(containers_t *cs, container_config_t *cc);
-
 
 int container_mngsm_setup(containers_t **pcs, sd_event *event, const char *config_dir);
 int container_mngsm_cleanup(containers_t *cs);
