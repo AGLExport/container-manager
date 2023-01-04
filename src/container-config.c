@@ -271,15 +271,19 @@ containers_t *create_container_configs(const char *config_file)
 					ret = cmparser_create_from_file(&cc, buf);
 					if (ret < 0) {
 						#ifdef _PRINTF_DEBUG_
-						fprintf(stderr, "[FAIL} cmparser_create_from_file %s ret = %d\n", buf, ret);
+						fprintf(stderr, "[FAIL] cmparser_create_from_file %s ret = %d\n", buf, ret);
 						#endif
 						continue;
 					}
 					cc->runtime_stat.status = CONTAINER_DISABLE;
 					ca[num] = cc;
 					num = num + 1;
-					if (num >= GUEST_CONTAINER_LIMIT)
+					if (num >= GUEST_CONTAINER_LIMIT) {
+						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+						fprintf(stderr,"[CM CRITICAL ERROR] create_container_configs: Number of guest containers was over to limit.");
+						#endif
 						break;
+					}
 				}
 			}
 		}
@@ -289,8 +293,8 @@ containers_t *create_container_configs(const char *config_file)
 	}
 
 	if (num <= 0) {
-		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr, "[FAIL} No container config at %s\n", confdir);
+		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+		fprintf(stderr,"[CM CRITICAL ERROR] create_container_configs: Did not find guest container config at %s.\n", confdir);
 		#endif
 		goto err_ret;
 	}
