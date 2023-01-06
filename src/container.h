@@ -48,7 +48,7 @@ struct s_container_baseconfig_rootfs {
 	int mode;			/**< file system mount mode. (ro=DISKMOUNT_TYPE_RO/rw=DISKMOUNT_TYPE_RW) */
 	char *blockdev[2];	/**< block device for rootfs with A/B update. 0=a.1=b */
 };
-typedef struct s_container_baseconfig_rootfs container_baseconfig_rootfs_t;
+typedef struct s_container_baseconfig_rootfs container_baseconfig_rootfs_t;	/**< typedef for struct s_container_baseconfig_rootfs. */
 
 /**
  * @struct	s_container_baseconfig_extradisk
@@ -63,7 +63,7 @@ struct s_container_baseconfig_extradisk {
 	int	redundancy;			/**< redundancy mode. (failover=DISKREDUNDANCY_TYPE_FAILOVER/ab=DISKREDUNDANCY_TYPE_AB) */
 	char *blockdev[2];		/**< block device for rootfs primary and secondary. */
 };
-typedef struct s_container_baseconfig_extradisk container_baseconfig_extradisk_t;
+typedef struct s_container_baseconfig_extradisk container_baseconfig_extradisk_t;	/**< typedef for struct s_container_baseconfig_extradisk. */
 
 /**
  * @struct	s_container_baseconfig_lifecycle
@@ -74,7 +74,7 @@ struct s_container_baseconfig_lifecycle {
 	char *reboot;	/**< Reboot request signal for guest. */
 	int timeout;	/**< Shutdown timeout for guest. */
 };
-typedef struct s_container_baseconfig_lifecycle container_baseconfig_lifecycle_t;
+typedef struct s_container_baseconfig_lifecycle container_baseconfig_lifecycle_t;	/**< typedef for struct s_container_baseconfig_lifecycle. */
 
 /**
  * @struct	s_container_baseconfig_capability
@@ -84,7 +84,7 @@ struct s_container_baseconfig_capability {
 	char *drop;	/**< Drop capabilities. */
 	char *keep;	/**< Keep capabilities. */
 };
-typedef struct s_container_baseconfig_capability container_baseconfig_capability_t;
+typedef struct s_container_baseconfig_capability container_baseconfig_capability_t;	/**< typedef for struct s_container_baseconfig_capability. */
 
 /**
  * @struct	s_container_baseconfig_idmap
@@ -95,7 +95,7 @@ struct s_container_baseconfig_idmap {
 	int host_start_id;	/**< ID mapping start point in host. */
 	int num_of_id;		/**< Num of id using guest. */
 };
-typedef struct s_container_baseconfig_idmap container_baseconfig_idmap_t;
+typedef struct s_container_baseconfig_idmap container_baseconfig_idmap_t;	/**< typedef for struct s_container_baseconfig_idmap. */
 
 /**
  * @struct	s_container_baseconfig_idmaps
@@ -106,7 +106,7 @@ struct s_container_baseconfig_idmaps {
 	container_baseconfig_idmap_t uid;	/**< The uid mapping between host and guest. */
 	container_baseconfig_idmap_t gid;	/**< The gid mapping between host and guest. */
 };
-typedef struct s_container_baseconfig_idmaps container_baseconfig_idmaps_t;
+typedef struct s_container_baseconfig_idmaps container_baseconfig_idmaps_t;	/**< typedef for struct s_container_baseconfig_idmaps. */
 
 /**
  * @struct	s_container_baseconfig_env
@@ -116,7 +116,7 @@ struct s_container_baseconfig_env {
 	struct dl_list list;	/**< Double link list header. */
 	char *envstring;		/**< Environment variable list. */
 };
-typedef struct s_container_baseconfig_env container_baseconfig_env_t;
+typedef struct s_container_baseconfig_env container_baseconfig_env_t;	/**< typedef for struct s_container_baseconfig_env. */
 
 /**
  * @struct	s_container_baseconfig
@@ -134,7 +134,7 @@ struct s_container_baseconfig {
 	//--- internal control data
 	int abboot;									/**< Reserved. */
 };
-typedef struct s_container_baseconfig container_baseconfig_t;
+typedef struct s_container_baseconfig container_baseconfig_t;	/**< typedef for struct s_container_baseconfig. */
 //-----------------------------------------------------------------------------
 // resource config ---------------------------------
 /**
@@ -153,7 +153,7 @@ struct s_container_resource_elem {
 	char *object;			/**< resource object. */
 	char *value;			/**< value for resource object. */
 };
-typedef struct s_container_resource_elem container_resource_elem_t;
+typedef struct s_container_resource_elem container_resource_elem_t;	/**< typedef for struct s_container_resource_elem. */
 
 /**
  * @struct	s_container_resource
@@ -162,7 +162,7 @@ typedef struct s_container_resource_elem container_resource_elem_t;
 struct s_container_resource {
 	struct dl_list resourcelist;	/**< Double link list for s_container_resource_elem.*/
 };
-typedef struct s_container_resource container_resource_t;
+typedef struct s_container_resource container_resource_t;	/**< typedef for struct s_container_resource. */
 
 /**
  * @struct	s_container_resourceconfig
@@ -171,7 +171,7 @@ typedef struct s_container_resource container_resource_t;
 struct s_container_resourceconfig {
 	container_resource_t resource;	/**< The data structure for container resource control settings. */
 };
-typedef struct s_container_resourceconfig container_resourceconfig_t;
+typedef struct s_container_resourceconfig container_resourceconfig_t;	/**< typedef for struct s_container_resourceconfig. */
 //-----------------------------------------------------------------------------
 // fs config ---------------------------------
 /**
@@ -197,7 +197,7 @@ struct s_container_fsmount_elem {
 	char *fstype;			/**< file system type. */
 	char *option;			/**< mount option.  */
 };
-typedef struct s_container_fsmount_elem container_fsmount_elem_t;
+typedef struct s_container_fsmount_elem container_fsmount_elem_t;	/**< typedef for struct s_container_fsmount_elem. */
 
 /**
  * @struct	s_container_fsmount
@@ -206,7 +206,7 @@ typedef struct s_container_fsmount_elem container_fsmount_elem_t;
 struct s_container_fsmount {
 	struct dl_list mountlist;	/**< Double link list for s_container_fsmount_elem.*/
 };
-typedef struct s_container_fsmount container_fsmount_t;
+typedef struct s_container_fsmount container_fsmount_t;	/**< typedef for struct s_container_fsmount. */
 
 /**
  * @struct	s_container_fsconfig
@@ -215,7 +215,7 @@ typedef struct s_container_fsmount container_fsmount_t;
 struct s_container_fsconfig {
 	container_fsmount_t fsmount;
 };
-typedef struct s_container_fsconfig container_fsconfig_t;
+typedef struct s_container_fsconfig container_fsconfig_t;	/**< typedef for struct s_container_fsconfig. */
 //-----------------------------------------------------------------------------
 // device config ---------------------------------
 /**
@@ -269,7 +269,7 @@ struct s_container_static_device_elem {
 	int major;				/**< major number. */
 	int minor;				/**< minor number. */
 };
-typedef struct s_container_static_device_elem container_static_device_elem_t;
+typedef struct s_container_static_device_elem container_static_device_elem_t;	/**< typedef for struct s_container_static_device_elem. */
 
 /**
  * @def	DEVGPIO_DIRECTION_DC
@@ -329,7 +329,7 @@ struct s_container_static_gpio_elem {
 	//--- internal control data
 	int is_valid;			/**< gpio port was available. */
 };
-typedef struct s_container_static_gpio_elem container_static_gpio_elem_t;
+typedef struct s_container_static_gpio_elem container_static_gpio_elem_t;	/**< typedef for struct s_container_static_gpio_elem. */
 
 /**
  * @struct	s_container_static_iio_elem
@@ -350,7 +350,7 @@ struct s_container_static_iio_elem {
 	int major;				/**< major number. */
 	int minor;				/**< minor number. */
 };
-typedef struct s_container_static_iio_elem container_static_iio_elem_t;
+typedef struct s_container_static_iio_elem container_static_iio_elem_t;	/**< typedef for struct s_container_static_iio_elem. */
 
 /**
  * @struct	s_container_static_device
@@ -361,7 +361,7 @@ struct s_container_static_device {
 	struct dl_list static_gpiolist;	/**< Double link list for s_container_static_gpio_elem. */
 	struct dl_list static_iiolist;	/**< Double link list for s_container_static_iio_elem. */
 };
-typedef struct s_container_static_device container_static_device_t;
+typedef struct s_container_static_device container_static_device_t;	/**< typedef for struct s_container_static_device. */
 
 /**
  * @struct	s_dynamic_device_elem_data
@@ -379,7 +379,7 @@ struct s_dynamic_device_elem_data {
 	//--- internal control data
 	int is_available;		/**< this dynamic device is available. */
 };
-typedef struct s_dynamic_device_elem_data dynamic_device_elem_data_t;
+typedef struct s_dynamic_device_elem_data dynamic_device_elem_data_t;	/**< typedef for struct s_dynamic_device_elem_data. */
 
 /**
  * @struct	s_container_dynamic_device_elem
@@ -394,7 +394,7 @@ struct s_container_dynamic_device_elem {
 	//--- internal control data
 	struct dl_list device_list;	/**< Double link list for s_dynamic_device_elem_data to manage dynamic device assignment.*/
 };
-typedef struct s_container_dynamic_device_elem container_dynamic_device_elem_t;
+typedef struct s_container_dynamic_device_elem container_dynamic_device_elem_t;	/**< typedef for struct s_container_dynamic_device_elem. */
 
 /**
  * @struct	s_container_static_device
@@ -403,7 +403,7 @@ typedef struct s_container_dynamic_device_elem container_dynamic_device_elem_t;
 struct s_container_dynamic_device {
 	struct dl_list dynamic_devlist;	/**< Double link list for s_container_dynamic_device_elem */
 };
-typedef struct s_container_dynamic_device container_dynamic_device_t;
+typedef struct s_container_dynamic_device container_dynamic_device_t;	/**< typedef for struct s_container_dynamic_device. */
 
 /**
  * @struct	s_container_deviceconfig
@@ -413,7 +413,7 @@ struct s_container_deviceconfig {
 	container_static_device_t static_device;
 	container_dynamic_device_t dynamic_device;
 };
-typedef struct s_container_deviceconfig container_deviceconfig_t;
+typedef struct s_container_deviceconfig container_deviceconfig_t;	/**< typedef for struct s_container_deviceconfig. */
 
 //-----------------------------------------------------------------------------
 // network interface ---------------------------------
@@ -436,7 +436,7 @@ struct s_netif_elem_veth {
 	char *address;	/**< Initial ip address setting for veth. - ipv4. */
 	char *gateway;	/**< Initial default gateway setting for veth. - ipv4. */
 };
-typedef struct s_netif_elem_veth netif_elem_veth_t;
+typedef struct s_netif_elem_veth netif_elem_veth_t;	/**< typedef for struct s_netif_elem_veth. */
 
 /**
  * @struct	s_container_static_netif_elem
@@ -447,7 +447,7 @@ struct s_container_static_netif_elem {
 	int type;				/**< Static network interface type. Currently support only STATICNETIF_VETH. */
 	void *setting;			/**< Network interface specific setting. Need to cast to real type by type member. */
 };
-typedef struct s_container_static_netif_elem container_static_netif_elem_t;
+typedef struct s_container_static_netif_elem container_static_netif_elem_t;	/**< typedef for struct s_container_static_netif_elem. */
 
 /**
  * @struct	s_container_static_netif
@@ -456,7 +456,7 @@ typedef struct s_container_static_netif_elem container_static_netif_elem_t;
 struct s_container_static_netif {
 	struct dl_list static_netiflist;	/**< Double link list for s_container_static_netif_elem */
 };
-typedef struct s_container_static_netif container_static_netif_t;
+typedef struct s_container_static_netif container_static_netif_t;	/**< typedef for struct s_container_static_netif. */
 
 struct s_container_dynamic_netif_elem {
 	struct dl_list list;	/**< Double link list header. */
@@ -465,7 +465,7 @@ struct s_container_dynamic_netif_elem {
 	int ifindex;			/**< Network interface index for this network interface. */
 	int is_available;		/**< this network interface is available. */
 };
-typedef struct s_container_dynamic_netif_elem container_dynamic_netif_elem_t;
+typedef struct s_container_dynamic_netif_elem container_dynamic_netif_elem_t;	/**< typedef for struct s_container_dynamic_netif_elem. */
 
 /**
  * @struct	s_container_dynamic_netif
@@ -474,7 +474,7 @@ typedef struct s_container_dynamic_netif_elem container_dynamic_netif_elem_t;
 struct s_container_dynamic_netif {
 	struct dl_list dynamic_netiflist;	/**< Double link list for s_container_dynamic_netif_elem */
 };
-typedef struct s_container_dynamic_netif container_dynamic_netif_t;
+typedef struct s_container_dynamic_netif container_dynamic_netif_t;	/**< typedef for struct s_container_dynamic_netif. */
 
 /**
  * @struct	s_container_netifconfig
@@ -484,7 +484,7 @@ struct s_container_netifconfig {
 	container_static_netif_t static_netif;
 	container_dynamic_netif_t dynamic_netif;
 };
-typedef struct s_container_netifconfig container_netifconfig_t;
+typedef struct s_container_netifconfig container_netifconfig_t;	/**< typedef for struct s_container_netifconfig. */
 
 //-----------------------------------------------------------------------------
 // runtime status ---------------------------------
@@ -535,7 +535,7 @@ struct s_container_runtime_status {
 	pid_t pid;						/**< A pid of guest container init process. */
 	sd_event_source *pidfd_source;	/**< A pidfd event source for guest container init process. It use guest monitoring. */
 };
-typedef struct s_container_runtime_status container_runtime_status_t;
+typedef struct s_container_runtime_status container_runtime_status_t;	/**< typedef for struct s_container_runtime_status. */
 //-----------------------------------------------------------------------------
 /**
  * @struct	s_container_config
@@ -552,7 +552,7 @@ struct s_container_config {
 	//--- internal control data
 	container_runtime_status_t runtime_stat;	/**< Runtime status of this guest container. */
 };
-typedef struct s_container_config container_config_t;
+typedef struct s_container_config container_config_t;	/**< typedef for struct s_container_config. */
 //-----------------------------------------------------------------------------
 /**
  * @def	GUEST_CONTAINER_LIMIT
@@ -595,7 +595,7 @@ struct s_containers {
 
 	sd_event *event;					/**< Systemd event loop object at main loop. */
 };
-typedef struct s_containers containers_t;
+typedef struct s_containers containers_t;	/**< typedef for struct s_containers. */
 //-----------------------------------------------------------------------------
 
 #endif //#ifndef CONTAINER_H

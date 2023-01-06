@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	devicemng.h
- * @brief	The header for device management data
+ * @brief	The header for device management data.
  */
 #ifndef DEVICE_MNG_H
 #define DEVICE_MNG_H

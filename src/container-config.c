@@ -184,8 +184,8 @@ static int role_list_cleanup(containers_t* cs)
 /**
  * qsort compare function for container boot pri. sorting
  *
- * @param [in]	data1	data 1
- * @param [in]	data1	data 2
+ * @param [in]	data1	Pointer to data no 1.
+ * @param [in]	data2	Pointer to data no 2.
  * @return int
  * @retval 0 same boot pri between data1 and data2.
  * @retval -1 data1 is higher than data2.
@@ -212,7 +212,7 @@ static int compare_bootpri(const void *data1, const void *data2)
 /**
  * Scan and create container configuration data
  *
- * @param [in]	config_dir	Scan dir for container configs.
+ * @param [in]	config_file	File path for container manager configs.
  * @return containers_t*
  * @retval NULL Fail to create config.
  * @retval != NULL Available containers_t* data.

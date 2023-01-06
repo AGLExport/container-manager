@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	container-control.h
- * @brief	lxc utility header
+ * @brief	Header for container manager state machine functions.
  */
 #ifndef CONTAINER_CONTROL_H
 #define CONTAINER_CONTROL_H

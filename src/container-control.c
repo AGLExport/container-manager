@@ -24,14 +24,13 @@
 #undef _PRINTF_DEBUG_
 
 /**
- * Event handler for server session socket
+ * Central state machine handler for container manager.
  *
- * @param [in]	event		Socket event source object
- * @param [in]	fd			File descriptor for socket session
- * @param [in]	revents		Active event (epoll)
- * @param [in]	userdata	Pointer to data_pool_service_handle
- * @return int	 0 success
- *				-1 internal error
+ * @param [in]	cs		Pointer to containers_t.
+ * @param [in]	buf		Pointer to memory buffer for received internal event.
+ * @return int
+ * @retval	0	Success to update state.
+ * @retval	-1	Internal error.(Reserve)
  */
 static int container_mngsm_state_machine(containers_t *cs, const uint8_t *buf)
 {
@@ -80,14 +79,15 @@ static int container_mngsm_state_machine(containers_t *cs, const uint8_t *buf)
 	return 0;
 }
 /**
- * Event handler for server session socket
+ * Event handler for internal event internal event communication socket. (socketpair)
  *
- * @param [in]	event		Socket event source object
- * @param [in]	fd			File descriptor for socket session
- * @param [in]	revents		Active event (epoll)
- * @param [in]	userdata	Pointer to data_pool_service_handle
- * @return int	 0 success
- *				-1 internal error
+ * @param [in]	event		Socket event source object.
+ * @param [in]	fd			File descriptor for socket session.
+ * @param [in]	revents		Active event (epoll).
+ * @param [in]	userdata	Pointer to containers_t.
+ * @return int
+ * @retval	0	Success to handle event.
+ * @retval	-1	Internal error.
  */
 static int container_mngsm_commsocket_handler(sd_event_source *event, int fd, uint32_t revents, void *userdata)
 {
@@ -121,13 +121,14 @@ static int container_mngsm_commsocket_handler(sd_event_source *event, int fd, ui
 	return -1;
 }
 /**
- * Sub function for create socket pair connection.
+ * Sub function for create socket pair connection to use internal event communication.
  *
  * @param [out]	cs	setup target for struct s_container.
- * @param [in]	event	Instance of sd_event
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @param [in]	event	Instance of sd_event.
+ * @return int
+ * @retval	0	Success to create internal event communication socket.
+ * @retval	-1	Internal error.
+ * @retval	-2	Argument error.(Reserve)
  */
 static int container_mngsm_commsocket_setup(containers_t *cs, sd_event *event)
 {
@@ -184,9 +185,10 @@ err_return:
  * Sub function for cleanup socket pair connection.
  *
  * @param [out]	cs	setup target for struct s_container.
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @return int
+ * @retval	0	Success to clean socket.
+ * @retval	-1	Internal error. (Reserve)
+ * @retval	-2	Argument error.
  */
 static int container_mngsm_commsocket_cleanup(containers_t *cs)
 {
@@ -208,11 +210,13 @@ static int container_mngsm_commsocket_cleanup(containers_t *cs)
 	return 0;
 }
 /**
- * Timer tick update
+ * Set next timer event time to container manager internal tick timer.
+ * This function shall call after timer tick event handling.
  *
- * @param [in]	cs	tick update target for struct s_container.
- * @return int	 0 success
- *				-1 internal error (timer stop)
+ * @param [in]	cs	Tick update target for struct s_container.
+ * @return int
+ * @retval	0	Success to update tick.
+ * @retval	-1	Internal error.
  */
 int container_mngsm_update_timertick(containers_t *cs)
 {
@@ -241,13 +245,15 @@ int container_mngsm_update_timertick(containers_t *cs)
 	return 0;
 }
 /**
- * Timer handler for container mngsm
+ * Timer handler for container manager internal tick timer.
+ * This function send timer event to main state machine.
  *
- * @param [in]	es	sd event source
- * @param [in]	usec	callback time (MONOTONIC time)
- * @param [in]	userdata	Pointer to g_demo_timer
- * @return int	 0 success
- *				-1 internal error (timer stop)
+ * @param [in]	es			sd event source.
+ * @param [in]	usec		callback time (MONOTONIC time).
+ * @param [in]	userdata	Pointer to containers_t.
+ * @return int
+ * @retval	0	Success to handle event.
+ * @retval	-1	Internal error. (Reserve)
  */
 static int container_mngsm_timer_handler(sd_event_source *es, uint64_t usec, void *userdata)
 {
@@ -283,13 +289,16 @@ error_ret:
 }
 
 /**
- * Sub function for timer.
+ * Setup for the container manager internal tick timer.
+ * The container manager tick timer does not start this function call only,
+ * need to call container_mngsm_update_timertick after initialization for all other block.
  *
  * @param [in]	cs	setup target for struct s_container.
  * @param [in]	event	Instance of sd_event
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @return int
+ * @retval	0	Success to setup internal timer.
+ * @retval	-1	Internal error.
+ * @retval	-2	Argument error. (Reserve)
  */
 static int container_mngsm_internal_timer_setup(containers_t *cs, sd_event *event)
 {
@@ -326,12 +335,13 @@ err_return:
 	return -1;
 }
 /**
- * Sub function for cleanup socket pair connection.
+ * Cleanup function for the container manager internal tick timer.
  *
  * @param [out]	cs	setup target for struct s_container.
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @return int
+ * @retval	0	Success to cleanup internal timer.
+ * @retval	-1	Internal error.
+ * @retval	-2	Argument error.
  */
 static int container_mngsm_internal_timer_cleanup(containers_t *cs)
 {
@@ -352,10 +362,12 @@ static int container_mngsm_internal_timer_cleanup(containers_t *cs)
 /**
  * Register device manager to container manager state machine
  *
- * @param [in]	cs	Instance of containers_t
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @param [in]	cs	Pointer to containers_t
+ * @param [in]	ddm	Pointer to dynamic_device_manager_t object to use registration.
+ * @return int
+ * @retval	0	Success to regist.
+ * @retval	-1	Internal error.
+ * @retval	-2	Argument error.
  */
 int container_mngsm_regist_device_manager(containers_t *cs, dynamic_device_manager_t *ddm)
 {
@@ -368,11 +380,13 @@ int container_mngsm_regist_device_manager(containers_t *cs, dynamic_device_manag
 	return 0;
 }
 /**
- * Container start up
+ * Start container management state machine.
+ * This function start guest container in each role.
+ * In addition, it dispatch initial device arbitration and start internal timer.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cs	Pointer to containers_t.
  * @return int
- * @retval  0 Success.
+ * @retval  0 Success to start guest. (When guest couldn't start, it's recovered by cyclic event.)
  * @retval -1 Critical error.
  */
 int container_mngsm_start(containers_t *cs)
@@ -411,12 +425,13 @@ int container_mngsm_start(containers_t *cs)
 	return 0;
 }
 /**
- * Container start up
+ * Call cleanup function for all guest container.
+ * This function must not be called except at exit container manager.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cs	Pointer to containers_t.
  * @return int
- * @retval  0 Success.
- * @retval -1 Critical error.
+ * @retval  0 Success to call.
+ * @retval -1 Critical error.(Reserve)
  */
 int container_mngsm_terminate(containers_t *cs)
 {
@@ -434,13 +449,16 @@ int container_mngsm_terminate(containers_t *cs)
 }
 /**
  * Container management state machine setup.
+ * This function create and initialize containers_t object.
+ * All other function - these require pointer to containers_t object by argument - could call after this function.
  *
- * @param [out]	pcs	return to containers_t*
- * @param [in]	event	Instance of sd_event
- * @param [in]	config_dir	Path for container config dir.
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @param [out]	pcs			Return to containers_t*.
+ * @param [in]	event		Instance of sd_event
+ * @param [in]	config_file	File path for container manager config.
+ * @return int
+ * @retval	0	Success to container manager state machine setup.
+ * @retval	-1	Internal error.
+ * @retval	-2	Argument error.
  */
 int container_mngsm_setup(containers_t **pcs, sd_event *event, const char *config_file)
 {
@@ -494,12 +512,14 @@ err_return:
 	return -1;
 }
 /**
- * Container management state machine cleanup.
+ * Exit event loop for container manager state machine.
+ * Typically this function is called after exit all guest container.
  *
  * @param [in]	cs	Instance of containers_t
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @return int
+ * @retval	0	Success to exit event loop.
+ * @retval	-1	Internal error.(Reserve)
+ * @retval	-2	Argument error.
  */
 int container_mngsm_exit(containers_t *cs)
 {
@@ -520,12 +540,15 @@ int container_mngsm_exit(containers_t *cs)
 	return 0;
 }
 /**
- * Container management state machine cleanup.
+ * Cleanup all resource at container management state machine.
+ * This function free containers_t object, must not use it after this function call.
+ * This function shall be called at end of process.
  *
  * @param [in]	cs	Instance of containers_t
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @return int
+ * @retval	0	Success to cleanup.
+ * @retval	-1	Internal error.(Reserve)
+ * @retval	-2	Argument error.
  */
 int container_mngsm_cleanup(containers_t *cs)
 {

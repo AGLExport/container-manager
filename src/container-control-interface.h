@@ -9,18 +9,20 @@
 //-----------------------------------------------------------------------------
 #include <stdint.h>
 
-
 //-----------------------------------------------------------------------------
+/**
+ * @struct	s_container_control_interface
+ * @brief	Interface container structure for container manager state machine interface.  This structure carry function pointer of interface and some data.
+ */
 struct s_container_control_interface {
-	void *mngsm;
+	void *mngsm;	/**< Pointer to parent container manager state machine. */
 
-	int (*device_updated)(struct s_container_control_interface *cci);
-	int (*netif_updated)(struct s_container_control_interface *cci);
+	int (*device_updated)(struct s_container_control_interface *cci);	/**< Function pointer for device update notification interface. */
+	int (*netif_updated)(struct s_container_control_interface *cci);	/**< Function pointer for network interface update notification interface. */
 
-
-	int (*system_shutdown)(struct s_container_control_interface *cci);
+	int (*system_shutdown)(struct s_container_control_interface *cci);	/**< Function pointer for received shutdown request notification interface. */
 };
-typedef struct s_container_control_interface container_control_interface_t;
+typedef struct s_container_control_interface container_control_interface_t;	/**< typedef for struct s_container_control_interface. */
 
 //-----------------------------------------------------------------------------
 #endif //#ifndef CONTAINER_CONTROL_INTERFACE_H

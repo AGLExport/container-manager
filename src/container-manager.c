@@ -22,6 +22,15 @@
 #include <systemd/sd-daemon.h>
 #include <systemd/sd-event.h>
 
+/**
+ * SIGTERM handler to use receive shutdown request from init.
+ *
+ * @param [in]	si			Detail of received signal. Refer to Linux MAN.
+ * @param [in]	userdata	Pointer to container_control_interface_t.
+ * @return int
+ * @retval 0	Success to setup container manager external interface.
+ * @retval -1	Internal error. (Force event loop exit.)
+ */
 static int sigterm_notify(const struct signalfd_siginfo *si, void *userdata)
 {
 	int ret = -1;
@@ -29,15 +38,15 @@ static int sigterm_notify(const struct signalfd_siginfo *si, void *userdata)
 
 	ret = cci->system_shutdown(cci);
 
-	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr,"sigterm_notify\n");
-	#endif
-
 	if (ret < 0)
 		return -1; //exit event loop
 
 	return 0;
 }
+/**
+ * @var		util_array
+ * @brief	Signal handling information to use signal util.
+ */
 static signal_util_t util_array[1] = {
 	[0] = {
 		.signal = SIGTERM,
@@ -46,6 +55,9 @@ static signal_util_t util_array[1] = {
 	}
 };
 
+/**
+ * The main function for container manager.
+ */
 int main(int argc, char *argv[])
 {
 	int ret = -1;
