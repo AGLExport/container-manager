@@ -38,7 +38,7 @@ static int container_mngsm_system_shutdown(struct s_container_control_interface 
  * This function provide device update, network interface update and shutdown event interface for udev, netlink and signal sub block.
  * This function use to avoid cross function call between main state machine and sub block.
  *
- * @param [out]	pcci	Double pointer to container_control_interface_t
+ * @param [out]	pcci	Double pointer to refer to container_control_interface_t.
  * @param [in]	cs		Pointer to containers_t.
  * @return int
  * @retval	0	Success to get container manager state machine interface.

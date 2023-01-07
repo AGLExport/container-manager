@@ -21,13 +21,14 @@
 #include "uevent_injection.h"
 
 /**
- * Read json string with memory allocation
+ * Create lxc config from container config baseconfig sub part.
  *
- * @param [in]	file		Full file path for json file
+ * @param [in]	plxc	The lxc container instance to set config.
+ * @param [in]	bc		Pointer to container_baseconfig_t.
  * @return int
- * @retval -1 Json file error.
- * @retval -2 Json file perse error.
- * @retval -3 Memory allocation error.
+ * @retval 0	Success to set lxc config from bc.
+ * @retval -1	Got lxc error.
+ * @retval -2	A bytes of config string is larger than buffer size. Critical case only.
  */
 static int lxcutil_set_config_base(struct lxc_container *plxc, container_baseconfig_t *bc)
 {
@@ -193,13 +194,14 @@ err_ret:
 	return result;
 }
 /**
- * Read json string with memory allocation
+ * Create lxc config from container config resourceconfig sub part.
  *
- * @param [in]	file		Full file path for json file
+ * @param [in]	plxc	The lxc container instance to set config.
+ * @param [in]	rsc		Pointer to container_resourceconfig_t.
  * @return int
- * @retval -1 lxc runtime error.
- * @retval -2 mandatory setting error.
- * @retval -3 TODO.
+ * @retval 0	Success to set lxc config from rsc.
+ * @retval -1	Got lxc error.
+ * @retval -2	A bytes of config string is larger than buffer size. Critical case only.
  */
 static int lxcutil_set_config_resource(struct lxc_container *plxc, container_resourceconfig_t *rsc)
 {
@@ -243,13 +245,14 @@ err_ret:
 	return result;
 }
 /**
- * Read json string with memory allocation
+ * Create lxc config from container config fsconfig sub part.
  *
- * @param [in]	file		Full file path for json file
+ * @param [in]	plxc	The lxc container instance to set config.
+ * @param [in]	fsc		Pointer to container_fsconfig_t.
  * @return int
- * @retval -1 lxc runtime error.
- * @retval -2 mandatory setting error.
- * @retval -3 TODO.
+ * @retval 0	Success to set lxc config from fsc.
+ * @retval -1	Got lxc error.
+ * @retval -2	A bytes of config string is larger than buffer size. Critical case only.
  */
 static int lxcutil_set_config_fs(struct lxc_container *plxc, container_fsconfig_t *fsc)
 {
@@ -317,15 +320,15 @@ err_ret:
 
 	return result;
 }
-
 /**
- * Read json string with memory allocation
+ * Create lxc config from container config deviceconfig sub part.
  *
- * @param [in]	file		Full file path for json file
+ * @param [in]	plxc	The lxc container instance to set config.
+ * @param [in]	devc	Pointer to container_deviceconfig_t.
  * @return int
- * @retval -1 lxc runtime error.
- * @retval -2 mandatory setting error.
- * @retval -3 TODO.
+ * @retval 0	Success to set lxc config from devc.
+ * @retval -1	Got lxc error.
+ * @retval -2	A bytes of config string is larger than buffer size. Critical case only.
  */
 static int lxcutil_set_config_static_device(struct lxc_container *plxc, container_deviceconfig_t *devc)
 {
@@ -338,7 +341,6 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 	const char *pdevtype = NULL;
 	container_static_gpio_elem_t *gpioelem = NULL;
 	container_static_iio_elem_t *iioelem = NULL;
-
 
 	memset(buf,0,sizeof(buf));
 
@@ -562,13 +564,14 @@ err_ret:
 	return result;
 }
 /**
- * Read json string with memory allocation
+ * Create lxc config from container config netifconfig sub part.
  *
- * @param [in]	file		Full file path for json file
+ * @param [in]	plxc	The lxc container instance to set config.
+ * @param [in]	netc	Pointer to container_netifconfig_t.
  * @return int
- * @retval -1 lxc runtime error.
- * @retval -2 mandatory setting error.
- * @retval -3 TODO.
+ * @retval 0	Success to set lxc config from netc.
+ * @retval -1	Got lxc error.
+ * @retval -2	A bytes of config string is larger than buffer size. Critical case only.
  */
 static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container_netifconfig_t *netc)
 {
@@ -700,13 +703,12 @@ err_ret:
 
 
 /**
- * Read json string with memory allocation
+ * Create lxc container instance and set to runtime data of container_config_t.
  *
- * @param [in]	file		Full file path for json file
+ * @param [in]	cc	Pointer to container_config_t.
  * @return int
- * @retval -1 Json file error.
- * @retval -2 Json file perse error.
- * @retval -3 Memory allocation error.
+ * @retval 0	Success to create lxc container instance.
+ * @retval -1	Got lxc error.
  */
 int lxcutil_create_instance(container_config_t *cc)
 {
@@ -795,12 +797,12 @@ err_ret:
 	return result;
 }
 /**
- * runtime network interface assign into guest
+ * Guest container shutdown by lxc shutdown.
  *
  * @param [in]	cc 	container_config_t
  * @return int
- * @retval 0 success
- * @retval -1 critical error.
+ * @retval 0	Success to request lxc container shutdown.
+ * @retval -1	Got lxc error.
  */
 int lxcutil_container_shutdown(container_config_t *cc)
 {
@@ -820,12 +822,12 @@ int lxcutil_container_shutdown(container_config_t *cc)
 	return result;
 }
 /**
- * runtime network interface assign into guest
+ * Guest container kill (Send SIGKILL).
  *
  * @param [in]	cc 	container_config_t
  * @return int
- * @retval 0 success
- * @retval -1 critical error.
+ * @retval 0	Success to send SIGKILL to lxc container.
+ * @retval -1	Got lxc error.
  */
 int lxcutil_container_forcekill(container_config_t *cc)
 {
@@ -844,12 +846,12 @@ int lxcutil_container_forcekill(container_config_t *cc)
 	return 0;
 }
 /**
- * release lxc instance
+ * Release lxc instance in container_config_t.
  *
  * @param [in]	cc 	container_config_t
  * @return int
- * @retval 0 success
- * @retval -1 critical error.
+ * @retval 0	Success to remove lxc container instance.
+ * @retval -1	Got lxc error.
  */
 int lxcutil_release_instance(container_config_t *cc)
 {
@@ -863,9 +865,9 @@ int lxcutil_release_instance(container_config_t *cc)
 }
 
 /**
- * device type check sub function for lxcutil_dynamic_device_add_to_guest
+ * Device type check sub function for lxcutil_dynamic_device_add_to_guest
  *
- * @param [in]	cc 	container_config_t
+ * @param [in]	subsystem	The string for subsyste.
  * @return int
  * @retval 0 success
  * @retval -1 critical error.
@@ -878,12 +880,18 @@ static int lxcutil_device_type_get(const char *subsystem)
 	return DEVNODE_TYPE_CHR;
 }
 /**
- * device type check sub function for lxcutil_dynamic_device_add_to_guest
+ * Add or remove device node in guest container.
+ * This function is sub function for lxcutil_dynamic_device_add_to_guest.
+ * This function exec in child process side after fork.
  *
- * @param [in]	cc 	container_config_t
+ * @param [in]	target_pid	A pid of guest container init.
+ * @param [in]	path		The path for device node in guest.
+ * @param [in]	is_add		Set add or remove. (1=add, 0=remove)
+ * @param [in]	devmode		File permission for guest device node.
+ * @param [in]	devnum		Device major/minor number for target device.
  * @return int
- * @retval 0 success
- * @retval -1 critical error.
+ * @retval 0	Success to operations.
+ * @retval -1	Critical error.
  */
 static int lxcutil_add_remove_guest_node_child(pid_t target_pid, const char *path, int is_add, mode_t devmode, dev_t devnum)
 {
@@ -925,12 +933,17 @@ static int lxcutil_add_remove_guest_node_child(pid_t target_pid, const char *pat
 	return 0;
 }
 /**
- * device type check sub function for lxcutil_dynamic_device_add_to_guest
+ * Add or remove device node in guest container.
+ * This function is sub function for lxcutil_dynamic_device_add_to_guest.
+ * This function exec in parent process side.
  *
- * @param [in]	cc 	container_config_t
+ * @param [in]	target_pid	A pid of guest container init.
+ * @param [in]	path		The path for device node in guest.
+ * @param [in]	is_add		Set add or remove. (1=add, 0=remove)
+ * @param [in]	devnum		Device major/minor number for target device.
  * @return int
- * @retval 0 success
- * @retval -1 critical error.
+ * @retval 0	Success to operations.
+ * @retval -1	Critical error.
  */
 static int lxcutil_add_remove_guest_node(pid_t target_pid, const char *path, int is_add, dev_t devnum)
 {
@@ -968,13 +981,17 @@ static int lxcutil_add_remove_guest_node(pid_t target_pid, const char *path, int
 	return 0;
 }
 /**
- * runtime device assign into guest
+ * Add device to guest container.
+ * This function do allow device access, create device node and inject uevent to guest container.
+ * Allow device access do always.  Create device node and inject uevent do or not depend on argument "mode".
  *
- * @param [in]	cc 	container_config_t
+ * @param [in]	cc		Pointer to container_config_t.
+ * @param [in]	dded	Pointer to dynamic_device_elem_data_t, that include target device data.
+ * @param [in]	mode	Operation mode. (0=device allow only, 1=0+create device node, 2=0+inject uevent, 3=all op.)
  * @return int
- * @retval 0 success
- * @retval -1 critical error.
- * @retval -2 device node creation error.
+ * @retval 0	Success to operations.
+ * @retval -1	Generic operation error.
+ * @retval -2	Got lxc error.
  */
 int lxcutil_dynamic_device_add_to_guest(container_config_t *cc, dynamic_device_elem_data_t *dded, int mode)
 {
@@ -1039,12 +1056,17 @@ err_ret:
 	return result;
 }
 /**
- * runtime device remove from guest
+ * Remove device from guest container.
+ * This function do allow device access, create device node and inject uevent to guest container.
+ * Allow device access do always.  Create device node and inject uevent do or not depend on argument "mode".
  *
- * @param [in]	cc 	container_config_t
+ * @param [in]	cc		Pointer to container_config_t.
+ * @param [in]	dded	Pointer to dynamic_device_elem_data_t, that include target device data.
+ * @param [in]	mode	Operation mode. (0=device allow only, 1=0+create device node, 2=0+inject uevent, 3=all op.)
  * @return int
- * @retval 0 success
- * @retval -1 critical error.
+ * @retval 0	Success to operations.
+ * @retval -1	Generic operation error.
+ * @retval -2	Got lxc error.
  */
 int lxcutil_dynamic_device_remove_from_guest(container_config_t *cc, dynamic_device_elem_data_t *dded, int mode)
 {
@@ -1113,12 +1135,14 @@ err_ret:
 	return result;
 }
 /**
- * runtime network interface assign into guest
+ * Add network inteface to guest container.
+ * This function attach to guest container using lxc attach_interface.
  *
- * @param [in]	cc 	container_config_t
+ * @param [in]	cc		Pointer to container_config_t.
+ * @param [in]	cdne	Pointer to container_dynamic_netif_elem_t, that include target network interface data.
  * @return int
- * @retval 0 success
- * @retval -1 critical error.
+ * @retval 0	Success to operations.
+ * @retval -1	Got lxc error.
  */
 int lxcutil_dynamic_networkif_add_to_guest(container_config_t *cc, container_dynamic_netif_elem_t *cdne)
 {

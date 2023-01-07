@@ -213,7 +213,7 @@ typedef struct s_container_fsmount container_fsmount_t;	/**< typedef for struct 
  * @brief	The data structure for container filesystem level mount settings.  It's including filesystem level mount config for guest container.
  */
 struct s_container_fsconfig {
-	container_fsmount_t fsmount;
+	container_fsmount_t fsmount;	/**< Filesystem level mount management data to manage that. */
 };
 typedef struct s_container_fsconfig container_fsconfig_t;	/**< typedef for struct s_container_fsconfig. */
 //-----------------------------------------------------------------------------
@@ -410,8 +410,8 @@ typedef struct s_container_dynamic_device container_dynamic_device_t;	/**< typed
  * @brief	The data structure for all device management settings.  It's including device management config and current status for guest container.
  */
 struct s_container_deviceconfig {
-	container_static_device_t static_device;
-	container_dynamic_device_t dynamic_device;
+	container_static_device_t static_device;	/**< Static device management data to manage that. */
+	container_dynamic_device_t dynamic_device;	/**< Dynamic device management data to manage that. */
 };
 typedef struct s_container_deviceconfig container_deviceconfig_t;	/**< typedef for struct s_container_deviceconfig. */
 
@@ -481,8 +481,8 @@ typedef struct s_container_dynamic_netif container_dynamic_netif_t;	/**< typedef
  * @brief	The data structure for all network interface management settings.  It's including network interface management config and current status for guest container.
  */
 struct s_container_netifconfig {
-	container_static_netif_t static_netif;
-	container_dynamic_netif_t dynamic_netif;
+	container_static_netif_t static_netif;		/**< Static network interface data to manage that. */
+	container_dynamic_netif_t dynamic_netif;	/**< Dynamic network interface data to manage that. */
 };
 typedef struct s_container_netifconfig container_netifconfig_t;	/**< typedef for struct s_container_netifconfig. */
 

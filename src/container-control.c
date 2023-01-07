@@ -452,7 +452,7 @@ int container_mngsm_terminate(containers_t *cs)
  * This function create and initialize containers_t object.
  * All other function - these require pointer to containers_t object by argument - could call after this function.
  *
- * @param [out]	pcs			Return to containers_t*.
+ * @param [out]	pcs			Double pointer to get constructed containers_t.
  * @param [in]	event		Instance of sd_event
  * @param [in]	config_file	File path for container manager config.
  * @return int
