@@ -10,8 +10,15 @@
 #include <stdint.h>
 #include <stddef.h>
 
-
 //-----------------------------------------------------------------------------
+/**
+ * @typedef	block_device_info_t
+ * @brief	Typedef for struct s_block_device_info.
+ */
+/**
+ * @struct	s_block_device_info
+ * @brief	The data structure for block device information, that use in container manager.
+ */
 typedef struct s_block_device_info {
     uint32_t    fsmagic;    /**< Filesystem magic for probed device. */
     char volume_label[32];  /**< Volume label for probed device. */

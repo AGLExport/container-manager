@@ -136,9 +136,8 @@ err_ret:
 }
 /**
  * Release container config allocated by cmparser_create_from_file
-
  *
- * @param [in]	cc		Container config
+ * @param [in]	cm	Pointer to container_manager_config_t.
  * @return void
  */
 void cmparser_manager_release_config(container_manager_config_t *cm)

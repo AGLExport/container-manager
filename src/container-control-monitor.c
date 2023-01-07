@@ -60,13 +60,13 @@ static int container_monitor_state_change(containers_t *cs, int status, int num)
  * Event handler for pidfd monitor.
  * Container manager is monitoring to availability for guest container using pidfd.
  *
- * @param [in]	event		Socket event source object
- * @param [in]	fd			File descriptor for socket session
- * @param [in]	revents		Active event (epoll)
- * @param [in]	userdata	Pointer to containers_t
+ * @param [in]	event		Socket event source object.
+ * @param [in]	fd			File descriptor for socket session.
+ * @param [in]	revents		Active event (epoll).
+ * @param [in]	userdata	Pointer to containers_t.
  * @return int
- * @retval	0	Success to event handling
- * @retval	-1	Internal error (Not use)
+ * @retval	0	Success to event handling.
+ * @retval	-1	Internal error (Not use).
  */
 static int container_monitor_pidfd_handler(sd_event_source *event, int fd, uint32_t revents, void *userdata)
 {

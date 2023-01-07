@@ -22,19 +22,20 @@
 #include "cm-utils.h"
 
 #ifndef UEVENT_SEND
+/**
+ * @def	UEVENT_SEND
+ * @brief	A nl message type of uevent injection.
+ */
 #define UEVENT_SEND 16
 #endif
 
 /**
- * Sub function for uevent monitor.
  * Get point to /dev/ trimmed devname.
  *
- * @param [in]	handle	Handle created by udevmonitor_setup;
- * @return int	 != NULL pointer to devname
- * 				 1 on the blacklist
- * 				-3 argument error
- *				-2 internal error
- *				-1 Mandatory data is nothing
+ * @param [in]	devnode	String to devname with "/dev/" prefix.
+ * @return int
+ * @retval	!=NULL	Pointer to trimmed devname.
+ * @retval	==NULL	Is not devname.
  */
 static char *trimmed_devname(char* devnode)
 {
@@ -56,9 +57,10 @@ static char *trimmed_devname(char* devnode)
  *
  * @param [in]	pid	target process pid
  * @param [in]	ns_name	name of open name space
- * @return int	 >=0 fd of pid's name space
- * 				-1 argument error
- *				-2 no name space or process
+ * @return int
+ * @retval	>=0	A fd of 'ns_mname' name space.
+ * @retval	-1	Argument error.
+ * @retval	-2	No name space or process.
  */
 static int open_namespace_fd(pid_t pid, const char *ns_name)
 {
@@ -75,16 +77,15 @@ static int open_namespace_fd(pid_t pid, const char *ns_name)
 
 	return ret;
 }
-
-
 /**
  * Sub function for open name space.
  *
- * @param [in]	target_pid	target process pid
- * @param [in]	uevent	uevent string
- * @return int	 >=0 fd of pid's name space
- * 				-1 argument error
- *				-2 Fail to get namespace
+ * @param [in]	net_ns_fd	A fd of network namespace for guest container.
+ * @param [in]	message		Injecting message data.
+ * @param [in]	messagesize	Injecting message data size.
+ * @return int
+ * @retval	0	Success to inject uevent message.
+ * @retval	-1	Internal error.
  */
 static int uevent_injection_child(int net_ns_fd, const char *message, int messagesize)
 {
@@ -94,7 +95,6 @@ static int uevent_injection_child(int net_ns_fd, const char *message, int messag
 	struct nlmsghdr *nlh = NULL;
 	char buf[MNL_SOCKET_BUFFER_SIZE];
 	char *pevmessage = NULL;
-
 
 	// create injection message
 	memset(buf, 0 , sizeof(buf));
@@ -146,14 +146,16 @@ err_return:
 	return result;
 }
 /**
- * Sub function for open name space.
+ * Create uevent message from dynamic_device_elem_data_t.
  *
- * @param [in]	target_pid	target process pid
- * @param [in]	uevent	uevent string
- * @return int	 >=0 buf usage
- * 				-1 argument error
- *				-2 Fail to create uevent
- *				-3 Fail to fork
+ * @param [in,out]	buf		Buffer for uevent message storage.
+ * @param [in]		bufsize	Size of buf.
+ * @param [in]		dded	Pointer to dynamic_device_elem_data_t that include injecting device information.
+ * @param [in]		action	String for device action. (add/remove)
+ * @return int
+ * @retval	0	Success to create uevent message.
+ * @retval	-1	Argument error.
+ * @retval	-2	To large created uevent message.
  */
 static int uevent_injection_create_ueventdata(char *buf, int bufsize, dynamic_device_elem_data_t *dded, char *action)
 {
@@ -171,10 +173,6 @@ static int uevent_injection_create_ueventdata(char *buf, int bufsize, dynamic_de
 	if ((!(ret < remain)) || ret < 0)
 		return -2;
 
-	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr, "add injection message : %s\n", &buf[usage]);
-	#endif
-
 	usage = usage + ret + 1 /*NULL term*/;
 	remain = bufsize - usage;
 	if (remain < 0)
@@ -184,10 +182,6 @@ static int uevent_injection_create_ueventdata(char *buf, int bufsize, dynamic_de
 	ret = snprintf(&buf[usage], remain, "ACTION=%s", action);
 	if ((!(ret < remain)) || ret < 0)
 		return -2;
-
-	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr, "add injection message : %s\n", &buf[usage]);
-	#endif
 
 	usage = usage + ret + 1 /*NULL term*/;
 	remain = bufsize - usage;
@@ -199,10 +193,6 @@ static int uevent_injection_create_ueventdata(char *buf, int bufsize, dynamic_de
 	if ((!(ret < remain)) || ret < 0)
 		return -2;
 
-	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr, "add injection message : %s\n", &buf[usage]);
-	#endif
-
 	usage = usage + ret + 1 /*NULL term*/;
 	remain = bufsize - usage;
 	if (remain < 0)
@@ -212,10 +202,6 @@ static int uevent_injection_create_ueventdata(char *buf, int bufsize, dynamic_de
 	ret = snprintf(&buf[usage], remain, "SUBSYSTEM=%s", dded->subsystem);
 	if ((!(ret < remain)) || ret < 0)
 		return -2;
-
-	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr, "add injection message : %s\n", &buf[usage]);
-	#endif
 
 	usage = usage + ret + 1 /*NULL term*/;
 	remain = bufsize - usage;
@@ -229,10 +215,6 @@ static int uevent_injection_create_ueventdata(char *buf, int bufsize, dynamic_de
 		if ((!(ret < remain)) || ret < 0)
 			return -2;
 
-		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr, "add injection message : %s\n", &buf[usage]);
-		#endif
-
 		usage = usage + ret + 1 /*NULL term*/;
 		remain = bufsize - usage;
 		if (remain < 0)
@@ -242,10 +224,6 @@ static int uevent_injection_create_ueventdata(char *buf, int bufsize, dynamic_de
 		ret = snprintf(&buf[usage], remain, "MINOR=%d", minor(dded->devnum));
 		if ((!(ret < remain)) || ret < 0)
 			return -2;
-
-		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr, "add injection message : %s\n", &buf[usage]);
-		#endif
 
 		usage = usage + ret + 1 /*NULL term*/;
 		remain = bufsize - usage;
@@ -262,10 +240,6 @@ static int uevent_injection_create_ueventdata(char *buf, int bufsize, dynamic_de
 			if ((!(ret < remain)) || ret < 0)
 				return -2;
 
-			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr, "add injection message : %s\n", &buf[usage]);
-			#endif
-
 			usage = usage + ret + 1 /*NULL term*/;
 			remain = bufsize - usage;
 			if (remain < 0)
@@ -279,10 +253,6 @@ static int uevent_injection_create_ueventdata(char *buf, int bufsize, dynamic_de
 		if ((!(ret < remain)) || ret < 0)
 			return -2;
 
-		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr, "add injection message : %s\n", &buf[usage]);
-		#endif
-
 		usage = usage + ret + 1 /*NULL term*/;
 		remain = bufsize - usage;
 		if (remain < 0)
@@ -295,10 +265,6 @@ static int uevent_injection_create_ueventdata(char *buf, int bufsize, dynamic_de
 		if ((!(ret < remain)) || ret < 0)
 			return -2;
 
-		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr, "add injection message : %s\n", &buf[usage]);
-		#endif
-
 		usage = usage + ret + 1 /*NULL term*/;
 		remain = bufsize - usage;
 		if (remain < 0)
@@ -310,10 +276,6 @@ static int uevent_injection_create_ueventdata(char *buf, int bufsize, dynamic_de
 		ret = snprintf(&buf[usage], remain, "PARTN=%s", dded->partn);
 		if ((!(ret < remain)) || ret < 0)
 			return -2;
-
-		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr, "add injection message : %s\n", &buf[usage]);
-		#endif
 
 		usage = usage + ret + 1 /*NULL term*/;
 		remain = bufsize - usage;
@@ -375,16 +337,18 @@ static int uevent_injection_create_ueventdata(char *buf, int bufsize, dynamic_de
 		DISKSEQ=23
 		SEQNUM=4349
 */
-
 /**
- * Sub function for open name space.
+ * Inject uevent to guest container using pid.
  *
- * @param [in]	target_pid	target process pid
- * @param [in]	uevent	uevent string
- * @return int	 >=0 fd of pid's name space
- * 				-1 argument error
- *				-2 Fail to get namespace
- *				-3 Fail to fork
+ * @param [in]	target_pid	Target process pid.
+ * @param [in]	dded		Pointer to dynamic_device_elem_data_t that include injecting device information.
+ * @param [in]	action		String for device action. (add/remove)
+ * @return int
+ * @retval	0	Success to inject uevent message.
+ * @retval	-1	Argument error.
+ * @retval	-2	Too large created uevent message.
+ * @retval	-3	Fork error.
+ * @retval	-4	Error from child process.
  */
 int uevent_injection_to_pid(pid_t target_pid, dynamic_device_elem_data_t *dded, char *action)
 {
