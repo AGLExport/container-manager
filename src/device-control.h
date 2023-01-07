@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	lxc-util.h
- * @brief	lxc utility header
+ * @file	device-control.h
+ * @brief	The header for device control sub blocks.
  */
 #ifndef DEVICE_CONTROL_H
 #define DEVICE_CONTROL_H
@@ -14,7 +14,6 @@
 
 //-----------------------------------------------------------------------------
 int devc_early_device_setup(containers_t *cs);
-
 
 int devc_device_manager_setup(dynamic_device_manager_t **pddm, container_control_interface_t *cci, sd_event *event);
 int devc_device_manager_cleanup(dynamic_device_manager_t *ddm);

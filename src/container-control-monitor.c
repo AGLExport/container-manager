@@ -1,11 +1,10 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	device-control.c
- * @brief	device control block for container manager
+ * @file	container-control-monitor.c
+ * @brief	This file include implementation for guest container monitoring feature.
  */
 
-#include "container-control.h"
 #include "container-control-internal.h"
 
 #include <stdio.h>
@@ -25,14 +24,15 @@
 #include "device-control.h"
 
 
-
 /**
- * Guest monitoring notification to container manager state machine
+ * Guest container status change notification to container manager state machine from container monitor.
  *
- * @param [in]	cci	Interface struct
+ * @param [in]	cs		Pointer to containers_t.
+ * @param [in]	status	New status for guest container.
+ * @param [in]	num		Which guest container was changed state.
  * @return int
- * @retval  0 Success.
- * @retval -1 Critical error.
+ * @retval  0 Success to send event.
+ * @retval -1 Critical error for sending event.
  */
 static int container_monitor_state_change(containers_t *cs, int status, int num)
 {
@@ -57,14 +57,16 @@ static int container_monitor_state_change(containers_t *cs, int status, int num)
 	return 0;
 }
 /**
- * Event handler for pidfd monitor
+ * Event handler for pidfd monitor.
+ * Container manager is monitoring to availability for guest container using pidfd.
  *
- * @param [in]	event		Socket event source object
- * @param [in]	fd			File descriptor for socket session
- * @param [in]	revents		Active event (epoll)
- * @param [in]	userdata	Pointer to data_pool_service_handle
- * @return int	 0 success
- *				-1 internal error
+ * @param [in]	event		Socket event source object.
+ * @param [in]	fd			File descriptor for socket session.
+ * @param [in]	revents		Active event (epoll).
+ * @param [in]	userdata	Pointer to containers_t.
+ * @return int
+ * @retval	0	Success to event handling.
+ * @retval	-1	Internal error (Not use).
  */
 static int container_monitor_pidfd_handler(sd_event_source *event, int fd, uint32_t revents, void *userdata)
 {
@@ -100,12 +102,13 @@ static int container_monitor_pidfd_handler(sd_event_source *event, int fd, uint3
 	return 0;
 }
 /**
- * Preprocess for container start base
+ * Start guest container monitoring using container monitor.
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cs	Pointer ro containers_t.
+ * @param [in]	cc	Pointer to container_config_t that show which guest start monitoring.
  * @return int
- * @retval  0 Success.
- * @retval -1 Arg error.
+ * @retval  0 Success to start monitoring.
+ * @retval -1 Argument error.
  * @retval -2 pidfd error.
  */
 int container_monitor_addguest(containers_t *cs, container_config_t *cc)
@@ -141,19 +144,21 @@ err_return:
 	return -1;
 }
 /**
- * Preprocess for container start base
+ *  Stop guest container monitoring using container monitor. (Reserve)
  *
- * @param [in]	cs	Preconstructed containers_t
+ * @param [in]	cs	Pointer ro containers_t.
+ * @param [in]	cc	Pointer to container_config_t that show which guest start monitoring.
  * @return int
  * @retval  0 Success.
- * @retval -1 mount error.
- * @retval -2 Syscall error.
+ * @retval -1 Argument error. (Reserve)
+ * @retval -2 pidfd error. (Reserve)
  */
 int container_monitor_removeguest(containers_t *cs, container_config_t *cc)
 {
 	if (cs == NULL || cc == NULL)
 		return -1;
 
+	// No task in this case.
 
 	return 0;
 }

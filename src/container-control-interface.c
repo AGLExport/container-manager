@@ -1,11 +1,10 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	device-control.c
- * @brief	device control block for container manager
+ * @file	container-control-interface.c
+ * @brief	This file include implementation for container manager control interface.
  */
 
-#include "container-control.h"
 #include "container-control-interface.h"
 #include "container-control-internal.h"
 
@@ -35,12 +34,16 @@ static int container_mngsm_netif_updated(struct s_container_control_interface *c
 static int container_mngsm_system_shutdown(struct s_container_control_interface *cci);
 
 /**
- * Container management state machine cleanup.
+ * Get container manager state machine interface to use internal event passing from sub block.
+ * This function provide device update, network interface update and shutdown event interface for udev, netlink and signal sub block.
+ * This function use to avoid cross function call between main state machine and sub block.
  *
- * @param [in]	cs	Instance of containers_t
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @param [out]	pcci	Double pointer to refer to container_control_interface_t.
+ * @param [in]	cs		Pointer to containers_t.
+ * @return int
+ * @retval	0	Success to get container manager state machine interface.
+ * @retval	-1	Internal error.
+ * @retval	-2	Argument error.
  */
 int container_mngsm_interface_get(container_control_interface_t **pcci, containers_t *cs)
 {
@@ -73,12 +76,13 @@ err_return:
 	return -1;
 }
 /**
- * Container management state machine cleanup.
+ * Memory free function of container manager state machine interface.
  *
  * @param [in]	cs	Instance of containers_t
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @return int
+ * @retval	0	Success to memory free.
+ * @retval	-1	Internal error.(Reserve)
+ * @retval	-2	Argument error.
  */
 int container_mngsm_interface_free(containers_t *cs)
 {
@@ -92,12 +96,12 @@ int container_mngsm_interface_free(containers_t *cs)
 	return 0;
 }
 /**
- * Device update notification to container manager state machine
+ * Device update notification to container manager state machine.
  *
- * @param [in]	cci	Interface struct
+ * @param [in]	cci	Pointer to s_container_control_interface, it's got by container_mngsm_interface_get.
  * @return int
- * @retval  0 Success.
- * @retval -1 Critical error.
+ * @retval  0	Success to send event.
+ * @retval -1	Critical error for sending event.
  */
 static int container_mngsm_device_updated(struct s_container_control_interface *cci)
 {
@@ -121,12 +125,12 @@ static int container_mngsm_device_updated(struct s_container_control_interface *
 	return 0;
 }
 /**
- * Network interface update notification to container manager state machine
+ * Network interface update notification to container manager state machine.
  *
- * @param [in]	cci	Interface struct
+ * @param [in]	cci	Pointer to s_container_control_interface, it's got by container_mngsm_interface_get.
  * @return int
- * @retval  0 Success.
- * @retval -1 Critical error.
+ * @retval  0	Success to send event.
+ * @retval -1	Critical error for sending event.
  */
 static int container_mngsm_netif_updated(struct s_container_control_interface *cci)
 {
@@ -150,12 +154,12 @@ static int container_mngsm_netif_updated(struct s_container_control_interface *c
 	return 0;
 }
 /**
- * Network interface update notification to container manager state machine
+ * Received shutdown request notification to container manager state machine.
  *
- * @param [in]	cci	Interface struct
+ * @param [in]	cci	Pointer to s_container_control_interface, it's got by container_mngsm_interface_get.
  * @return int
- * @retval  0 Success.
- * @retval -1 Critical error.
+ * @retval  0	Success to send event.
+ * @retval -1	Critical error for sending event.
  */
 static int container_mngsm_system_shutdown(struct s_container_control_interface *cci)
 {

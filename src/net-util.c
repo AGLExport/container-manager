@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	net-util.c
- * @brief	netlink utility functions
+ * @brief	This file include netlink utility functions using libnml for container manager network interface management.
  */
 #include "net-util.h"
 
@@ -25,12 +25,20 @@
 
 #undef _PRINTF_DEBUG_
 
+/**
+ * @struct	s_netifmonitor
+ * @brief	Top level data for network interface monitor.
+ */
 struct s_netifmonitor {
-	struct mnl_socket *nl;
-	sd_event_source *ifmonitor_source;
-	container_control_interface_t *cci;
+	struct mnl_socket *nl;				/**< A memory object for libmnl. */
+	sd_event_source *ifmonitor_source;	/**< The sd event source for netlink socket controlled by libmnl. */
+	container_control_interface_t *cci;	/**< Reference to container manager control interface. */
 };
 
+/**
+ * @var		net_if_blacklist
+ * @brief	Black list for network interface.  When interface name mach this list, that interface is not manage by network interface manager.
+ */
 static const char *net_if_blacklist[] = {
 	"veth",
 	"lxcbr",
@@ -38,6 +46,9 @@ static const char *net_if_blacklist[] = {
 };
 
 #ifdef _PRINTF_DEBUG_
+/**
+ * Debug use only.
+ */
 static void print_iflist(network_interface_manager_t *nfm)
 {
 	network_interface_info_t *ifinfo = NULL;
@@ -51,15 +62,16 @@ static void print_iflist(network_interface_manager_t *nfm)
 static int network_interface_info_free(network_interface_info_t *nfi);
 
 /**
- * Sub function for UNIX signal handling.
- * Block SIGTERM, when this process receive SIGTERM, event loop will exit.
+ * Sub function for getting network interface name.
+ * This function call from data_cb.
  *
- * @param [in]	nlh	nlmsghdr
- * @param [out]	ifname	buffer for ifname
- * @param [out]	size	buffer size for ifname
- * @return int	 0 available data
- * 				-2 argument error
- *				-1 no data
+ * @param [in]	nlh		The nlmsghdr by libmnl.
+ * @param [out]	ifname	Buffer for ifname.
+ * @param [out]	size	Buffer size for ifname.
+ * @return int
+ * @retval	0	Success to get available data.
+ * @retval	-1	No data.
+ * @retval	-2	Argument error.
  */
 static int sdutil_get_ifname(const struct nlmsghdr *nlh, char *ifname, int size)
 {
@@ -97,13 +109,13 @@ static int sdutil_get_ifname(const struct nlmsghdr *nlh, char *ifname, int size)
 }
 
 /**
- * Sub function for UNIX signal handling.
- * Block SIGTERM, when this process receive SIGTERM, event loop will exit.
+ * Data analyze callback for netlink handler.
+ * This function analyze add/del event from RTNL netlink socket.
  *
- * @param [in]	event	sd_event
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @param [in]	nlh		The nlmsghdr by libmnl.
+ * @param [in]	data	Pointer to dynamic_device_manager_t.
+ * @return int
+ * @retval	MNL_CB_OK	Handled event. Depend on libmnl.
  */
 static int data_cb(const struct nlmsghdr *nlh, void *data)
 {
@@ -193,7 +205,18 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 out:
 	return MNL_CB_OK;
 }
-
+/**
+ * Event handler for libmnl RTNL netlink socket.
+ * This function analyze received data using libmnl.
+ *
+ * @param [in]	event		RTNL netlink event source object.
+ * @param [in]	fd			File descriptor for RTNL netlink session.
+ * @param [in]	revents		Active event (epoll).
+ * @param [in]	userdata	Pointer to dynamic_device_manager_t.
+ * @return int
+ * @retval	0	Success to event handling.
+ * @retval	-1	Internal error (Not use).
+ */
 static int nml_event_handler(sd_event_source *event, int fd, uint32_t revents, void *userdata)
 {
 	char buf[8192];
@@ -233,10 +256,11 @@ static int nml_event_handler(sd_event_source *event, int fd, uint32_t revents, v
  * Sub function for network if monitor.
  * List up for the existing network if.
  *
- * @param [in]	handle	Pointer to variable of dynamic_device_manager_t;
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @param [in]	ddm	Pointer to dynamic_device_manager_t;
+ * @return int
+ * @retval	0	Success to listing.
+ * @retval	-1	Internal error.
+ * @retval	-2	Argument error.
  */
 static int netifmonitor_listing_existif(dynamic_device_manager_t *ddm)
 {
@@ -300,10 +324,13 @@ errorret:
  * Sub function for network if monitor.
  * Setup for the network if monitor event loop.
  *
- * @param [in]	handle	Pointer to variable of sdutil_netifmonitor_t;
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @param [in]	ddm		Pointer to dynamic_device_manager_t.
+ * @param [in]	cci		Pointer to container_control_interface_t to send event notification to container manager state machine.
+ * @param [in]	event	Instance of sd_event. (main loop)
+ * @return int
+ * @retval	0	Success to setup network interface monitor.
+ * @retval	-1	Internal error.
+ * @retval	-2	Argument error.
  */
 int netifmonitor_setup(dynamic_device_manager_t *ddm, container_control_interface_t *cci, sd_event *event)
 {
@@ -363,10 +390,11 @@ err_return:
  * Cleanup for the network if monitor event loop.
  * Shall be call after sd_event_loop exit.
  *
- * @param [in]	ddm	dynamic_device_manager_t created by netifmonitor_setup;
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @param [in]	ddm		Pointer to dynamic_device_manager_t created by devc_device_manager_setup.
+ * @return int
+ * @retval	0	Success to cleanup.
+ * @retval	-1	Internal error.
+ * @retval	-2	Argument error.
  */
 int netifmonitor_cleanup(dynamic_device_manager_t *ddm)
 {
@@ -400,10 +428,11 @@ int netifmonitor_cleanup(dynamic_device_manager_t *ddm)
  * Sub function for network if monitor.
  * Cleanup for the network_interface_info_t.
  *
- * @param [in]	nfi	pointer to network_interface_info_t.
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @param [in]	nfi	Pointer to network_interface_info_t.
+ * @return int
+ * @retval	0	Success to free memory.
+ * @retval	-1	Internal error.
+ * @retval	-2	Argument error.
  */
 static int network_interface_info_free(network_interface_info_t *nfi)
 {
@@ -415,12 +444,14 @@ static int network_interface_info_free(network_interface_info_t *nfi)
 	return 0;
 }
 /**
- * Sub function for uevent monitor.
- * Cleanup for the dynamic_device_info_t data.
+ * Get network_interface_manager_t object from dynamic_device_manager_t.
+ * This function provide network interface list access interface that is used by container management block.
  *
- * @param [in]	handle	Handle created by udevmonitor_setup;
- * @return int	 0 success
- * 				-1 argument error
+ * @param [in]	netif	Double pointer to network_interface_manager_t to get reference of network_interface_manager_t object.
+ * @param [in]	ddm		Pointer to dynamic_device_manager_t created by devc_device_manager_setup.
+ * @return int
+ * @retval	0	Success to get network_interface_manager_t object.
+ * @retval	-1	Argument error.
  */
 int network_interface_info_get(network_interface_manager_t **netif, dynamic_device_manager_t *ddm)
 {

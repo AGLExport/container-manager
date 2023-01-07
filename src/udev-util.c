@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	udev-util.c
- * @brief	udev utility functions
+ * @brief	This file include device management functions using libudev for container manager.
  */
 #include "udev-util.h"
 
@@ -18,15 +18,32 @@
 
 #undef _PRINTF_DEBUG_
 
+/**
+ * @struct	s_udevmonitor
+ * @brief	The data structure for device monitor using libudev.
+ */
 struct s_udevmonitor {
-	struct udev* pudev;
-	struct udev_monitor *pudev_monitor;
-	sd_event_source *libudev_source ;
-	container_control_interface_t *cci;
+	struct udev* pudev;					/**< The udev object created by libudev. */
+	struct udev_monitor *pudev_monitor;	/**< The udev_monitor object created by libudev.  */
+	sd_event_source *libudev_source ;	/**< The sd event source controlled by libudev. */
+	container_control_interface_t *cci;	/**< Reference to container manager control interface. */
 };
+
+/**
+ * @var		dev_subsys_block
+ * @brief	Defined string to use at subsystem test. - for block device.
+ */
 const char dev_subsys_block[] = "block";
+/**
+ * @var		dev_subsys_net
+ * @brief	Defined string to use at subsystem test. - for net device.
+ */
 const char dev_subsys_net[] = "net";
 
+/**
+ * @var		block_dev_blacklist
+ * @brief	Black list for block device management.  When device name mach this list, that device is not manage by dynamic device manager.
+ */
 static const char *block_dev_blacklist[] = {
 	"/dev/mmcblk",
 	"/dev/nvme",
@@ -34,6 +51,9 @@ static const char *block_dev_blacklist[] = {
 };
 
 #ifdef _PRINTF_DEBUG_
+/**
+ * Debug use only.
+ */
 static void print_dynamic_device_info_one(dynamic_device_info_t *ddi)
 {
 	if (strncmp(dev_subsys_block,ddi->subsystem,sizeof(dev_subsys_block)) == 0) {
@@ -55,7 +75,9 @@ static void print_dynamic_device_info_one(dynamic_device_info_t *ddi)
 
 	}
 }
-
+/**
+ * Debug use only.
+ */
 static void print_dynamic_device_info(dynamic_device_manager_t *ddm, int mode)
 {
 	dynamic_device_info_t *ddi = NULL;
@@ -90,7 +112,18 @@ static int udevmonitor_devevent_add_net(dynamic_device_manager_t *ddm, dynamic_d
 static int udevmonitor_devevent_remove_net(dynamic_device_manager_t *ddm, dynamic_device_info_t *del_ddi);
 static int udevmonitor_devevent_change_net(dynamic_device_manager_t *ddm, dynamic_device_info_t *new_ddi);
 
-
+/**
+ * Event handler for libudev.
+ * This function analyze received data using udev_monitor by libudev.
+ *
+ * @param [in]	event		libudev event source object.
+ * @param [in]	fd			File descriptor for udev_monitor.
+ * @param [in]	revents		Active event (epoll).
+ * @param [in]	userdata	Pointer to dynamic_device_manager_t.
+ * @return int
+ * @retval	0	Success to event handling.
+ * @retval	-1	Internal error (Not use).
+ */
 static int udev_event_handler(sd_event_source *event, int fd, uint32_t revents, void *userdata)
 {
 	int ret = 0;
@@ -115,16 +148,15 @@ static int udev_event_handler(sd_event_source *event, int fd, uint32_t revents, 
 	return ret;
 }
 
-
 /**
  * Sub function for uevent monitor.
- * Setup for the uevent monitor event loop.
+ * This function analyze supported device type (block, net) and create device information object (dynamic_device_info_t).
  *
- * @param [out]	handle	Pointer to variable of udevmonitor_t;
- * @param [in]	event	Instance of sd_event
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @param [in]	ddm	Pointer to dynamic_device_manager_t.
+ * @return int
+ * @retval	0	Success to get device info.
+ * @retval	-1	Internal error.
+ * @retval	-2	Argument error. (Reserve)
  */
 static int udevmonitor_devevent(dynamic_device_manager_t *ddm)
 {
@@ -216,13 +248,14 @@ error_ret:
 }
 /**
  * Sub function for uevent monitor.
- * device add to list with fixup.
+ * This function add block device infomation to list. It supports list fixup.
  *
- * @param [out]	handle	Pointer to variable of udevmonitor_t;
- * @param [in]	event	Instance of sd_event
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @param [in]	ddm		Pointer to dynamic_device_manager_t.
+ * @param [in]	new_ddi	Pointer to created new dynamic_device_info_t.
+ * @return int
+ * @retval	0	Success to add device infomation to list.
+ * @retval	-1	Internal error. (Reserve)
+ * @retval	-2	Argument error.
  */
 static int udevmonitor_devevent_add_block(dynamic_device_manager_t *ddm, dynamic_device_info_t *new_ddi)
 {
@@ -250,13 +283,14 @@ static int udevmonitor_devevent_add_block(dynamic_device_manager_t *ddm, dynamic
 }
 /**
  * Sub function for uevent monitor.
- * device remove from list with fixup.
+ * This function remove block device infomation from list.
  *
- * @param [out]	handle	Pointer to variable of udevmonitor_t;
- * @param [in]	event	Instance of sd_event
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @param [in]	ddm		Pointer to dynamic_device_manager_t.
+ * @param [in]	del_ddi	Pointer to removed device infomation (dynamic_device_info_t).
+ * @return int
+ * @retval	0	Success to remove device infomation from list.
+ * @retval	-1	Internal error. (Reserve)
+ * @retval	-2	Argument error.
  */
 static int udevmonitor_devevent_remove_block(dynamic_device_manager_t *ddm, dynamic_device_info_t *del_ddi)
 {
@@ -282,13 +316,14 @@ static int udevmonitor_devevent_remove_block(dynamic_device_manager_t *ddm, dyna
 }
 /**
  * Sub function for uevent monitor.
- * device change for list with fixup.
+ * This function change block device infomation to list.  That function exchange old ddi to new ddi.
  *
- * @param [out]	handle	Pointer to variable of udevmonitor_t;
- * @param [in]	event	Instance of sd_event
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @param [in]	ddm		Pointer to dynamic_device_manager_t.
+ * @param [in]	new_ddi	Pointer to created new dynamic_device_info_t.
+ * @return int
+ * @retval	0	Success to change device infomation at list.
+ * @retval	-1	Internal error. (Reserve)
+ * @retval	-2	Argument error.
  */
 static int udevmonitor_devevent_change_block(dynamic_device_manager_t *ddm, dynamic_device_info_t *new_ddi)
 {
@@ -316,13 +351,14 @@ static int udevmonitor_devevent_change_block(dynamic_device_manager_t *ddm, dyna
 }
 /**
  * Sub function for uevent monitor.
- * device add to list with fixup.
+ * This function add net device infomation to list. It supports list fixup.
  *
- * @param [out]	handle	Pointer to variable of udevmonitor_t;
- * @param [in]	event	Instance of sd_event
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @param [in]	ddm		Pointer to dynamic_device_manager_t.
+ * @param [in]	new_ddi	Pointer to created new dynamic_device_info_t.
+ * @return int
+ * @retval	0	Success to add device infomation to list.
+ * @retval	-1	Internal error. (Reserve)
+ * @retval	-2	Argument error.
  */
 static int udevmonitor_devevent_add_net(dynamic_device_manager_t *ddm, dynamic_device_info_t *new_ddi)
 {
@@ -350,13 +386,14 @@ static int udevmonitor_devevent_add_net(dynamic_device_manager_t *ddm, dynamic_d
 }
 /**
  * Sub function for uevent monitor.
- * device remove from list with fixup.
+ * This function remove net device infomation from list.
  *
- * @param [out]	handle	Pointer to variable of udevmonitor_t;
- * @param [in]	event	Instance of sd_event
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @param [in]	ddm		Pointer to dynamic_device_manager_t.
+ * @param [in]	del_ddi	Pointer to removed device infomation (dynamic_device_info_t).
+ * @return int
+ * @retval	0	Success to remove device infomation from list.
+ * @retval	-1	Internal error. (Reserve)
+ * @retval	-2	Argument error.
  */
 static int udevmonitor_devevent_remove_net(dynamic_device_manager_t *ddm, dynamic_device_info_t *del_ddi)
 {
@@ -383,13 +420,14 @@ static int udevmonitor_devevent_remove_net(dynamic_device_manager_t *ddm, dynami
 }
 /**
  * Sub function for uevent monitor.
- * device change for list with fixup.
+ * This function change net device infomation to list.  That function exchange old ddi to new ddi.
  *
- * @param [out]	handle	Pointer to variable of udevmonitor_t;
- * @param [in]	event	Instance of sd_event
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @param [in]	ddm		Pointer to dynamic_device_manager_t.
+ * @param [in]	new_ddi	Pointer to created new dynamic_device_info_t.
+ * @return int
+ * @retval	0	Success to change device infomation at list.
+ * @retval	-1	Internal error. (Reserve)
+ * @retval	-2	Argument error.
  */
 static int udevmonitor_devevent_change_net(dynamic_device_manager_t *ddm, dynamic_device_info_t *new_ddi)
 {
@@ -417,13 +455,14 @@ static int udevmonitor_devevent_change_net(dynamic_device_manager_t *ddm, dynami
 }
 /**
  * Sub function for uevent monitor.
- * Setup for the uevent monitor event loop.
+ * This function create internal management data in initialization time.  That work aim to sync current device status.
+ * This function shall call immediately after udev_monitor enabled.
  *
- * @param [out]	handle	Pointer to variable of udevmonitor_t;
- * @param [in]	event	Instance of sd_event
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @param [in]	ddm	Pointer to dynamic_device_manager_t.
+ * @return int
+ * @retval	0	Success to change device infomation at list.
+ * @retval	-1	Internal error.
+ * @retval	-2	Argument error.
  */
 static int udevmonitor_scan(dynamic_device_manager_t *ddm)
 {
@@ -505,11 +544,13 @@ static int udevmonitor_scan(dynamic_device_manager_t *ddm)
  * Sub function for uevent monitor.
  * Setup for the uevent monitor event loop.
  *
- * @param [out]	handle	Pointer to variable of udevmonitor_t;
- * @param [in]	event	Instance of sd_event
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @param [in]	ddm		Pointer to dynamic_device_manager_t.
+ * @param [in]	cci		Pointer to container_control_interface_t to send event notification to container manager state machine.
+ * @param [in]	event	Instance of sd_event. (main loop)
+ * @return int
+ * @retval	0	Success to change device infomation at list.
+ * @retval	-1	Internal error. (Reserve)
+ * @retval	-2	Argument error.
  */
 int udevmonitor_setup(dynamic_device_manager_t *ddm, container_control_interface_t *cci, sd_event *event)
 {
@@ -580,10 +621,11 @@ err_return:
  * Sub function for uevent monitor.
  * Cleanup for the uevent monitor event loop.
  *
- * @param [in]	handle	Handle created by udevmonitor_setup;
- * @return int	 0 success
- * 				-2 argument error
- *				-1 internal error
+ * @param [in]	ddm		Pointer to dynamic_device_manager_t.
+ * @return int
+ * @retval	0	Success to change device infomation at list.
+ * @retval	-1	Internal error. (Reserve)
+ * @retval	-2	Argument error.
  */
 int udevmonitor_cleanup(dynamic_device_manager_t *ddm)
 {
@@ -628,14 +670,17 @@ int udevmonitor_cleanup(dynamic_device_manager_t *ddm)
 }
 /**
  * Sub function for uevent monitor.
- * Create for the dynamic_device_info_t data.
+ * Create dynamic_device_info_t data that support block device.
  *
- * @param [in]	handle	Handle created by udevmonitor_setup;
- * @return int	 0 success
- * 				 1 on the blacklist
- * 				-3 argument error
- *				-2 internal error
- *				-1 Mandatory data is nothing
+ * @param [out]	ddi		Double pointer to get created dynamic_device_info_t object.
+ * @param [in]	pdev	Pointer to udev_device.
+ * @param [in]	subsys	A name of device subsystem. (string)
+ * @return int
+ * @retval	0	Success to create dynamic_device_info_t.
+ * @retval	1	Device found in blacklist.
+ * @retval	-1	Mandatory data is nothing in udev_device.
+ * @retval	-2	Internal error.
+ * @retval	-3	Argument error.
  */
 static int dynamic_device_info_create_block(dynamic_device_info_t **ddi, struct udev_device *pdev, const char* subsys)
 {
@@ -709,13 +754,17 @@ static int dynamic_device_info_create_block(dynamic_device_info_t **ddi, struct 
 }
 /**
  * Sub function for uevent monitor.
- * Create for the dynamic_device_info_t data.
+ * Create dynamic_device_info_t data that support net device.
  *
- * @param [in]	handle	Handle created by udevmonitor_setup;
- * @return int	 0 success
- * 				-3 argument error
- *				-2 internal error
- *				-1 Mandatory data is nothing
+ * @param [out]	ddi		Double pointer to get created dynamic_device_info_t object.
+ * @param [in]	pdev	Pointer to udev_device.
+ * @param [in]	subsys	A name of device subsystem. (string)
+ * @return int
+ * @retval	0	Success to create dynamic_device_info_t.
+ * @retval	1	Device found in blacklist.
+ * @retval	-1	Mandatory data is nothing in udev_device.
+ * @retval	-2	Internal error.
+ * @retval	-3	Argument error.
  */
 static int dynamic_device_info_create_net(dynamic_device_info_t **ddi, struct udev_device *pdev, const char* subsys)
 {
@@ -770,10 +819,12 @@ static int dynamic_device_info_create_net(dynamic_device_info_t **ddi, struct ud
 /**
  * Sub function for uevent monitor.
  * Cleanup for the dynamic_device_info_t data.
+ * After this function call, dynamic_device_info_t object must not use.
  *
- * @param [in]	handle	Handle created by udevmonitor_setup;
- * @return int	 0 success
- * 				-1 argument error
+ * @param [in]	ddi	Pointer to dynamic_device_info_t.
+ * @return int
+ * @retval	0	Success to create dynamic_device_info_t.
+ * @retval	-1	Argument error.
  */
 static int dynamic_device_info_free(dynamic_device_info_t *ddi)
 {
@@ -809,12 +860,14 @@ static int dynamic_device_info_free(dynamic_device_info_t *ddi)
 	return 0;
 }
 /**
- * Sub function for uevent monitor.
- * Cleanup for the dynamic_device_info_t data.
+ * Get block_device_manager_t object from dynamic_device_manager_t.
+ * This function provide block device list access interface that is used by container management block.
  *
- * @param [in]	handle	Handle created by udevmonitor_setup;
- * @return int	 0 success
- * 				-1 argument error
+ * @param [out]	blockdev	Double pointer to block_device_manager_t to get reference of block_device_manager_t object.
+ * @param [in]	ddm			Pointer to dynamic_device_manager_t.
+ * @return int
+ * @retval	0	Success to create dynamic_device_info_t.
+ * @retval	-1	Argument error.
  */
 int dynamic_block_device_info_get(block_device_manager_t **blockdev, dynamic_device_manager_t *ddm)
 {

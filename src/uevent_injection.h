@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * @file	uevent_injection.h
- * @brief	uevent_injection utility header
+ * @brief	The header for uevent injection utility.
  */
 #ifndef UEVENT_INJECTION_H
 #define UEVENT_INJECTION_H

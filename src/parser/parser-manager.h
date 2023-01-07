@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	parser.h
- * @brief	container config parser header
+ * @file	parser-manager.h
+ * @brief	container manager config parser header
  */
 #ifndef PARSER_MANAGER_H
 #define PARSER_MANAGER_H

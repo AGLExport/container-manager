@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	util.h
- * @brief	utility header
+ * @file	net-util.h
+ * @brief	The header for netlink utility.
  */
 #ifndef NET_UTIL_H
 #define NET_UTIL_H

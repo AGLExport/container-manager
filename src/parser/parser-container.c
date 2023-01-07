@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  *
- * @file	parser.c
+ * @file	parser-container.c
  * @brief	config file parser using cjson
  */
 
@@ -24,7 +24,11 @@
 #include "parser/parser-common.h"
 #include "parser/parser-container.h"
 
-static const char *cstr_signal_default = "SIGTERM";	/** < default signal to use guest container termination. */
+/**
+ * @var		cstr_signal_default
+ * @brief	default signal to use guest container termination.
+ */
+static const char *cstr_signal_default = "SIGTERM";
 
 /**
  * Sub function for the idmap parse.
@@ -155,7 +159,7 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 	} else {
 		// Mandatory value
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-path not set. It's mandatory value\n");
+		fprintf(stderr,"[CM CRITICAL ERROR] cmparser: The root path is not set. It's mandatory value\n");
 		#endif
 		result = -2;
 		goto err_ret;
@@ -170,7 +174,7 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 	} else {
 		// Mandatory value
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		fprintf(stderr,"[CM CRITICAL ERROR] cmparser: filesystem not set. It's mandatory value\n");
+		fprintf(stderr,"[CM CRITICAL ERROR] cmparser: The rootfs filesystem is not set. It's mandatory value\n");
 		#endif
 		result = -2;
 		goto err_ret;
@@ -211,9 +215,28 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 		}
 	}
 
+	if (bc->rootfs.blockdev[0] == NULL) {
+		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+		fprintf(stderr,"[CM CRITICAL ERROR] cmparser: The block device for rootfs is not set. It's mandatory value\n");
+		#endif
+		result = -2;
+		goto err_ret;
+	}
+
 	return 0;
 
 err_ret:
+	(void) free(bc->rootfs.blockdev[1]);
+	bc->rootfs.blockdev[1] = NULL;
+
+	(void) free(bc->rootfs.blockdev[0]);
+	bc->rootfs.blockdev[0] = NULL;
+
+	(void) free(bc->rootfs.filesystem);
+	bc->rootfs.filesystem = NULL;
+
+	(void) free(bc->rootfs.path);
+	bc->rootfs.path = NULL;
 
 	return result;
 }
@@ -225,7 +248,7 @@ err_ret:
  * @return int
  * @retval  0 Success to parse.
  * @retval -1 Json file error.
- * @retval -2 Json file parse error.
+ * @retval -2 Json file parse error.(Reserve)
  * @retval -3 Memory allocation error.
  */
 static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON *extradisk)
@@ -356,9 +379,11 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 			exdisk->blockdev[1] = strdup(bdev[1]);
 
 		dl_list_add_tail(&bc->extradisk_list, &exdisk->list);
+
+		result = 0;
 	}
 
-	return 0;
+	return result;
 
 err_ret:
 
@@ -414,7 +439,7 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 		fprintf(stdout,"cmparser: base-bootpriority value = %d\n",bc->bootpriority);
 		#endif
 	} else {
-		bc->bootpriority = 1000; // Default value is 100s0
+		bc->bootpriority = 1000; // Default value is 1000
 		#ifdef _PRINTF_DEBUG_
 		fprintf(stdout,"cmparser: base-autoboot set default value = 1000\n");
 		#endif
@@ -604,8 +629,8 @@ static int cmparser_parser_get_resourcetype(const char *str)
  * @param [in]	res	Pointer to cJSON object of top of resource section.
  * @return int
  * @retval  0 Success to parse.
- * @retval -1 Json file error.
- * @retval -2 Json file parse error.
+ * @retval -1 Json file error.(Reserve)
+ * @retval -2 Json file parse error.(Reserve)
  * @retval -3 Memory allocation error.
  */
 static int cmparser_parse_resource(container_resourceconfig_t *rc, const cJSON *res)
@@ -642,8 +667,10 @@ static int cmparser_parse_resource(container_resourceconfig_t *rc, const cJSON *
 
 				// all data available
 				p = (container_resource_elem_t*)malloc(sizeof(container_resource_elem_t));
-				if (p == NULL)
+				if (p == NULL) {
+					result = -3;
 					goto err_ret;
+				}
 
 				memset(p, 0 , sizeof(container_resource_elem_t));
 				dl_list_init(&p->list);
@@ -708,12 +735,12 @@ static int cmparser_parser_get_fstype(const char *str)
 /**
  * parser for fs section of container config.
  *
- * @param [out]	bc	Pointer to pre-allocated container_fsconfig_t.
- * @param [in]	bc	Pointer to cJSON object of top of fs section.
+ * @param [out]	fc	Pointer to pre-allocated container_fsconfig_t.
+ * @param [in]	fs	Pointer to cJSON object of top of fs section.
  * @return int
  * @retval  0 Success to parse.
- * @retval -1 Json file error.
- * @retval -2 Json file parse error.
+ * @retval -1 Json file error.(Reserve)
+ * @retval -2 Json file parse error.(Reserve)
  * @retval -3 Memory allocation error.
  */
 static int cmparser_parse_fs(container_fsconfig_t *fc, const cJSON *fs)
@@ -761,8 +788,10 @@ static int cmparser_parse_fs(container_fsconfig_t *fc, const cJSON *fs)
 
 				// all data available
 				p = (container_fsmount_elem_t*)malloc(sizeof(container_fsmount_elem_t));
-				if (p == NULL)
+				if (p == NULL) {
+					result = -3;
 					goto err_ret;
+				}
 
 				memset(p, 0 , sizeof(container_fsmount_elem_t));
 				dl_list_init(&p->list);
@@ -810,6 +839,7 @@ err_ret:
  * @retval DEVICE_TYPE_DEVNODE	str is devnode
  * @retval DEVICE_TYPE_DEVDIR	str is devdir
  * @retval DEVICE_TYPE_GPIO 	str is gpio
+ * @retval DEVICE_TYPE_IIO 		str is iio
  * @retval 0 NON
   */
 static int cmparser_parser_get_devtype(const char *str)
@@ -838,7 +868,7 @@ static int cmparser_parser_get_devtype(const char *str)
  *
  * @param [in]	str		string of gpio direction
  * @return int
- * @retval DEVGPIO_DIRECTION_IN	direction is input
+ * @retval DEVGPIO_DIRECTION_IN		direction is input
  * @retval DEVGPIO_DIRECTION_OUT	direction is output, default low.
  * @retval DEVGPIO_DIRECTION_LOW	direction is output, default low.
  * @retval DEVGPIO_DIRECTION_HIGH	direction is output, default high.
@@ -868,11 +898,11 @@ static int cmparser_parser_get_gpiodirection(const char *str)
  * parser for device-static section of container config.
  *
  * @param [out]	sdc	Pointer to pre-allocated container_static_device_t.
- * @param [in]	bc	Pointer to cJSON object of top of device-static section.
+ * @param [in]	sd	Pointer to cJSON object of top of device-static section.
  * @return int
  * @retval  0 Success to parse.
- * @retval -1 Json file error.
- * @retval -2 Json file parse error.
+ * @retval -1 Json file error.(Reserve)
+ * @retval -2 Json file parse error.(Reserve)
  * @retval -3 Memory allocation error.
  */
 static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON *sd)
@@ -1122,8 +1152,8 @@ err_ret:
  * @param [in]	dd	Pointer to cJSON object of top of device-dynamic section.
  * @return int
  * @retval  0 Success to parse.
- * @retval -1 Json file error.
- * @retval -2 Json file parse error.
+ * @retval -1 Json file error.(Reserve)
+ * @retval -2 Json file parse error.(Reserve)
  * @retval -3 Memory allocation error.
  */
 static int cmparser_parse_dynamic_dev(container_dynamic_device_t *ddc, const cJSON *dd)
@@ -1202,15 +1232,15 @@ err_ret:
 }
 
 /**
- * parser for device-dynamic section of container config.
+ * parser for device section of container config.
  *
  * @param [out]	dc	Pointer to pre-allocated container_deviceconfig_t.
- * @param [in]	dd	Pointer to cJSON object of top of device-dynamic section.
+ * @param [in]	dev	Pointer to cJSON object of top of device section.
  * @return int
  * @retval  0 Success to parse.
- * @retval -1 Json file error.
- * @retval -2 Json file parse error.
- * @retval -3 Memory allocation error.
+ * @retval -1 Json file error.(Reserve)
+ * @retval -2 Json file parse error.(Reserve)
+ * @retval -3 Memory allocation error.(Reserve)
  */
 int cmparser_parse_device(container_deviceconfig_t *dc, const cJSON *dev)
 {
@@ -1259,13 +1289,13 @@ static int cmparser_parser_get_netiftype(const char *str)
 	return ret;
 }
 /**
- * Read json string with memory allocation
+ * Sub function for the static veth if configuration.
+ * Shall not call from other than cmparser_parse_static_netif.
  *
- * @param [in]	file		Full file path for json file
- * @return char*
- * @retval -1 Json file error.
- * @retval -2 Json file parse error.
- * @retval -3 Memory allocation error.
+ * @param [in]	param		Pointer to cJSON object of top of veth param section.
+ * @return void*
+ * @retval !=NULL	Pointer to memory object for netif_elem_veth_t.
+ * @retval NULL		Json file parse error or memory allocation error.
  */
 static void* cmparser_parse_static_netif_veth_create(cJSON *param)
 {
@@ -1334,13 +1364,12 @@ static void* cmparser_parse_static_netif_veth_create(cJSON *param)
 	return vp;
 }
 /**
- * Read json string with memory allocation
+ * Memory free function for the static veth if configuration.
  *
- * @param [in]	file		Full file path for json file
- * @return char*
- * @retval -1 Json file error.
- * @retval -2 Json file parse error.
- * @retval -3 Memory allocation error.
+ * @param [in]	p	Pointer to memory object for netif_elem_veth_t.
+ * @return int
+ * @retval 0	Success to memory free.
+ * @retval -1	Misc error. (Reserve)
  */
 static int cmparser_parse_static_netif_veth_free(void *p)
 {
@@ -1351,6 +1380,7 @@ static int cmparser_parse_static_netif_veth_free(void *p)
 
 	pveth = (netif_elem_veth_t*)p;
 	free(pveth->link);
+	free(pveth->name);
 	free(pveth->flags);
 	free(pveth->hwaddr);
 	free(pveth->mode);
@@ -1361,18 +1391,18 @@ static int cmparser_parse_static_netif_veth_free(void *p)
 	return 0;
 }
 /**
- * Read json string with memory allocation
+ * parser for static netif section of container config.
  *
- * @param [in]	file		Full file path for json file
- * @return char*
- * @retval -1 Json file error.
- * @retval -2 Json file parse error.
+ * @param [out]	snif	Pointer to pre-allocated container_static_netif_t.
+ * @param [in]	sni		Pointer to cJSON object of top of netif-static section.
+ * @return int
+ * @retval  0 Success to parse.
+ * @retval -1 Json file error.(Reserve)
+ * @retval -2 Json file parse error.(Reserve)
  * @retval -3 Memory allocation error.
  */
 static int cmparser_parse_static_netif(container_static_netif_t *snif, const cJSON *sni)
 {
-	int result = -1;
-
 	// Get netif data
 	if (cJSON_IsArray(sni)) {
 		cJSON *elem = NULL;
@@ -1402,10 +1432,8 @@ static int cmparser_parse_static_netif(container_static_netif_t *snif, const cJS
 
 					// all data available
 					p = (container_static_netif_elem_t*)malloc(sizeof(container_static_netif_elem_t));
-					if (p == NULL) {
-						result = -3;
+					if (p == NULL)
 						goto err_ret;
-					}
 
 					p->type = iftype;
 					p->setting = vp;
@@ -1435,12 +1463,14 @@ err_ret:
 	return -3;
 }
 /**
- * Read json string with memory allocation
+ * parser for dynamic netif section of container config.
  *
- * @param [in]	file		Full file path for json file
- * @return char*
- * @retval -1 Json file error.
- * @retval -2 Json file parse error.
+ * @param [out]	dnif	Pointer to pre-allocated container_dynamic_netif_t.
+ * @param [in]	dni		Pointer to cJSON object of top of netif-dynamic section.
+ * @return int
+ * @retval  0 Success to parse.
+ * @retval -1 Json file error.(Reserve)
+ * @retval -2 Json file parse error.(Reserve)
  * @retval -3 Memory allocation error.
  */
 static int cmparser_parse_dynamic_netif(container_dynamic_netif_t *dnif, const cJSON *dni)
@@ -1494,12 +1524,14 @@ err_ret:
 	return -3;
 }
 /**
- * Read json string with memory allocation
+ * parser for netif section of container config.
  *
- * @param [in]	file		Full file path for json file
- * @return char*
- * @retval -1 Json file error.
- * @retval -2 Json file parse error.
+ * @param [out]	nc	Pointer to pre-allocated container_netifconfig_t.
+ * @param [in]	nif		Pointer to cJSON object of top of netif section.
+ * @return int
+ * @retval  0 Success to parse.
+ * @retval -1 Json file error.(Reserve)
+ * @retval -2 Json file parse error.(Reserve)
  * @retval -3 Memory allocation error.
  */
 int cmparser_parse_netif(container_netifconfig_t *nc, const cJSON *nif)
@@ -1530,11 +1562,13 @@ int cmparser_parse_netif(container_netifconfig_t *nc, const cJSON *nif)
 	return 0;
 }
 /**
- * Read json string with memory allocation
+ * Create container config object from json file.
  *
- * @param [in]	file		Full file path for json file
+ * @param [out]	cc		Double pointer to container_config_t to out container_config_t object.
+ * @param [in]	file	Full file path for json file
  * @return int
- * @retval -1 Json file error.
+ * @retval  0 Success create container_config_t object.
+ * @retval -1 Argument error.
  * @retval -2 Json file parse error.
  * @retval -3 Memory allocation error.
  */
@@ -1708,9 +1742,8 @@ err_ret:
 }
 /**
  * Release container config allocated by cmparser_create_from_file
-
  *
- * @param [in]	cc		Container config
+ * @param [in]	cc	Pointer to container_config_t.
  * @return void
  */
 void cmparser_release_config(container_config_t *cc)
