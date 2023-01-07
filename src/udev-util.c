@@ -484,7 +484,7 @@ static int udevmonitor_scan(dynamic_device_manager_t *ddm)
 		return -1;
 
 	udev_enumerate_add_match_subsystem(penum, dev_subsys_block);
-	udev_enumerate_add_match_subsystem(penum, "net");
+	udev_enumerate_add_match_subsystem(penum, dev_subsys_net);
 	udev_enumerate_scan_devices(penum);
 
 	devices = udev_enumerate_get_list_entry(penum);
