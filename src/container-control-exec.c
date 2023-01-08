@@ -809,14 +809,18 @@ int container_exec_internal_event(containers_t *cs)
 		for(int i=0;i < num;i++) {
 			cc = cs->containers[i];
 
-			if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
+			if (cc->runtime_stat.status == CONTAINER_SHUTDOWN || cc->runtime_stat.status == CONTAINER_REBOOT) {
 				if (cc->runtime_stat.timeout < timeout) {
 					// force kill after timeout
 					(void) lxcutil_container_forcekill(cc);
 					(void) container_terminate(cc);
-					cc->runtime_stat.status = CONTAINER_NOT_STARTED; // guest is force dead
+					if (cc->runtime_stat.status == CONTAINER_REBOOT) {
+						cc->runtime_stat.status = CONTAINER_DEAD; // Guest status change to dead. (For rebooting)
+					} else {
+						cc->runtime_stat.status = CONTAINER_NOT_STARTED; // Guest status change to not started. (For switching or stop)
+					}
 					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-					fprintf(stderr,"[CM CRITICAL ERROR] container %s was shutdown timeout, fourcekill.\n", cc->name);
+					fprintf(stderr,"[CM CRITICAL ERROR] container %s was shutdown/reboot timeout, fourcekill.\n", cc->name);
 					#endif
 				}
 			}
@@ -843,7 +847,7 @@ int container_exec_internal_event(containers_t *cs)
 		// Check to all container shutdown timeout.
 		for(int i=0;i < num;i++) {
 			cc = cs->containers[i];
-			if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
+			if (cc->runtime_stat.status == CONTAINER_SHUTDOWN || cc->runtime_stat.status == CONTAINER_REBOOT) {
 				if (cc->runtime_stat.timeout < timeout) {
 					// force kill after timeout
 					(void) lxcutil_container_forcekill(cc);
@@ -1212,7 +1216,7 @@ static int container_start_mountdisk_ab(char **devs, const char *path, const cha
 	}
 
 	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr,"container_start_mountdisk_ab: %s mount to %s (%s)\n", dev, path, fstype);
+	fprintf(stderr,"container_start_mountdisk_ab(%d): %s mount to %s (%s)\n", side, dev, path, fstype);
 	#endif
 
 	return 0;

@@ -15,6 +15,7 @@ containermanager_SOURCES = \
 	net-util.c \
 	udev-util.c \
 	signal-util.c \
+	proc-util.c \
 	uevent_injection.c \
 	container-config.c \
 	device-control-static.c \
