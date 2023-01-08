@@ -19,6 +19,10 @@
 
 #undef _PRINTF_DEBUG_
 
+#ifndef COMMAND_LINE_SIZE
+//Workaround for x86-64
+#define COMMAND_LINE_SIZE	(2048)
+#endif	//#ifndef COMMAND_LINE_SIZE
 /**
  * @struct	s_procutl_cmdline_elem
  * @brief	The data structure for cmdline argument list.
