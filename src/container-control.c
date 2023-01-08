@@ -24,6 +24,11 @@
 #undef _PRINTF_DEBUG_
 
 /**
+ * @var		abboot_cmdline_key
+ * @brief	AB boot keyword in /proc/cmdline.
+ */
+static const char abboot_cmdline_key[] = "aglabboot";
+/**
  * Central state machine handler for container manager.
  *
  * @param [in]	cs		Pointer to containers_t.
@@ -380,6 +385,72 @@ int container_mngsm_regist_device_manager(containers_t *cs, dynamic_device_manag
 	return 0;
 }
 /**
+ * Container manager system level setup.
+ *
+ * @param [in]	cs	setup target for struct s_container.
+ * @return int
+ * @retval	0	Success to setup internal timer.
+ * @retval	-1	Internal error.
+ * @retval	-2	Argument error. (Reserve)
+ */
+static int container_mngsm_do_system(containers_t *cs)
+{
+	struct s_container_mngsm *cms = NULL;
+	procutil_t *pu = NULL;
+	int64_t value = 0;
+	int ret = -1;
+
+	cms = (struct s_container_mngsm*)cs->cms;
+
+	ret = procutil_create(&pu);
+	if (ret < 0)
+		return -1;
+
+	ret = procutil_get_cmdline_value_int64(pu, abboot_cmdline_key, &value);
+	if (ret < 0)
+		value = 0;	//default is 0
+
+	if (value != 1)	// An ab boot value is only 0 or 1. When value is out of range, value set default value 0.
+		value = 0;
+
+	// set ab boot side to all guest.
+	{
+		int num;
+		container_config_t *cc = NULL;
+
+		num = cs->num_of_container;
+
+		for(int i=0;i < num;i++) {
+			cc = cs->containers[i];
+			if (value != 1)
+				cc->baseconfig.abboot = 0;	// An ab boot value is only 0 or 1. When value is out of range, value set default value 0.
+			else
+				cc->baseconfig.abboot = 1;
+		}
+	}
+
+	cs->cms->prutl = pu;
+
+	return 0;
+}
+/**
+ * Container manager system level cleanup.
+ *
+ * @param [in]	cs	cleanup target for struct s_container.
+ * @return int
+ * @retval	0	Success to setup internal timer.
+ * @retval	-1	Argument error.
+ */
+static int container_mngsm_cleanup_system(containers_t *cs)
+{
+	if (cs == NULL)
+		return -1;
+
+	(void) procutil_cleanup(cs->cms->prutl);
+
+	return 0;
+}
+/**
  * Start container management state machine.
  * This function start guest container in each role.
  * In addition, it dispatch initial device arbitration and start internal timer.
@@ -479,6 +550,10 @@ int container_mngsm_setup(containers_t **pcs, sd_event *event, const char *confi
 	memset(cs->cms, 0, sizeof(struct s_container_mngsm));
 	cs->cms->secondary_fd = -1;
 
+	ret = container_mngsm_do_system(cs);
+	if (ret < 0)
+		goto err_return;
+
 	ret = container_mngsm_commsocket_setup(cs, event);
 	if (ret < 0)
 		goto err_return;
@@ -503,6 +578,7 @@ err_return:
 	if (cs->cms != NULL) {
 		(void)container_mngsm_internal_timer_cleanup(cs);
 		(void)container_mngsm_commsocket_cleanup(cs);
+		(void)container_mngsm_cleanup_system(cs);
 		free(cs->cms);
 	}
 
@@ -562,6 +638,7 @@ int container_mngsm_cleanup(containers_t *cs)
 		(void)container_external_interface_cleanup(cs);
 		(void)container_mngsm_internal_timer_cleanup(cs);
 		(void)container_mngsm_commsocket_cleanup(cs);
+		(void)container_mngsm_cleanup_system(cs);
 		free(cs->cms);
 	}
 
