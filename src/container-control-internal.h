@@ -12,6 +12,7 @@
 #include <systemd/sd-event.h>
 
 #include "container.h"
+#include "proc-util.h"
 //-----------------------------------------------------------------------------
 // common definition
 //-----------------------------------------------------------------------------
@@ -23,6 +24,7 @@ typedef struct s_cm_external_interface cm_external_interface_t;
  * @brief	The structure for container manager state machine that carry event resource.
  */
 struct s_container_mngsm {
+	procutil_t *prutl;					/**< Pointer to proc util object. */
 	cm_external_interface_t *cm_ext_if;	/**< Pointer to external interface object for container manager. */
 	sd_event_source *timer_source;		/**< The sd event source for internal timer. */
 	sd_event_source *socket_source;		/**< The sd event source for internal event communication to use receiving event. */

@@ -1216,7 +1216,7 @@ static int container_start_mountdisk_ab(char **devs, const char *path, const cha
 	}
 
 	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr,"container_start_mountdisk_ab: %s mount to %s (%s)\n", dev, path, fstype);
+	fprintf(stderr,"container_start_mountdisk_ab(%d): %s mount to %s (%s)\n", side, dev, path, fstype);
 	#endif
 
 	return 0;
