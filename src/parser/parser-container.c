@@ -1146,6 +1146,200 @@ err_ret:
 	return -3;
 }
 /**
+ * TODO : parser for device-dynamic section of container config.
+ *
+ * @param [out]	ddc	Pointer to pre-allocated container_dynamic_device_t.
+ * @param [in]	dd	Pointer to cJSON object of top of device-dynamic section.
+ * @return int
+ * @retval  0 Success to parse.
+ * @retval -1 Json file error.(Reserve)
+ * @retval -2 Json file parse error.(Reserve)
+ * @retval -3 Memory allocation error.
+ */
+static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde, const cJSON *item)
+{
+	dynamic_device_entry_items_t *p = NULL;
+	cJSON *subsystem = NULL, *rule = NULL, *behavior = NULL;
+
+	subsystem = cJSON_GetObjectItemCaseSensitive(item, "subsystem");
+	if (!(cJSON_IsString(subsystem) && (subsystem->valuestring != NULL)))
+		return -2;
+
+fprintf(stdout,"cmparser: subsystem = %s\n", subsystem->valuestring);
+
+	p = (dynamic_device_entry_items_t*)malloc(sizeof(dynamic_device_entry_items_t));
+	if (p == NULL)
+		goto err_ret;
+
+	memset(p, 0 , sizeof(dynamic_device_entry_items_t));
+	p->subsystem = strdup(subsystem->valuestring);
+	dl_list_init(&p->list);
+	dl_list_init(&p->rule.devtype_list);
+
+	rule = cJSON_GetObjectItemCaseSensitive(item, "rule");
+	if (cJSON_IsObject(rule)) {
+		cJSON *devtype = NULL, *action = NULL;
+
+		devtype = cJSON_GetObjectItemCaseSensitive(rule, "devtype");
+		if (cJSON_IsArray(devtype)) {
+			cJSON *devtypestr = NULL;
+
+			cJSON_ArrayForEach(devtypestr, devtype) {
+				if (cJSON_IsString(devtypestr) && (devtypestr->valuestring != NULL)) {
+					short_string_list_item_t *pli = NULL;
+					pli = (short_string_list_item_t*)malloc(sizeof(short_string_list_item_t));
+					if (pli == NULL)
+						goto err_ret;
+
+					memset(pli, 0, sizeof(short_string_list_item_t));
+					dl_list_init(&pli->list);
+					strncpy(pli->string, devtypestr->valuestring, sizeof(pli->string)-1);
+					dl_list_add_tail(&p->rule.devtype_list, &pli->list);
+
+					fprintf(stdout,"cmparser: cmparser_parse_dynamic_dev_item devtype = %s\n", pli->string);
+				}
+			}
+		}
+
+		action = cJSON_GetObjectItemCaseSensitive(rule, "action");
+		if (cJSON_IsArray(action)) {
+			cJSON *actionstr = NULL;
+
+			cJSON_ArrayForEach(actionstr, action) {
+				if (cJSON_IsString(actionstr) && (actionstr->valuestring != NULL)) {
+					if (strcmp("add", actionstr->valuestring) == 0) {
+						p->rule.action.add = 1;
+					} else if (strcmp("remove", actionstr->valuestring) == 0) {
+						p->rule.action.remove = 1;
+					} else if (strcmp("change", actionstr->valuestring) == 0) {
+						p->rule.action.change = 1;
+					} else if (strcmp("move", actionstr->valuestring) == 0) {
+						p->rule.action.move = 1;
+					} else if (strcmp("online", actionstr->valuestring) == 0) {
+						p->rule.action.online = 1;
+					} else if (strcmp("offline", actionstr->valuestring) == 0) {
+						p->rule.action.offline = 1;
+					} else if (strcmp("bind", actionstr->valuestring) == 0) {
+						p->rule.action.bind = 1;
+					} else if (strcmp("unbind", actionstr->valuestring) == 0) {
+						p->rule.action.unbind = 1;
+					}
+				}
+			}
+
+			fprintf(stdout,"cmparser: cmparser_parse_dynamic_dev_item action add=%d remove=%d change=%d\n", p->rule.action.add, p->rule.action.remove, p->rule.action.change);
+		}
+	}
+
+	behavior = cJSON_GetObjectItemCaseSensitive(item, "behavior");
+	if (cJSON_IsObject(behavior)) {
+		cJSON *injection = NULL, *devnode = NULL, *permission = NULL;
+
+		injection = cJSON_GetObjectItemCaseSensitive(behavior, "injection");
+		if (cJSON_IsNumber(injection)) {
+			if (injection->valueint == 1)
+				p->behavior.injection = 1;
+		}
+
+		devnode = cJSON_GetObjectItemCaseSensitive(behavior, "devnode");
+		if (cJSON_IsNumber(devnode)) {
+			if (devnode->valueint == 1)
+				p->behavior.devnode = 1;
+		}
+
+		permission = cJSON_GetObjectItemCaseSensitive(behavior, "permission");
+		if (cJSON_IsString(permission) && (permission->valuestring != NULL)) {
+			p->behavior.permission = strdup(permission->valuestring);
+		}
+
+		fprintf(stdout,"cmparser: cmparser_parse_dynamic_dev_item behavior injection=%d devnode=%d permission=%s\n", p->behavior.injection, p->behavior.devnode, p->behavior.permission);
+	}
+
+	dl_list_add_tail(&dde->items, &p->list);
+
+	return 0;
+
+err_ret:
+	if (p != NULL) {
+		short_string_list_item_t *pli = NULL;
+		// dynamic device config
+		while(dl_list_empty(&p->rule.devtype_list) == 0) {
+			pli = dl_list_last(&p->rule.devtype_list, short_string_list_item_t, list);
+			dl_list_del(&pli->list);
+			free(pli);
+		}
+
+		free(p->behavior.permission);
+	}
+
+	return -3;
+}
+/**
+ * parser for device-dynamic section of container config.
+ *
+ * @param [out]	ddc	Pointer to pre-allocated container_dynamic_device_t.
+ * @param [in]	dd	Pointer to cJSON object of top of device-dynamic section.
+ * @return int
+ * @retval  0 Success to parse.
+ * @retval -1 Json file error.(Reserve)
+ * @retval -2 Json file parse error.(Reserve)
+ * @retval -3 Memory allocation error.
+ */
+static int cmparser_parse_dynamic_dev(container_dynamic_device_t *ddc, const cJSON *dd)
+{
+	// Get dynamic array
+	if (cJSON_IsArray(dd)) {
+		cJSON *elem = NULL;
+
+		cJSON_ArrayForEach(elem, dd) {
+			if (cJSON_IsObject(elem)) {
+				cJSON *devpath = NULL;
+				cJSON *items = NULL;
+				container_dynamic_device_entry_t *p = NULL;
+
+				devpath = cJSON_GetObjectItemCaseSensitive(elem, "devpath");
+				if (!(cJSON_IsString(devpath) && (devpath->valuestring != NULL)))
+					continue;
+
+				p = (container_dynamic_device_entry_t*)malloc(sizeof(container_dynamic_device_entry_t));
+				if (p == NULL)
+					goto err_ret;
+
+				memset(p, 0 , sizeof(container_dynamic_device_entry_t));
+				p->devpath = strdup(devpath->valuestring);
+				dl_list_init(&p->list);
+				dl_list_init(&p->items);
+
+				//#ifdef _PRINTF_DEBUG_
+				fprintf(stdout,"cmparser: dynamic_device.devpath = %s\n", p->devpath);
+				//#endif
+
+				items = cJSON_GetObjectItemCaseSensitive(elem, "items");
+				if (cJSON_IsArray(items)) {
+					cJSON *item = NULL;
+
+					cJSON_ArrayForEach(item, items) {
+						if (cJSON_IsObject(item)) {
+							(void) cmparser_parse_dynamic_dev_item(p, item);
+						}
+					}
+				} else {
+					fprintf(stdout,"cmparser: dynamic_device items is not get\n");
+				}
+
+				dl_list_add_tail(&ddc->dynamic_devlistv2, &p->list);
+			}
+		}
+	}
+
+	return 0;
+
+err_ret:
+
+	return -3;
+}
+#if 0
+/**
  * parser for device-dynamic section of container config.
  *
  * @param [out]	ddc	Pointer to pre-allocated container_dynamic_device_t.
@@ -1230,7 +1424,7 @@ err_ret:
 
 	return -3;
 }
-
+#endif
 /**
  * parser for device section of container config.
  *
@@ -1609,6 +1803,7 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 	dl_list_init(&ccfg->deviceconfig.static_device.static_gpiolist);
 	dl_list_init(&ccfg->deviceconfig.static_device.static_iiolist);
 	dl_list_init(&ccfg->deviceconfig.dynamic_device.dynamic_devlist);
+	dl_list_init(&ccfg->deviceconfig.dynamic_device.dynamic_devlistv2);//temp
 	dl_list_init(&ccfg->netifconfig.static_netif.static_netiflist);
 	dl_list_init(&ccfg->netifconfig.dynamic_netif.dynamic_netiflist);
 

@@ -12,10 +12,11 @@
 #include <sys/types.h>
 #include <net/if.h>
 #include "list.h"
+//#include "container.h"
 #include "container-control-interface.h"
 
-struct s_udevmonitor;
-typedef struct s_udevmonitor udevmonitor_t;
+struct s_dynamic_device_udev;
+typedef struct s_dynamic_device_udev dynamic_device_udev_t;
 
 struct s_netifmonitor;
 typedef struct s_netifmonitor netifmonitor_t;
@@ -89,7 +90,7 @@ struct s_dynamic_device_manager {
 	block_device_manager_t blockdev;	/**< Management data for block device. */
 	network_interface_manager_t netif;	/**< Management data for network interface. */
 	//--- internal control data
-	udevmonitor_t *udevmon;				/**< Pointer to constructed udevmonitor storage. */
+	dynamic_device_udev_t *ddu;		/**< Pointer to constructed dynamic_device_udev storage. */
 	netifmonitor_t *netifmon;			/**< Pointer to constructed netifmonitor storage. */
 };
 typedef struct s_dynamic_device_manager dynamic_device_manager_t;	/**< typedef for struct s_dynamic_device_manager. */

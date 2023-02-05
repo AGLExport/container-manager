@@ -141,16 +141,48 @@
 		],
 		"dynamic": [
 			{
-				"devpath":		"/devices/platform/soc/ee0a0100.usb/usb2/",
-				"subsystem":	"block",
-				"devtype":		"disk",
-				"mode":	3
+				"devpath": "/devices/platform/soc/ee0a0100.usb/usb2/",
+				"items": [
+					{
+						"subsystem": "usb",
+						"rule": {
+							"devtype": ["usb_device","usb_interface"],
+							"action": ["add", "remove"]
+						},
+						"behavior": {
+							"injection": 1,
+							"devnode": 0,
+							"permission": "rw"
+						}
+					},
+					{
+						"subsystem": "block",
+						"rule": {
+							"action": ["add", "remove","change"]
+						},
+						"behavior": {
+							"injection": 1,
+							"devnode": 0,
+							"permission": "rwm"
+						}
+					}
+				]
 			},
 			{
-				"devpath":		"/devices/platform/soc/ee0a0100.usb/usb2/",
-				"subsystem":	"block",
-				"devtype":		"partition",
-				"mode":	3
+				"devpath": "/devices/platform/soc/ee0a0100.usb/usb2/",
+				"items": [
+					{
+						"subsystem": "hid",
+						"rule": {
+							"action": ["add", "remove"]
+						},
+						"behavior": {
+							"injection": 1,
+							"devnode": 1,
+							"permission": "rw"
+						}
+					}
+				]
 			}
 		]
 	},

@@ -11,7 +11,7 @@
 #include <errno.h>
 
 #include "signal-util.h"
-#include "udev-util.h"
+//#include "udev-util.h"
 #include "net-util.h"
 #include "lxc-util.h"
 #include "block-util.h"
@@ -86,14 +86,14 @@ int main(int argc, char *argv[])
 		goto finish;
 	}
 
-	ret = devc_device_manager_setup(&ddm, cci, event);
+	ret = devc_device_manager_setup(cs, event);
 	if (ret < 0) {
 		#ifdef _PRINTF_DEBUG_
 		fprintf(stderr,"devc_device_manager_setup: fail %d\n", ret);
 		#endif
 		goto finish;
 	}
-
+/*
 	ret = container_mngsm_regist_device_manager(cs, ddm);
 	if (ret < 0) {
 		#ifdef _PRINTF_DEBUG_
@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
 		#endif
 		goto finish;
 	}
-
+*/
 	// early device setup: setup all containers, for static device, gpio,
 	ret = devc_early_device_setup(cs);
 	if (ret < 0)
@@ -131,12 +131,10 @@ int main(int argc, char *argv[])
 finish:
 	if (cs != NULL) {
 		(void) container_mngsm_terminate(cs);
+		(void) devc_device_manager_cleanup(cs);
 		(void) container_mngsm_cleanup(cs);
 	}
-
-	(void) devc_device_manager_cleanup(ddm);
-
 	event = sd_event_unref(event);
 
-	return 0;;
+	return 0;
 }

@@ -396,12 +396,87 @@ struct s_container_dynamic_device_elem {
 };
 typedef struct s_container_dynamic_device_elem container_dynamic_device_elem_t;	/**< typedef for struct s_container_dynamic_device_elem. */
 
+
+/**
+ * @struct
+ * @brief
+ */
+struct s_short_string_list_item {
+	struct dl_list list;	/**< Double link list header */
+	char string[256];			/**< device path of this device. */
+};
+typedef struct s_short_string_list_item short_string_list_item_t;
+
+/**
+ * @struct
+ * @brief
+ */
+struct s_uevent_action {
+	int add;		/**< Does handle to add event (1:yes, 0:no). */
+	int remove;		/**< Does handle to remove event (1:yes, 0:no). */
+	int change;		/**< Does handle to change event (1:yes, 0:no). */
+	int	move;		/**< Does handle to move event (1:yes, 0:no). */
+	int online;		/**< Does handle to online event (1:yes, 0:no). */
+	int offline;	/**< Does handle to offline event (1:yes, 0:no). */
+	int	bind;		/**< Does handle to bind event (1:yes, 0:no). */
+	int unbind;		/**< Does handle to unbind event (1:yes, 0:no). */
+};
+typedef struct s_uevent_action uevent_action_t;
+
+/**
+ * @struct
+ * @brief
+ */
+struct s_dynamic_device_entry_items_rule {
+	uevent_action_t action;
+	struct dl_list devtype_list;	/**< Double link list for devtype. */
+};
+typedef struct s_dynamic_device_entry_items_rule dynamic_device_entry_items_rule_t;
+
+
+/**
+ * @struct
+ * @brief
+ */
+struct s_dynamic_device_entry_items_behavior {
+	int injection;		/**< Does enable uevent_injection (1:yes, 0:no). */
+	int devnode;		/**< Does enable device node creation (1:yes, 0:no). */
+	char *permission;	/**< Permission for device.*/
+};
+typedef struct s_dynamic_device_entry_items_behavior dynamic_device_entry_items_behavior_t;
+/**
+ * @struct
+ * @brief
+ */
+struct s_dynamic_device_entry_items {
+	struct dl_list list;	/**< Double link list header. */
+	char *subsystem;			/**< device path of this device. */
+	dynamic_device_entry_items_rule_t rule;
+	dynamic_device_entry_items_behavior_t behavior;
+	//--- internal control data
+};
+typedef struct s_dynamic_device_entry_items dynamic_device_entry_items_t;
+
+/**
+ * @struct
+ * @brief
+ */
+struct s_container_dynamic_device_entry {
+	struct dl_list list;	/**< Double link list header */
+	char *devpath;			/**< Assignment device path into this guest container. */
+	struct dl_list items;	/**< Double link list header */
+
+	//--- internal control data
+};
+typedef struct s_container_dynamic_device_entry container_dynamic_device_entry_t;
+
 /**
  * @struct	s_container_static_device
  * @brief	The data structure for all dynamic device settings.  It's a part of s_container_deviceconfig.
  */
 struct s_container_dynamic_device {
 	struct dl_list dynamic_devlist;	/**< Double link list for s_container_dynamic_device_elem */
+	struct dl_list dynamic_devlistv2;	/**< Double link list for s_container_dynamic_device_elem */
 };
 typedef struct s_container_dynamic_device container_dynamic_device_t;	/**< typedef for struct s_container_dynamic_device. */
 

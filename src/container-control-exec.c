@@ -46,6 +46,7 @@ int container_restart(container_config_t *cc);
  */
 int container_device_update_guest(container_config_t *cc, dynamic_device_manager_t *ddm)
 {
+#if 0
 	int ret = 1;
 	block_device_manager_t *blockdev = NULL;
 	container_dynamic_device_t *cdd = NULL;
@@ -153,7 +154,7 @@ int container_device_update_guest(container_config_t *cc, dynamic_device_manager
 			}
 		}
 	}
-
+#endif
 	return 0;
 }
 /**
@@ -227,6 +228,7 @@ err_ret:
  */
 int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_t *ddm)
 {
+#if 0
 	int ret = -1;
 	network_interface_manager_t *netif = NULL;
 	container_dynamic_netif_t *cdn = NULL;
@@ -296,7 +298,7 @@ int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_
 			#endif
 		}
 	}
-
+#endif
 	return 0;
 }
 /**
