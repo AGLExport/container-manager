@@ -167,6 +167,7 @@ int container_device_update_guest(container_config_t *cc, dynamic_device_manager
  */
 int container_device_remove_element(container_config_t *cc)
 {
+#if 0
 	container_dynamic_device_t *cdd = NULL;
 	container_dynamic_device_elem_t *cdde = NULL;
 	dynamic_device_elem_data_t *dded = NULL, *dded_n = NULL;
@@ -184,7 +185,7 @@ int container_device_remove_element(container_config_t *cc)
 			dynamic_device_elem_data_free(dded);
 		}
 	}
-
+#endif
 	return 0;
 }
 /**

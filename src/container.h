@@ -475,7 +475,7 @@ typedef struct s_container_dynamic_device_entry container_dynamic_device_entry_t
  * @brief	The data structure for all dynamic device settings.  It's a part of s_container_deviceconfig.
  */
 struct s_container_dynamic_device {
-	struct dl_list dynamic_devlist;	/**< Double link list for s_container_dynamic_device_elem */
+	/*struct dl_list dynamic_devlist;*/	/**< Double link list for s_container_dynamic_device_elem */
 	struct dl_list dynamic_devlistv2;	/**< Double link list for s_container_dynamic_device_elem */
 };
 typedef struct s_container_dynamic_device container_dynamic_device_t;	/**< typedef for struct s_container_dynamic_device. */
