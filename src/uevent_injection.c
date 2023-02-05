@@ -30,29 +30,6 @@
 #endif
 
 /**
- * Get point to /dev/ trimmed devname.
- *
- * @param [in]	devnode	String to devname with "/dev/" prefix.
- * @return int
- * @retval	!=NULL	Pointer to trimmed devname.
- * @retval	==NULL	Is not devname.
- */
-static char *trimmed_devname(char* devnode)
-{
-	char *cmpstr = "/dev/";
-	char *pstr = NULL;
-	int cmplen = 0;
-
-	cmplen = strlen(cmpstr);
-
-	if (strncmp(devnode, cmpstr, cmplen) == 0) {
-		pstr = devnode;
-		pstr += cmplen;
-	}
-
-	return pstr;
-}
-/**
  * Sub function for open name space.
  *
  * @param [in]	pid	target process pid
@@ -146,198 +123,6 @@ err_return:
 	return result;
 }
 /**
- * Create uevent message from dynamic_device_elem_data_t.
- *
- * @param [in,out]	buf		Buffer for uevent message storage.
- * @param [in]		bufsize	Size of buf.
- * @param [in]		dded	Pointer to dynamic_device_elem_data_t that include injecting device information.
- * @param [in]		action	String for device action. (add/remove)
- * @return int
- * @retval	0	Success to create uevent message.
- * @retval	-1	Argument error.
- * @retval	-2	To large created uevent message.
- */
-static int uevent_injection_create_ueventdata(char *buf, int bufsize, dynamic_device_elem_data_t *dded, char *action)
-{
-	int ret = -1;
-	int usage = 0, remain = 0;
-
-	if (bufsize < 1)
-		return -1;
-
-	memset(buf, 0, bufsize);
-	remain = bufsize;
-
-	// add@/devices/pci0000:00/0000:00:08.1/0000:05:00.3/usb4/4-2/4-2:1.0/host3/target3:0:0/3:0:0:0/block/sdb/sdb1
-	ret = snprintf(&buf[usage], remain, "%s@%s", action, dded->devpath);
-	if ((!(ret < remain)) || ret < 0)
-		return -2;
-
-	usage = usage + ret + 1 /*NULL term*/;
-	remain = bufsize - usage;
-	if (remain < 0)
-		return -2;
-
-	// ACTION=add
-	ret = snprintf(&buf[usage], remain, "ACTION=%s", action);
-	if ((!(ret < remain)) || ret < 0)
-		return -2;
-
-	usage = usage + ret + 1 /*NULL term*/;
-	remain = bufsize - usage;
-	if (remain < 0)
-		return -2;
-
-	// DEVPATH=/devices/pci0000:00/0000:00:08.1/0000:05:00.3/usb4/4-2/4-2:1.0/host3/target3:0:0/3:0:0:0/block/sdb/sdb1
-	ret = snprintf(&buf[usage], remain, "DEVPATH=%s", dded->devpath);
-	if ((!(ret < remain)) || ret < 0)
-		return -2;
-
-	usage = usage + ret + 1 /*NULL term*/;
-	remain = bufsize - usage;
-	if (remain < 0)
-		return -2;
-
-	// SUBSYSTEM=block
-	ret = snprintf(&buf[usage], remain, "SUBSYSTEM=%s", dded->subsystem);
-	if ((!(ret < remain)) || ret < 0)
-		return -2;
-
-	usage = usage + ret + 1 /*NULL term*/;
-	remain = bufsize - usage;
-	if (remain < 0)
-		return -2;
-
-	// MAJOR=8 and MINOR=17
-	if (dded->devnum != 0) {
-		// MAJOR=8
-		ret = snprintf(&buf[usage], remain, "MAJOR=%d", major(dded->devnum));
-		if ((!(ret < remain)) || ret < 0)
-			return -2;
-
-		usage = usage + ret + 1 /*NULL term*/;
-		remain = bufsize - usage;
-		if (remain < 0)
-			return -2;
-
-		// MINOR=17
-		ret = snprintf(&buf[usage], remain, "MINOR=%d", minor(dded->devnum));
-		if ((!(ret < remain)) || ret < 0)
-			return -2;
-
-		usage = usage + ret + 1 /*NULL term*/;
-		remain = bufsize - usage;
-		if (remain < 0)
-			return -2;
-	}
-
-	// DEVNAME=sdb1
-	if (dded->devnode != NULL) {
-		char *devname = NULL;
-		devname = trimmed_devname(dded->devnode);
-		if (devname != NULL) {
-			ret = snprintf(&buf[usage], remain, "DEVNAME=%s", devname);
-			if ((!(ret < remain)) || ret < 0)
-				return -2;
-
-			usage = usage + ret + 1 /*NULL term*/;
-			remain = bufsize - usage;
-			if (remain < 0)
-				return -2;
-		}
-	}
-
-	// DEVTYPE=partition
-	if (dded->devtype != NULL) {
-		ret = snprintf(&buf[usage], remain, "DEVTYPE=%s", dded->devtype);
-		if ((!(ret < remain)) || ret < 0)
-			return -2;
-
-		usage = usage + ret + 1 /*NULL term*/;
-		remain = bufsize - usage;
-		if (remain < 0)
-			return -2;
-	}
-
-	// DISKSEQ=23
-	if (dded->diskseq != NULL) {
-		ret = snprintf(&buf[usage], remain, "DISKSEQ=%s", dded->diskseq);
-		if ((!(ret < remain)) || ret < 0)
-			return -2;
-
-		usage = usage + ret + 1 /*NULL term*/;
-		remain = bufsize - usage;
-		if (remain < 0)
-			return -2;
-	}
-
-	// PARTN=1
-	if (dded->partn != NULL) {
-		ret = snprintf(&buf[usage], remain, "PARTN=%s", dded->partn);
-		if ((!(ret < remain)) || ret < 0)
-			return -2;
-
-		usage = usage + ret + 1 /*NULL term*/;
-		remain = bufsize - usage;
-		if (remain < 0)
-			return -2;
-	}
-
-	// SEQNUM=4341
-	// not need it
-
-	return usage;
-}
-/*
-	message example
-
-	add@/devices/pci0000:00/0000:00:08.1/0000:05:00.3/usb4/4-2/4-2:1.0/host3/target3:0:0/3:0:0:0/block/sdb
-		ACTION=add
-		DEVPATH=/devices/pci0000:00/0000:00:08.1/0000:05:00.3/usb4/4-2/4-2:1.0/host3/target3:0:0/3:0:0:0/block/sdb
-		SUBSYSTEM=block
-		MAJOR=8
-		MINOR=16
-		DEVNAME=sdb
-		DEVTYPE=disk
-		DISKSEQ=23
-		SEQNUM=4340
-
-	add@/devices/pci0000:00/0000:00:08.1/0000:05:00.3/usb4/4-2/4-2:1.0/host3/target3:0:0/3:0:0:0/block/sdb/sdb1
-		ACTION=add
-		DEVPATH=/devices/pci0000:00/0000:00:08.1/0000:05:00.3/usb4/4-2/4-2:1.0/host3/target3:0:0/3:0:0:0/block/sdb/sdb1
-		SUBSYSTEM=block
-		MAJOR=8
-		MINOR=17
-		DEVNAME=sdb1
-		DEVTYPE=partition
-		DISKSEQ=23
-		PARTN=1
-		SEQNUM=4341
-
-	remove@/devices/pci0000:00/0000:00:08.1/0000:05:00.3/usb4/4-2/4-2:1.0/host3/target3:0:0/3:0:0:0/block/sdb/sdb1
-		ACTION=remove
-		DEVPATH=/devices/pci0000:00/0000:00:08.1/0000:05:00.3/usb4/4-2/4-2:1.0/host3/target3:0:0/3:0:0:0/block/sdb/sdb1
-		SUBSYSTEM=block
-		MAJOR=8
-		MINOR=17
-		DEVNAME=sdb1
-		DEVTYPE=partition
-		DISKSEQ=23
-		PARTN=1
-		SEQNUM=4347
-
-	remove@/devices/pci0000:00/0000:00:08.1/0000:05:00.3/usb4/4-2/4-2:1.0/host3/target3:0:0/3:0:0:0/block/sdb
-		ACTION=remove
-		DEVPATH=/devices/pci0000:00/0000:00:08.1/0000:05:00.3/usb4/4-2/4-2:1.0/host3/target3:0:0/3:0:0:0/block/sdb
-		SUBSYSTEM=block
-		MAJOR=8
-		MINOR=16
-		DEVNAME=sdb
-		DEVTYPE=disk
-		DISKSEQ=23
-		SEQNUM=4349
-*/
-/**
  * Inject uevent to guest container using pid.
  *
  * @param [in]	target_pid	Target process pid.
@@ -350,16 +135,14 @@ static int uevent_injection_create_ueventdata(char *buf, int bufsize, dynamic_de
  * @retval	-3	Fork error.
  * @retval	-4	Error from child process.
  */
-int uevent_injection_to_pid(pid_t target_pid, dynamic_device_elem_data_t *dded, char *action)
+int uevent_injection_to_pid(pid_t target_pid, uevent_injection_message_t *uim)
 {
 	int result = -1;
 	int ret = -1;
 	int net_ns_fd = -1;
 	pid_t child_pid = -1;
-	int messagesize = 0;
-	char buf[MNL_SOCKET_BUFFER_SIZE];
 
-	if (target_pid < 1 || dded == NULL || action == NULL)
+	if (target_pid < 1 || uim == NULL)
 		return -1;
 
 	net_ns_fd = open_namespace_fd(target_pid, "net");
@@ -371,12 +154,6 @@ int uevent_injection_to_pid(pid_t target_pid, dynamic_device_elem_data_t *dded, 
 		goto err_return;
 	}
 
-	messagesize = uevent_injection_create_ueventdata(buf, MNL_SOCKET_BUFFER_SIZE, dded, action);
-	if (messagesize < 0) {
-		result = -1;
-		goto err_return;
-	}
-
 	child_pid = fork();
 	if (child_pid < 0) {
 		result = -3;
@@ -385,7 +162,7 @@ int uevent_injection_to_pid(pid_t target_pid, dynamic_device_elem_data_t *dded, 
 
 	if (child_pid == 0) {
 		// run on child process, must be exit.
-		ret = uevent_injection_child(net_ns_fd, buf, messagesize);
+		ret = uevent_injection_child(net_ns_fd, uim->message, uim->used);
 		if (ret < 0)
 			_exit(EXIT_FAILURE);
 

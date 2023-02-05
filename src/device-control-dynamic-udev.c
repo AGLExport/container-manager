@@ -15,7 +15,9 @@
 #include <sys/sysmacros.h>
 
 #include "container.h"
+#include "lxc-util.h"
 #include "block-util.h"
+#include "uevent_injection.h"
 
 #undef _PRINTF_DEBUG_
 
@@ -59,26 +61,12 @@ static const char *block_dev_blacklist[] = {
 	NULL,
 };
 
-#if 0
-static int dynamic_device_info_free(dynamic_device_info_t *ddi);
-static int dynamic_device_info_create_block(dynamic_device_info_t **ddi, struct udev_device *pdev, const char* subsys);
-static int dynamic_device_info_create_net(dynamic_device_info_t **ddi, struct udev_device *pdev, const char* subsys);
-#endif
-
 static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm);
-static int device_control_dynamic_udev_create_udi(uevent_device_info_t *udi, struct udev_list_entry *le);
+static int device_control_dynamic_udev_create_info(uevent_device_info_t *udi, lxcutil_dynamic_device_request_t *lddr, struct udev_list_entry *le);
 static container_config_t *device_control_dynamic_udev_get_target_container(containers_t *cs, uevent_device_info_t *udi, dynamic_device_entry_items_behavior_t **behavior);
 static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uevent_device_info_t *udi, dynamic_device_entry_items_behavior_t **behavior);
+static int device_control_dynamic_udev_create_injection_message(uevent_injection_message_t *uim, uevent_device_info_t *udi, struct udev_list_entry *le);
 
-#if 0
-static int udevmonitor_devevent_add_block(dynamic_device_manager_t *ddm, dynamic_device_info_t *new_ddi);
-static int udevmonitor_devevent_remove_block(dynamic_device_manager_t *ddm, dynamic_device_info_t *del_ddi);
-static int udevmonitor_devevent_change_block(dynamic_device_manager_t *ddm, dynamic_device_info_t *new_ddi);
-
-static int udevmonitor_devevent_add_net(dynamic_device_manager_t *ddm, dynamic_device_info_t *new_ddi);
-static int udevmonitor_devevent_remove_net(dynamic_device_manager_t *ddm, dynamic_device_info_t *del_ddi);
-static int udevmonitor_devevent_change_net(dynamic_device_manager_t *ddm, dynamic_device_info_t *new_ddi);
-#endif
 /**
  * Event handler for libudev.
  * This function analyze received data using udev_monitor by libudev.
@@ -130,9 +118,9 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 	int ret = -1;
 	struct s_dynamic_device_udev *ddu = NULL;
 	struct udev_device *pdev = NULL;
-	//const char *paction = NULL, *subsys = NULL;
 	struct udev_list_entry *le = NULL;
 	uevent_device_info_t udi;
+	lxcutil_dynamic_device_request_t lddr;
 	container_config_t *cc = NULL;
 	dynamic_device_entry_items_behavior_t *behavior = NULL;
 
@@ -142,12 +130,13 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 		goto error_ret;
 
 	memset(&udi, 0, sizeof(udi));
+	memset(&lddr, 0, sizeof(lddr));
 
 	le = udev_device_get_properties_list_entry(pdev);
 	if (le == NULL)
 		goto bypass_ret;	// No data.
 
-	ret = device_control_dynamic_udev_create_udi(&udi, le);
+	ret = device_control_dynamic_udev_create_info(&udi, &lddr, le);
 	if (ret == 0) {
 		fprintf(stderr,"udi: action=%s devpath=%s devtype=%s subsystem=%s\n", udi.action, udi.devpath, udi.devtype, udi.subsystem);
 
@@ -158,8 +147,39 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 		goto bypass_ret;	// Not match rule
 	}
 
-	fprintf(stderr,"INJECTION: ");
+	if (behavior->devnode == 1) {
+		lddr.is_create_node = 1;
+	}
+	lddr.permission = behavior->permission;
 
+	ret = lxcutil_dynamic_device_operation(cc, &lddr);
+	if (ret < 0){
+		goto error_ret;
+	}
+
+	le = udev_device_get_properties_list_entry(pdev);
+	if (behavior->injection == 1) {
+		uevent_injection_message_t uim;
+		pid_t target_pid = 0;
+
+		memset(uim.message, 0 , sizeof(uim.message));
+		uim.used = 0;
+
+		fprintf(stderr,"INJECTION: ");
+
+		// TODO uevent injection
+		ret = device_control_dynamic_udev_create_injection_message(&uim, &udi, le);
+		fprintf(stderr,"\n");
+		if (ret < 0){
+			goto error_ret;
+		}
+
+		target_pid = cc->runtime_stat.lxc->init_pid(cc->runtime_stat.lxc);
+		ret = uevent_injection_to_pid(target_pid, &uim);
+	}
+
+
+#if 0
 	le = udev_device_get_properties_list_entry(pdev);
 	while (le != NULL) {
 		const char* elem_name = NULL;
@@ -172,7 +192,7 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 
 		le = udev_list_entry_get_next(le);
 	}
-	fprintf(stderr,"\n");
+#endif
 
 
 bypass_ret:
@@ -187,8 +207,87 @@ error_ret:
 	return -1;
 }
 
-static int device_control_dynamic_udev_create_udi(uevent_device_info_t *udi, struct udev_list_entry *le)
+/**
+ * Get point to /dev/ trimmed devname.
+ *
+ * @param [in]	devnode	String to devname with "/dev/" prefix.
+ * @return int
+ * @retval	!=NULL	Pointer to trimmed devname.
+ * @retval	==NULL	Is not devname.
+ */
+static const char *trimmed_devname(const char* devnode)
 {
+	const char *cmpstr = "/dev/";
+	const char *pstr = NULL;
+	int cmplen = 0;
+
+	cmplen = strlen(cmpstr);
+
+	if (strncmp(devnode, cmpstr, cmplen) == 0) {
+		pstr = devnode;
+		pstr += cmplen;
+	}
+
+	return pstr;
+}
+static int device_control_dynamic_udev_create_injection_message(uevent_injection_message_t *uim, uevent_device_info_t *udi, struct udev_list_entry *le)
+{
+	int ret = -1;
+	int usage = 0, remain = 0;
+	char *buf = NULL;
+
+	remain = sizeof(uim->message) - 1;
+	buf = &uim->message[0];
+
+	// add@/devices/pci0000:00/0000:00:08.1/0000:05:00.3/usb4/4-2/4-2:1.0/host3/target3:0:0/3:0:0:0/block/sdb/sdb1
+	ret = snprintf(&buf[usage], remain, "%s@%s", udi->action, udi->devpath);
+	if ((!(ret < remain)) || ret < 0)
+		return -2;
+
+	usage = usage + ret + 1 /*NULL term*/;
+	remain = sizeof(uim->message) - 1 - usage;
+	if (remain < 0)
+		return -2;
+
+	// create body.
+	while (le != NULL) {
+		const char* elem_name = NULL;
+		const char* elem_value = NULL;
+
+		elem_name = udev_list_entry_get_name(le);
+		elem_value = udev_list_entry_get_value(le);
+
+		if (strcmp(elem_name, "SEQNUM") == 0) {
+			// Skip data
+		} else {
+			if (strcmp(elem_name, "DEVNAME") == 0) {
+				elem_value = trimmed_devname(elem_value);
+			}
+
+			ret = snprintf(&buf[usage], remain, "%s=%s", elem_name, elem_value);
+			if ((!(ret < remain)) || ret < 0)
+				return -2;
+
+			usage = usage + ret + 1 /*NULL term*/;
+			remain = sizeof(uim->message) - 1 - usage;
+			if (remain < 0)
+				return -2;
+
+			fprintf(stderr,"%s=%s ", elem_name, elem_value);
+		}
+
+		le = udev_list_entry_get_next(le);
+	}
+
+	uim->used = usage;
+
+	return 0;
+}
+
+static int device_control_dynamic_udev_create_info(uevent_device_info_t *udi, lxcutil_dynamic_device_request_t *lddr, struct udev_list_entry *le)
+{
+	lddr->dev_major = -1;
+	lddr->dev_minor = -1;
 
 	while (le != NULL) {
 		const char* elem_name = NULL;
@@ -199,12 +298,49 @@ static int device_control_dynamic_udev_create_udi(uevent_device_info_t *udi, str
 
 		if (strcmp(elem_name, "ACTION") == 0) {
 			udi->action = elem_value;
+
+			if (strcmp(elem_value, "add") == 0) {
+				lddr->operation = 1;
+			} else if (strcmp(elem_value, "remove") == 0) {
+				lddr->operation = 2;
+			}
 		} else if (strcmp(elem_name, "DEVPATH") == 0) {
 			udi->devpath = elem_value;
+
 		} else if (strcmp(elem_name, "SUBSYSTEM") == 0) {
 			udi->subsystem = elem_value;
+
+			if (strcmp(elem_value, "block") == 0) {
+				lddr->devtype = DEVNODE_TYPE_BLK;
+			} else {
+				lddr->devtype = DEVNODE_TYPE_CHR;
+			}
 		} else if (strcmp(elem_name, "DEVTYPE") == 0) {
 			udi->devtype = elem_value;
+
+		} else if (strcmp(elem_name, "DEVNAME") == 0) {
+			lddr->devnode = elem_value;
+
+		} else if (strcmp(elem_name, "MAJOR") == 0) {
+			char *endptr = NULL;
+			int value = 0;
+
+			value = strtol(elem_value, &endptr, 10);
+			if (elem_value == endptr) {
+				lddr->dev_major = -1;
+			} else {
+				lddr->dev_major = value;
+			}
+		} else if (strcmp(elem_name, "MINOR") == 0) {
+			char *endptr = NULL;
+			int value = 0;
+
+			value = strtol(elem_value, &endptr, 10);
+			if (elem_value == endptr) {
+				lddr->dev_minor = -1;
+			} else {
+				lddr->dev_minor = value;
+			}
 		}
 
 		le = udev_list_entry_get_next(le);
@@ -326,50 +462,6 @@ function_return:
 	return result;
 }
 
-/*
-	fprintf(stderr,"udev_device_get_devlinks_list_entry\n");
-	le = udev_device_get_devlinks_list_entry(pdev);
-	while (le != NULL) {
-		const char* elem_name = NULL;
-		const char* elem_value = NULL;
-
-		elem_name = udev_list_entry_get_name(le);
-		elem_value = udev_list_entry_get_value(le);
-		fprintf(stderr,"%s=%s ", elem_name, elem_value);
-
-		le = udev_list_entry_get_next(le);
-	}
-	fprintf(stderr,"\n");
-
-	fprintf(stderr,"udev_device_get_tags_list_entry\n");
-	le = udev_device_get_tags_list_entry(pdev);
-	while (le != NULL) {
-		const char* elem_name = NULL;
-		const char* elem_value = NULL;
-
-		elem_name = udev_list_entry_get_name(le);
-		elem_value = udev_list_entry_get_value(le);
-		fprintf(stderr,"%s=%s ", elem_name, elem_value);
-
-		le = udev_list_entry_get_next(le);
-	}
-	fprintf(stderr,"\n");
-
-	fprintf(stderr,"udev_device_get_sysattr_list_entry\n");
-	le = udev_device_get_sysattr_list_entry(pdev);
-	while (le != NULL) {
-		const char* elem_name = NULL;
-		const char* elem_value = NULL;
-
-		elem_name = udev_list_entry_get_name(le);
-		elem_value = udev_list_entry_get_value(le);
-		fprintf(stderr,"%s=%s ", elem_name, elem_value);
-
-		le = udev_list_entry_get_next(le);
-	}
-	fprintf(stderr,"\n");
-*/
-
 /**
  * Sub function for uevent monitor.
  * Setup for the uevent monitor event loop.
@@ -424,9 +516,6 @@ int device_control_dynamic_udev_setup(dynamic_device_manager_t *ddm, containers_
 	ddu->pudev_monitor = pudev_monitor;
 	ddu->libudev_source = libudev_source;
 	ddu->cs = cs;
-
-	//dl_list_init(&ddm->blockdev.list);
-	//dl_list_init(&ddm->netif.devlist);
 
 	ddm->ddu = (dynamic_device_udev_t*)ddu;
 
@@ -498,215 +587,3 @@ int device_control_dynamic_udev_cleanup(dynamic_device_manager_t *ddm)
 	return 0;
 
 }
-#if 0
-/**
- * Sub function for uevent monitor.
- * Create dynamic_device_info_t data that support block device.
- *
- * @param [out]	ddi		Double pointer to get created dynamic_device_info_t object.
- * @param [in]	pdev	Pointer to udev_device.
- * @param [in]	subsys	A name of device subsystem. (string)
- * @return int
- * @retval	0	Success to create dynamic_device_info_t.
- * @retval	1	Device found in blacklist.
- * @retval	-1	Mandatory data is nothing in udev_device.
- * @retval	-2	Internal error.
- * @retval	-3	Argument error.
- */
-static int dynamic_device_info_create_block(dynamic_device_info_t **ddi, struct udev_device *pdev, const char* subsys)
-{
-	int ret = -1;
-	const char *pstr = NULL;
-	dev_t devnum = 0;
-	dynamic_device_info_t *ddinfo = NULL;
-	block_device_info_t bdi;
-
-	if (ddi == NULL || pdev == NULL || subsys == NULL)
-		return -3;
-
-	pstr = udev_device_get_devnode(pdev);
-	devnum = udev_device_get_devnum(pdev);
-	if (pstr == NULL || devnum == 0) {
-		//Mandatory data is nothing
-		return -1;
-	}
-
-	for (int i=0; block_dev_blacklist[i] != NULL; i++) {
-		ret = strncmp(pstr, block_dev_blacklist[i], strlen(block_dev_blacklist[i]));
-		if (ret == 0) {
-			return 1;
-		}
-	}
-
-	ddinfo = (dynamic_device_info_t*)malloc(sizeof(dynamic_device_info_t));
-	if (ddinfo == NULL)
-		return -2;
-
-	memset(ddinfo, 0, sizeof(dynamic_device_info_t));
-	memset(&bdi, 0, sizeof(bdi));
-
-	ddinfo->devnum = devnum;
-	ddinfo->devnode = strdup(pstr);
-	ddinfo->subsystem = strdup(subsys);
-
-	pstr = udev_device_get_syspath(pdev);
-	if (pstr != NULL)
-		ddinfo->syspath = strdup(pstr);
-
-	pstr = udev_device_get_sysname(pdev);
-	if (pstr != NULL)
-		ddinfo->sysname = strdup(pstr);
-
-	pstr = udev_device_get_devpath(pdev);
-	if (pstr != NULL)
-		ddinfo->devpath = strdup(pstr);
-
-	pstr = udev_device_get_devtype(pdev);
-	if (pstr != NULL)
-		ddinfo->devtype = strdup(pstr);
-
-	pstr = udev_device_get_property_value(pdev, "DISKSEQ");
-	if (pstr != NULL)
-		ddinfo->diskseq = strdup(pstr);
-
-	pstr = udev_device_get_property_value(pdev, "PARTN");
-	if (pstr != NULL)
-		ddinfo->partn = strdup(pstr);
-
-	ret = block_util_getfs(ddinfo->devnode, &bdi);
-	if (ret == 0)
-		ddinfo->fsmagic = bdi.fsmagic;
-
-	dl_list_init(&ddinfo->list);
-
-	(*ddi) = ddinfo;
-
-	return 0;
-}
-/**
- * Sub function for uevent monitor.
- * Create dynamic_device_info_t data that support net device.
- *
- * @param [out]	ddi		Double pointer to get created dynamic_device_info_t object.
- * @param [in]	pdev	Pointer to udev_device.
- * @param [in]	subsys	A name of device subsystem. (string)
- * @return int
- * @retval	0	Success to create dynamic_device_info_t.
- * @retval	1	Device found in blacklist.
- * @retval	-1	Mandatory data is nothing in udev_device.
- * @retval	-2	Internal error.
- * @retval	-3	Argument error.
- */
-static int dynamic_device_info_create_net(dynamic_device_info_t **ddi, struct udev_device *pdev, const char* subsys)
-{
-	int ifindex = -1;
-	const char *pstr = NULL;
-	char *endptr = NULL;;
-	dynamic_device_info_t *ddinfo = NULL;
-
-	if (ddi == NULL || pdev == NULL || subsys == NULL)
-		return -3;
-
-	pstr = udev_device_get_sysattr_value(pdev, "ifindex");
-	if (pstr != NULL) {
-		ifindex = strtol(pstr, &endptr, 10);
-		if (pstr == endptr) {
-			//Can't convert str to long, mandatory data is nothing
-			return -1;
-		}
-	}
-
-	ddinfo = (dynamic_device_info_t*)malloc(sizeof(dynamic_device_info_t));
-	if (ddinfo == NULL)
-		return -2;
-
-	memset(ddinfo, 0, sizeof(dynamic_device_info_t));
-
-	ddinfo->subsystem = strdup(subsys);
-	ddinfo->ifindex = ifindex;
-
-	pstr = udev_device_get_syspath(pdev);
-	if (pstr != NULL)
-		ddinfo->syspath = strdup(pstr);
-
-	pstr = udev_device_get_sysname(pdev);
-	if (pstr != NULL)
-		ddinfo->sysname = strdup(pstr);
-
-	pstr = udev_device_get_devpath(pdev);
-	if (pstr != NULL)
-		ddinfo->devpath = strdup(pstr);
-
-	pstr = udev_device_get_devtype(pdev);
-	if (pstr != NULL)
-		ddinfo->devtype = strdup(pstr);
-
-	dl_list_init(&ddinfo->list);
-
-	(*ddi) = ddinfo;
-
-	return 0;
-}
-/**
- * Sub function for uevent monitor.
- * Cleanup for the dynamic_device_info_t data.
- * After this function call, dynamic_device_info_t object must not use.
- *
- * @param [in]	ddi	Pointer to dynamic_device_info_t.
- * @return int
- * @retval	0	Success to create dynamic_device_info_t.
- * @retval	-1	Argument error.
- */
-static int dynamic_device_info_free(dynamic_device_info_t *ddi)
-{
-	if (ddi == NULL)
-		return -1;
-
-	free(ddi->syspath);
-	ddi->syspath = NULL;
-
-	free(ddi->sysname);
-	ddi->sysname = NULL;
-
-	free(ddi->devpath);
-	ddi->devpath = NULL;
-
-	free(ddi->devtype);
-	ddi->devtype = NULL;
-
-	free(ddi->subsystem);
-	ddi->subsystem = NULL;
-
-	free(ddi->devnode);
-	ddi->devnode = NULL;
-
-	free(ddi->diskseq);
-	ddi->diskseq = NULL;
-
-	free(ddi->partn);
-	ddi->partn = NULL;
-
-	free(ddi);
-
-	return 0;
-}
-/**
- * Get block_device_manager_t object from dynamic_device_manager_t.
- * This function provide block device list access interface that is used by container management block.
- *
- * @param [out]	blockdev	Double pointer to block_device_manager_t to get reference of block_device_manager_t object.
- * @param [in]	ddm			Pointer to dynamic_device_manager_t.
- * @return int
- * @retval	0	Success to create dynamic_device_info_t.
- * @retval	-1	Argument error.
- */
-int dynamic_block_device_info_get(block_device_manager_t **blockdev, dynamic_device_manager_t *ddm)
-{
-	if (blockdev == NULL || ddm == NULL)
-		return -1;
-
-	(*blockdev) = &ddm->blockdev;
-
-	return 0;
-}
-#endif

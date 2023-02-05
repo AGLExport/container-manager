@@ -22,14 +22,14 @@
  * @brief	The data structure for container root filesystem.  It's a part of s_container_baseconfig.
  */
 struct s_uevent_injection_message {
-	char head[UEVENT_INJECTION_BUFFER_SIZE];	        /**< rootfs file system type. */
     char message[UEVENT_INJECTION_BUFFER_SIZE];
+    int used;
 };
 typedef struct s_uevent_injection_message uevent_injection_message_t;	/**< typedef for struct s_container_baseconfig_rootfs. */
 
 
 //-----------------------------------------------------------------------------
-int uevent_injection_to_pid(pid_t target_pid, dynamic_device_elem_data_t *dded, char *action);
+int uevent_injection_to_pid(pid_t target_pid, uevent_injection_message_t *uim);
 
 //-----------------------------------------------------------------------------
 #endif //#ifndef UEVENT_INJECTION_H
