@@ -11,7 +11,7 @@
 #include <errno.h>
 
 #include "signal-util.h"
-#include "udev-util.h"
+//#include "udev-util.h"
 #include "net-util.h"
 #include "lxc-util.h"
 #include "block-util.h"
@@ -64,7 +64,6 @@ int main(int argc, char *argv[])
 	sd_event *event = NULL;
 	containers_t *cs = NULL;
 	container_control_interface_t *cci = NULL;
-	dynamic_device_manager_t *ddm = NULL;
 
 	ret = sd_event_default(&event);
 	if (ret < 0)
@@ -86,18 +85,10 @@ int main(int argc, char *argv[])
 		goto finish;
 	}
 
-	ret = devc_device_manager_setup(&ddm, cci, event);
+	ret = devc_device_manager_setup(cs, cci, event);
 	if (ret < 0) {
 		#ifdef _PRINTF_DEBUG_
 		fprintf(stderr,"devc_device_manager_setup: fail %d\n", ret);
-		#endif
-		goto finish;
-	}
-
-	ret = container_mngsm_regist_device_manager(cs, ddm);
-	if (ret < 0) {
-		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr,"container_mngsm_regist_device_manager: fail %d\n", ret);
 		#endif
 		goto finish;
 	}
@@ -131,12 +122,10 @@ int main(int argc, char *argv[])
 finish:
 	if (cs != NULL) {
 		(void) container_mngsm_terminate(cs);
+		(void) devc_device_manager_cleanup(cs);
 		(void) container_mngsm_cleanup(cs);
 	}
-
-	(void) devc_device_manager_cleanup(ddm);
-
 	event = sd_event_unref(event);
 
-	return 0;;
+	return 0;
 }

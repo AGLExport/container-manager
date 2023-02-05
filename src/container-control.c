@@ -53,10 +53,6 @@ static int container_mngsm_state_machine(containers_t *cs, const uint8_t *buf)
 	#endif
 
 	switch(command) {
-	case CONTAINER_MNGSM_COMMAND_DEVICEUPDATED :
-		ret = container_device_updated(cs);
-
-		break;
 	case CONTAINER_MNGSM_COMMAND_NETIFUPDATED :
 		ret = container_netif_updated(cs);
 

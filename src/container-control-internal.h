@@ -53,11 +53,6 @@ typedef struct s_container_mngsm_command_header {
 } container_mngsm_command_header_t;
 
 /**
- * @def	CONTAINER_MNGSM_COMMAND_DEVICEUPDATED
- * @brief	Defined command code for device update notification event.
- */
-#define CONTAINER_MNGSM_COMMAND_DEVICEUPDATED	(0x1000u)
-/**
  * @def	CONTAINER_MNGSM_COMMAND_NETIFUPDATED
  * @brief	Defined command code for network interface update notification event.
  */
@@ -119,7 +114,6 @@ typedef struct s_container_mngsm_guest_exit {
 
 //-----------------------------------------------------------------------------
 
-int container_device_updated(containers_t *cs);
 int container_netif_updated(containers_t *cs);
 int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data);
 int container_manager_shutdown(containers_t *cs);

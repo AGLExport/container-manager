@@ -112,6 +112,31 @@
 				"wideallow": 	0,
 				"exclusive": 	0
 			}
+		],
+		"dynamic": [
+			{
+				"devpath": "/devices/platform/soc/ee0a0100.usb/usb2/",
+				"items": [
+					{
+						"subsystem": "block",
+						"rule": {
+							"action": ["add", "remove","change"],
+							"extra" : [
+								{
+									"checker": "include-fs",
+									"value": "exfat"
+								}
+							]
+						},
+						"behavior": {
+							"injection": 1,
+							"devnode": 1,
+							"allow": 1,
+							"permission": "rwm"
+						}
+					}
+				]
+			}
 		]
 	},
 	"network": {

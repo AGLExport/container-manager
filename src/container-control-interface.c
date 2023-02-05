@@ -29,7 +29,6 @@
 #include "lxc-util.h"
 #include "container-config.h"
 
-static int container_mngsm_device_updated(struct s_container_control_interface *cci);
 static int container_mngsm_netif_updated(struct s_container_control_interface *cci);
 static int container_mngsm_system_shutdown(struct s_container_control_interface *cci);
 
@@ -60,7 +59,6 @@ int container_mngsm_interface_get(container_control_interface_t **pcci, containe
 		memset(cci, 0, sizeof(struct s_container_control_interface));
 
 		cci->mngsm = (void*)cs->cms;
-		cci->device_updated = container_mngsm_device_updated;
 		cci->netif_updated = container_mngsm_netif_updated;
 		cci->system_shutdown = container_mngsm_system_shutdown;
 
@@ -86,41 +84,11 @@ err_return:
  */
 int container_mngsm_interface_free(containers_t *cs)
 {
-
 	if (cs == NULL)
 		return -2;
 
 	free(cs->cci);
 	cs->cci = NULL;
-
-	return 0;
-}
-/**
- * Device update notification to container manager state machine.
- *
- * @param [in]	cci	Pointer to s_container_control_interface, it's got by container_mngsm_interface_get.
- * @return int
- * @retval  0	Success to send event.
- * @retval -1	Critical error for sending event.
- */
-static int container_mngsm_device_updated(struct s_container_control_interface *cci)
-{
-	struct s_container_mngsm *cm = NULL;
-	container_mngsm_notification_t command;
-	ssize_t ret = -1;
-
-	if (cci == NULL)
-		return -1;
-
-	cm = (struct s_container_mngsm*)cci->mngsm;
-
-	memset(&command, 0, sizeof(command));
-
-	command.header.command = CONTAINER_MNGSM_COMMAND_DEVICEUPDATED;
-
-	ret = write(cm->secondary_fd, &command, sizeof(command));
-	if (ret != sizeof(command))
-		return -1;
 
 	return 0;
 }

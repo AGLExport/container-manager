@@ -775,6 +775,7 @@ int lxcutil_create_instance(container_config_t *cc)
 	}
 
 	cc->runtime_stat.lxc = plxc;
+	cc->runtime_stat.pid = -1;
 
 	#ifdef _PRINTF_DEBUG_
 	{
@@ -834,7 +835,8 @@ int lxcutil_container_forcekill(container_config_t *cc)
 	pid_t pid = -1;
 
 	if (cc->runtime_stat.lxc != NULL) {
-		pid = cc->runtime_stat.lxc->init_pid(cc->runtime_stat.lxc);
+		pid = lxcutil_get_init_pid(cc);
+
 		if (pid > 0) {
 			(void) kill(pid, SIGKILL);
 			#ifdef _PRINTF_DEBUG_
@@ -860,24 +862,33 @@ int lxcutil_release_instance(container_config_t *cc)
 		(void)lxc_container_put(cc->runtime_stat.lxc);
 
 	cc->runtime_stat.lxc = NULL;
+	cc->runtime_stat.pid = -1;
 
 	return 0;
 }
-
 /**
- * Device type check sub function for lxcutil_dynamic_device_add_to_guest
+ * Get pid of guest init by container_config_t.
  *
- * @param [in]	subsystem	The string for subsyste.
+ * @param [in]	cc 	container_config_t
  * @return int
- * @retval 0 success
- * @retval -1 critical error.
+ * @retval 0<	Success get pid of guest init.
+ * @retval -1	Got lxc error.
  */
-static int lxcutil_device_type_get(const char *subsystem)
+pid_t lxcutil_get_init_pid(container_config_t *cc)
 {
-	if (strcmp(subsystem, "block") == 0)
-		return DEVNODE_TYPE_BLK;
+	pid_t target_pid = -1;
 
-	return DEVNODE_TYPE_CHR;
+	if (cc->runtime_stat.lxc != NULL) {
+		if (cc->runtime_stat.pid <= 0) {
+			target_pid = cc->runtime_stat.lxc->init_pid(cc->runtime_stat.lxc);
+			if (target_pid > 0)
+				cc->runtime_stat.pid = target_pid;
+		} else {
+			target_pid = cc->runtime_stat.pid;
+		}
+	}
+
+	return target_pid;
 }
 /**
  * Add or remove device node in guest container.
@@ -980,153 +991,84 @@ static int lxcutil_add_remove_guest_node(pid_t target_pid, const char *path, int
 
 	return 0;
 }
-/**
- * Add device to guest container.
- * This function do allow device access, create device node and inject uevent to guest container.
- * Allow device access do always.  Create device node and inject uevent do or not depend on argument "mode".
- *
- * @param [in]	cc		Pointer to container_config_t.
- * @param [in]	dded	Pointer to dynamic_device_elem_data_t, that include target device data.
- * @param [in]	mode	Operation mode. (0=device allow only, 1=0+create device node, 2=0+inject uevent, 3=all op.)
- * @return int
- * @retval 0	Success to operations.
- * @retval -1	Generic operation error.
- * @retval -2	Got lxc error.
- */
-int lxcutil_dynamic_device_add_to_guest(container_config_t *cc, dynamic_device_elem_data_t *dded, int mode)
+
+int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_device_request_t *lddr)
 {
 	bool bret = false;
 	int ret = -1;
 	int result = -1;
-	pid_t target_pid = 0;
-	int devtype = 0;
-	char buf[1024];
 
 	if (cc->runtime_stat.lxc == NULL) {
 		result = -1;
 		goto err_ret;
 	}
 
-	devtype =  lxcutil_device_type_get(dded->subsystem);
-	if (devtype == DEVNODE_TYPE_BLK) {
-		ret = snprintf(buf, sizeof(buf), "b %d:%d rwm", major(dded->devnum), minor(dded->devnum));
-	} else {
-		ret = snprintf(buf, sizeof(buf), "c %d:%d rwm", major(dded->devnum), minor(dded->devnum));
-	}
-
-	if (!(ret < (sizeof(buf)-1))) {
+	if (lddr->devtype == DEVNODE_TYPE_NET) {
+		// This operation is not support network device.
 		result = -1;
 		goto err_ret;
 	}
 
-	bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.allow", buf);
-	if (bret == false) {
-		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr, "lxcutil_dynamic_device_add_to_guest: fail set_cgroup_item %s\n", buf);
-		#endif
-		result = -2;
-		goto err_ret;
-	}
+	if (lddr->dev_major < 0 || lddr->dev_minor < 0)
+		return 0;	// No need to allow/deny device by cgroup
 
-	target_pid = cc->runtime_stat.lxc->init_pid(cc->runtime_stat.lxc);
+	if (lddr->is_allow_device == 1) {
+		const char *permission = NULL;
+		const char perm_default[] = "rw";
+		char buf[1024];
 
-	if ((mode & 0x1) != 0) {
-		ret = lxcutil_add_remove_guest_node(target_pid, dded->devnode, 1, dded->devnum);
-		if (ret < 0) {
-			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr, "lxcutil_dynamic_device_add_to_guest: fail lxcutil_add_remove_guest_node (%d) %s\n", ret, dded->devnode);
-			#endif
-			; // Continue to processing
+		permission = lddr->permission;
+		if (permission == NULL)
+			permission = perm_default;
+
+		if (lddr->devtype == DEVNODE_TYPE_BLK) {
+			ret = snprintf(buf, sizeof(buf), "b %d:%d %s", lddr->dev_major, lddr->dev_minor, permission);
+		} else {
+			ret = snprintf(buf, sizeof(buf), "c %d:%d %s", lddr->dev_major, lddr->dev_minor, permission);
 		}
-	}
 
-	if ((mode & 0x2) != 0) {
-		// uevent injection
-		ret = uevent_injection_to_pid(target_pid, dded, "add");
-		if (ret < 0) {
+		if (!(ret < (sizeof(buf)-1))) {
 			result = -1;
+			goto err_ret;
+		}
+
+		if (lddr->operation == 1) {
+			bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.allow", buf);
+			fprintf(stderr, "lxc set_cgroup_item: %s = %s\n", "devices.allow", buf);
+		} else if (lddr->operation == 2) {
+			bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.deny", buf);
+			fprintf(stderr, "lxc set_cgroup_item: %s = %s\n", "devices.deny", buf);
+		}
+		if (bret == false) {
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stderr, "lxcutil_dynamic_device_operation: fail set_cgroup_item %s\n", buf);
+			#endif
+			result = -2;
 			goto err_ret;
 		}
 	}
 
-	return 0;
+	if (lddr->is_create_node == 1) {
+		dev_t devnum = 0;
+		ret = -1;
+		pid_t target_pid = 0;
 
-err_ret:
+		target_pid = lxcutil_get_init_pid(cc);
 
-	return result;
-}
-/**
- * Remove device from guest container.
- * This function do allow device access, create device node and inject uevent to guest container.
- * Allow device access do always.  Create device node and inject uevent do or not depend on argument "mode".
- *
- * @param [in]	cc		Pointer to container_config_t.
- * @param [in]	dded	Pointer to dynamic_device_elem_data_t, that include target device data.
- * @param [in]	mode	Operation mode. (0=device allow only, 1=0+create device node, 2=0+inject uevent, 3=all op.)
- * @return int
- * @retval 0	Success to operations.
- * @retval -1	Generic operation error.
- * @retval -2	Got lxc error.
- */
-int lxcutil_dynamic_device_remove_from_guest(container_config_t *cc, dynamic_device_elem_data_t *dded, int mode)
-{
-	bool bret = false;
-	int ret = -1;
-	int result = -1;
-	pid_t target_pid = 0;
-	int devtype = 0;
-	char buf[1024];
-
-	if (cc->runtime_stat.lxc == NULL) {
-		result = -1;
-		goto err_ret;
-	}
-
-	devtype =  lxcutil_device_type_get(dded->subsystem);
-	if (devtype == DEVNODE_TYPE_BLK) {
-		ret = snprintf(buf, sizeof(buf), "b %d:%d rwm", major(dded->devnum), minor(dded->devnum));
-	} else {
-		ret = snprintf(buf, sizeof(buf), "c %d:%d rwm", major(dded->devnum), minor(dded->devnum));
-	}
-
-	if (!(ret < (sizeof(buf)-1))) {
-		result = -1;
-		goto err_ret;
-	}
-
-	bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.deny", buf);
-	if (bret == false) {
-		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr, "lxcutil_dynamic_device_remove_from_guest: fail set_cgroup_item %s\n", buf);
-		#endif
-		result = -2;
-		goto err_ret;
-	}
-
-	target_pid = cc->runtime_stat.lxc->init_pid(cc->runtime_stat.lxc);
-
-	if ((mode & 0x1) != 0) {
-		ret = lxcutil_add_remove_guest_node(target_pid, dded->devnode, 0, dded->devnum);
+		devnum = makedev(lddr->dev_major, lddr->dev_minor);
+		if (lddr->operation == 1) {
+			ret = lxcutil_add_remove_guest_node(target_pid, lddr->devnode, 1, devnum);
+		} else if (lddr->operation == 2) {
+			ret = lxcutil_add_remove_guest_node(target_pid, lddr->devnode, 0, devnum);
+		}
 		if (ret < 0) {
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr, "lxcutil_dynamic_device_remove_from_guest: fail lxcutil_add_remove_guest_node(%d) %s\n", ret, dded->devnode);
+			fprintf(stderr, "lxcutil_dynamic_device_operation: fail lxcutil_add_remove_guest_node (%d) %s\n", ret, lddr->devnode);
 			#endif
-			; // Continue to processing
-		}
-	}
-
-	if ((mode & 0x2) != 0) {
-		// uevent injection
-		ret = uevent_injection_to_pid(target_pid, dded, "remove");
-		if (ret < 0) {
 			result = -1;
 			goto err_ret;
 		}
 	}
-
-	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr, "lxcutil_dynamic_device_remove_from_guest: dynamic device %s remove from %s\n", dded->devpath, cc->name );
-	#endif
 
 	return 0;
 

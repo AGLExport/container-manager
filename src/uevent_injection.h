@@ -11,7 +11,25 @@
 #include "container.h"
 
 //-----------------------------------------------------------------------------
-int uevent_injection_to_pid(pid_t target_pid, dynamic_device_elem_data_t *dded, char *action);
+/**
+ * @def	UEVENT_INJECTION_BUFFER_SIZE
+ * @brief	uevent injection buffer size max. This value is based on UEVENT_BUFFER_SIZE at include/linux/kobject.h.
+ */
+#define UEVENT_INJECTION_BUFFER_SIZE    (2048)
+
+/**
+ * @struct	s_uevent_injection_message
+ * @brief	The data structure for container root filesystem.  It's a part of s_container_baseconfig.
+ */
+struct s_uevent_injection_message {
+    char message[UEVENT_INJECTION_BUFFER_SIZE];
+    int used;
+};
+typedef struct s_uevent_injection_message uevent_injection_message_t;	/**< typedef for struct s_container_baseconfig_rootfs. */
+
+
+//-----------------------------------------------------------------------------
+int uevent_injection_to_pid(pid_t target_pid, uevent_injection_message_t *uim);
 
 //-----------------------------------------------------------------------------
 #endif //#ifndef UEVENT_INJECTION_H
