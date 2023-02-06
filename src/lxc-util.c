@@ -775,6 +775,7 @@ int lxcutil_create_instance(container_config_t *cc)
 	}
 
 	cc->runtime_stat.lxc = plxc;
+	cc->runtime_stat.pid = -1;
 
 	#ifdef _PRINTF_DEBUG_
 	{
@@ -834,7 +835,8 @@ int lxcutil_container_forcekill(container_config_t *cc)
 	pid_t pid = -1;
 
 	if (cc->runtime_stat.lxc != NULL) {
-		pid = cc->runtime_stat.lxc->init_pid(cc->runtime_stat.lxc);
+		pid = lxcutil_get_init_pid(cc);
+
 		if (pid > 0) {
 			(void) kill(pid, SIGKILL);
 			#ifdef _PRINTF_DEBUG_
@@ -860,24 +862,33 @@ int lxcutil_release_instance(container_config_t *cc)
 		(void)lxc_container_put(cc->runtime_stat.lxc);
 
 	cc->runtime_stat.lxc = NULL;
+	cc->runtime_stat.pid = -1;
 
 	return 0;
 }
-
 /**
- * Device type check sub function for lxcutil_dynamic_device_add_to_guest
+ * Get pid of guest init by container_config_t.
  *
- * @param [in]	subsystem	The string for subsyste.
+ * @param [in]	cc 	container_config_t
  * @return int
- * @retval 0 success
- * @retval -1 critical error.
+ * @retval 0<	Success get pid of guest init.
+ * @retval -1	Got lxc error.
  */
-static int lxcutil_device_type_get(const char *subsystem)
+pid_t lxcutil_get_init_pid(container_config_t *cc)
 {
-	if (strcmp(subsystem, "block") == 0)
-		return DEVNODE_TYPE_BLK;
+	pid_t target_pid = -1;
 
-	return DEVNODE_TYPE_CHR;
+	if (cc->runtime_stat.lxc != NULL) {
+		if (cc->runtime_stat.pid <= 0) {
+			target_pid = cc->runtime_stat.lxc->init_pid(cc->runtime_stat.lxc);
+			if (target_pid > 0)
+				cc->runtime_stat.pid = target_pid;
+		} else {
+			target_pid = cc->runtime_stat.pid;
+		}
+	}
+
+	return target_pid;
 }
 /**
  * Add or remove device node in guest container.
@@ -986,12 +997,14 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 	bool bret = false;
 	int ret = -1;
 	int result = -1;
-	pid_t target_pid = 0;
-	char buf[1024];
-
-	// TODO: lddr value check.
 
 	if (cc->runtime_stat.lxc == NULL) {
+		result = -1;
+		goto err_ret;
+	}
+
+	if (lddr->devtype == DEVNODE_TYPE_NET) {
+		// This operation is not support network device.
 		result = -1;
 		goto err_ret;
 	}
@@ -999,36 +1012,48 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 	if (lddr->dev_major < 0 || lddr->dev_minor < 0)
 		return 0;	// No need to allow/deny device by cgroup
 
-	if (lddr->devtype == DEVNODE_TYPE_BLK) {
-		ret = snprintf(buf, sizeof(buf), "b %d:%d %s", lddr->dev_major, lddr->dev_minor, lddr->permission);
-	} else {
-		ret = snprintf(buf, sizeof(buf), "c %d:%d %s", lddr->dev_major, lddr->dev_minor, lddr->permission);
+	if (lddr->is_allow_device == 1) {
+		const char *permission = NULL;
+		const char perm_default[] = "rw";
+		char buf[1024];
+
+		permission = lddr->permission;
+		if (permission == NULL)
+			permission = perm_default;
+
+		if (lddr->devtype == DEVNODE_TYPE_BLK) {
+			ret = snprintf(buf, sizeof(buf), "b %d:%d %s", lddr->dev_major, lddr->dev_minor, permission);
+		} else {
+			ret = snprintf(buf, sizeof(buf), "c %d:%d %s", lddr->dev_major, lddr->dev_minor, permission);
+		}
+
+		if (!(ret < (sizeof(buf)-1))) {
+			result = -1;
+			goto err_ret;
+		}
+
+		if (lddr->operation == 1) {
+			bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.allow", buf);
+			fprintf(stderr, "lxc set_cgroup_item: %s = %s\n", "devices.allow", buf);
+		} else if (lddr->operation == 2) {
+			bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.deny", buf);
+			fprintf(stderr, "lxc set_cgroup_item: %s = %s\n", "devices.deny", buf);
+		}
+		if (bret == false) {
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stderr, "lxcutil_dynamic_device_operation: fail set_cgroup_item %s\n", buf);
+			#endif
+			result = -2;
+			goto err_ret;
+		}
 	}
 
-	if (!(ret < (sizeof(buf)-1))) {
-		result = -1;
-		goto err_ret;
-	}
-
-	if (lddr->operation == 1) {
-		bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.allow", buf);
-		fprintf(stderr, "lxc set_cgroup_item: %s = %s\n", "devices.allow", buf);
-	} else if (lddr->operation == 2) {
-		bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.deny", buf);
-		fprintf(stderr, "lxc set_cgroup_item: %s = %s\n", "devices.deny", buf);
-	}
-	if (bret == false) {
-		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr, "lxcutil_dynamic_device_operation: fail set_cgroup_item %s\n", buf);
-		#endif
-		result = -2;
-		goto err_ret;
-	}
-
-	target_pid = cc->runtime_stat.lxc->init_pid(cc->runtime_stat.lxc);
 	if (lddr->is_create_node == 1) {
 		dev_t devnum = 0;
 		ret = -1;
+		pid_t target_pid = 0;
+
+		target_pid = lxcutil_get_init_pid(cc);
 
 		devnum = makedev(lddr->dev_major, lddr->dev_minor);
 		if (lddr->operation == 1) {

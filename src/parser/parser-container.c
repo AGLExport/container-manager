@@ -1233,7 +1233,7 @@ fprintf(stdout,"cmparser: subsystem = %s\n", subsystem->valuestring);
 
 	behavior = cJSON_GetObjectItemCaseSensitive(item, "behavior");
 	if (cJSON_IsObject(behavior)) {
-		cJSON *injection = NULL, *devnode = NULL, *permission = NULL;
+		cJSON *injection = NULL, *devnode = NULL, *allow = NULL, *permission = NULL;
 
 		injection = cJSON_GetObjectItemCaseSensitive(behavior, "injection");
 		if (cJSON_IsNumber(injection)) {
@@ -1245,6 +1245,12 @@ fprintf(stdout,"cmparser: subsystem = %s\n", subsystem->valuestring);
 		if (cJSON_IsNumber(devnode)) {
 			if (devnode->valueint == 1)
 				p->behavior.devnode = 1;
+		}
+
+		allow = cJSON_GetObjectItemCaseSensitive(behavior, "allow");
+		if (cJSON_IsNumber(devnode)) {
+			if (devnode->valueint == 1)
+				p->behavior.allow = 1;
 		}
 
 		permission = cJSON_GetObjectItemCaseSensitive(behavior, "permission");
@@ -1327,7 +1333,7 @@ static int cmparser_parse_dynamic_dev(container_dynamic_device_t *ddc, const cJS
 					fprintf(stdout,"cmparser: dynamic_device items is not get\n");
 				}
 
-				dl_list_add_tail(&ddc->dynamic_devlistv2, &p->list);
+				dl_list_add_tail(&ddc->dynamic_devlist, &p->list);
 			}
 		}
 	}
@@ -1715,7 +1721,7 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 	dl_list_init(&ccfg->deviceconfig.static_device.static_devlist);
 	dl_list_init(&ccfg->deviceconfig.static_device.static_gpiolist);
 	dl_list_init(&ccfg->deviceconfig.static_device.static_iiolist);
-	dl_list_init(&ccfg->deviceconfig.dynamic_device.dynamic_devlistv2);//temp
+	dl_list_init(&ccfg->deviceconfig.dynamic_device.dynamic_devlist);
 	dl_list_init(&ccfg->netifconfig.static_netif.static_netiflist);
 	dl_list_init(&ccfg->netifconfig.dynamic_netif.dynamic_netiflist);
 
@@ -1898,10 +1904,10 @@ void cmparser_release_config(container_config_t *cc)
 	{
 		container_dynamic_device_entry_t *dde = NULL;
 		// dynamic device config
-		while(dl_list_empty(&cc->deviceconfig.dynamic_device.dynamic_devlistv2) == 0) {
+		while(dl_list_empty(&cc->deviceconfig.dynamic_device.dynamic_devlist) == 0) {
 			dynamic_device_entry_items_t *ddei = NULL;
 
-			dde = dl_list_last(&cc->deviceconfig.dynamic_device.dynamic_devlistv2, container_dynamic_device_entry_t, list);
+			dde = dl_list_last(&cc->deviceconfig.dynamic_device.dynamic_devlist, container_dynamic_device_entry_t, list);
 			dl_list_del(&dde->list);
 
 			while(dl_list_empty(&dde->items) == 0) {

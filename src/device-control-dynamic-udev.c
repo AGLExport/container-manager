@@ -147,14 +147,19 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 		goto bypass_ret;	// Not match rule
 	}
 
-	if (behavior->devnode == 1) {
-		lddr.is_create_node = 1;
-	}
-	lddr.permission = behavior->permission;
+	if (behavior->devnode == 1 || behavior->allow == 1) {
+		if (behavior->devnode == 1)
+			lddr.is_create_node = 1;
 
-	ret = lxcutil_dynamic_device_operation(cc, &lddr);
-	if (ret < 0){
-		goto error_ret;
+		if (behavior->allow == 1)
+			lddr.is_allow_device = 1;
+
+		lddr.permission = behavior->permission;
+
+		ret = lxcutil_dynamic_device_operation(cc, &lddr);
+		if (ret < 0){
+			goto error_ret;
+		}
 	}
 
 	le = udev_device_get_properties_list_entry(pdev);
@@ -174,7 +179,7 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 			goto error_ret;
 		}
 
-		target_pid = cc->runtime_stat.lxc->init_pid(cc->runtime_stat.lxc);
+		target_pid = lxcutil_get_init_pid(cc);
 		ret = uevent_injection_to_pid(target_pid, &uim);
 	}
 
@@ -310,8 +315,10 @@ static int device_control_dynamic_udev_create_info(uevent_device_info_t *udi, lx
 		} else if (strcmp(elem_name, "SUBSYSTEM") == 0) {
 			udi->subsystem = elem_value;
 
-			if (strcmp(elem_value, "block") == 0) {
+			if (strcmp(elem_value, dev_subsys_block) == 0) {
 				lddr->devtype = DEVNODE_TYPE_BLK;
+			} if (strcmp(elem_value, dev_subsys_net) == 0) {
+				lddr->devtype = DEVNODE_TYPE_NET;
 			} else {
 				lddr->devtype = DEVNODE_TYPE_CHR;
 			}
@@ -416,7 +423,7 @@ static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uev
 
 	cdd = &cc->deviceconfig.dynamic_device;
 
-	dl_list_for_each(cdde, &cdd->dynamic_devlistv2, container_dynamic_device_entry_t, list) {
+	dl_list_for_each(cdde, &cdd->dynamic_devlist, container_dynamic_device_entry_t, list) {
 		if (cdde->devpath == NULL)
 			continue;	// No data.
 
@@ -547,43 +554,20 @@ err_return:
  */
 int device_control_dynamic_udev_cleanup(dynamic_device_manager_t *ddm)
 {
-#if 0
-	struct s_udevmonitor *devmon = NULL;
+	struct s_dynamic_device_udev *ddu = NULL;
 
-	if (ddm == NULL)
-		return -2;
+	ddu = (struct s_dynamic_device_udev*)ddm->ddu;
 
-	{
-		dynamic_device_info_t *ddi = NULL, *ddi_n = NULL;
+	if (ddu->libudev_source != NULL)
+		(void)sd_event_source_disable_unref(ddu->libudev_source);
 
-		dl_list_for_each_safe(ddi, ddi_n, &ddm->blockdev.list, dynamic_device_info_t, list) {
-			dl_list_del(&ddi->list);
-			dynamic_device_info_free(ddi);
-		}
-	}
+	if (ddu->pudev_monitor != NULL)
+		udev_monitor_unref(ddu->pudev_monitor);
 
-	{
-		dynamic_device_info_t *ddi = NULL, *ddi_n = NULL;
+	if (ddu->pudev != NULL)
+		udev_unref(ddu->pudev);
 
-		dl_list_for_each_safe(ddi, ddi_n, &ddm->netif.devlist, dynamic_device_info_t, list) {
-			dl_list_del(&ddi->list);
-			dynamic_device_info_free(ddi);
-		}
-	}
+	free(ddu);
 
-	devmon = (struct s_udevmonitor*)ddm->udevmon;
-
-	if (devmon->libudev_source != NULL)
-		(void)sd_event_source_disable_unref(devmon->libudev_source);
-
-	if (devmon->pudev_monitor != NULL)
-		udev_monitor_unref(devmon->pudev_monitor);
-
-	if (devmon->pudev != NULL)
-		udev_unref(devmon->pudev);
-
-	free(devmon);
-#endif
 	return 0;
-
 }

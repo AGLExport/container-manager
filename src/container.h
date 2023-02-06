@@ -241,14 +241,19 @@ typedef struct s_container_fsconfig container_fsconfig_t;	/**< typedef for struc
 
 /**
  * @def	DEVNODE_TYPE_CHR
- * @brief	Device node type is character device.  It use in static device setting.
+ * @brief	Device node type is character device.  It use in device setting.
  */
 #define DEVNODE_TYPE_CHR	(1)
 /**
  * @def	DEVNODE_TYPE_BLK
- * @brief	Device node type is block device.  It use in static device setting.
+ * @brief	Device node type is block device.  It use in device setting.
  */
 #define DEVNODE_TYPE_BLK	(2)
+/**
+ * @def	DEVNODE_TYPE_BLK
+ * @brief	Device node type is net device.
+ */
+#define DEVNODE_TYPE_NET	(3)
 
 /**
  * @struct	s_container_static_device_elem
@@ -363,6 +368,7 @@ struct s_container_static_device {
 };
 typedef struct s_container_static_device container_static_device_t;	/**< typedef for struct s_container_static_device. */
 
+# if 0
 /**
  * @struct	s_dynamic_device_elem_data
  * @brief	The data structure for dynamic device management.  It's a list element for device_list of s_container_dynamic_device_elem.  This data assign to s_container_dynamic_device_elem dynamically.
@@ -395,7 +401,7 @@ struct s_container_dynamic_device_elem {
 	struct dl_list device_list;	/**< Double link list for s_dynamic_device_elem_data to manage dynamic device assignment.*/
 };
 typedef struct s_container_dynamic_device_elem container_dynamic_device_elem_t;	/**< typedef for struct s_container_dynamic_device_elem. */
-
+#endif
 
 /**
  * @struct
@@ -441,6 +447,7 @@ typedef struct s_dynamic_device_entry_items_rule dynamic_device_entry_items_rule
 struct s_dynamic_device_entry_items_behavior {
 	int injection;		/**< Does enable uevent_injection (1:yes, 0:no). */
 	int devnode;		/**< Does enable device node creation (1:yes, 0:no). */
+	int allow;			/**< Does allow/deny device access (1:yes, 0:no). */
 	char *permission;	/**< Permission for device.*/
 };
 typedef struct s_dynamic_device_entry_items_behavior dynamic_device_entry_items_behavior_t;
@@ -475,8 +482,7 @@ typedef struct s_container_dynamic_device_entry container_dynamic_device_entry_t
  * @brief	The data structure for all dynamic device settings.  It's a part of s_container_deviceconfig.
  */
 struct s_container_dynamic_device {
-	/*struct dl_list dynamic_devlist;*/	/**< Double link list for s_container_dynamic_device_elem */
-	struct dl_list dynamic_devlistv2;	/**< Double link list for s_container_dynamic_device_elem */
+	struct dl_list dynamic_devlist;	/**< Double link list for s_container_dynamic_device_elem */
 };
 typedef struct s_container_dynamic_device container_dynamic_device_t;	/**< typedef for struct s_container_dynamic_device. */
 

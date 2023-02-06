@@ -32,7 +32,7 @@
  * @retval  0	Success to setup dynamic device manager.
  * @retval -1	Critical error.
  */
-int devc_device_manager_setup(containers_t *cs, sd_event *event)
+int devc_device_manager_setup(containers_t *cs, container_control_interface_t *cci, sd_event *event)
 {
 	int ret = 1;
 	int result = -1;
@@ -50,11 +50,9 @@ int devc_device_manager_setup(containers_t *cs, sd_event *event)
 	if (ret < 0)
 		goto err_ret;
 
-/*
 	ret = netifmonitor_setup(ddm, cci, event);
 	if (ret < 0)
 		goto err_ret;
-*/
 
 	return 0;
 
@@ -76,7 +74,7 @@ int devc_device_manager_cleanup(containers_t *cs)
 
 	ddm = cs->ddm;
 	if (ddm != NULL) {
-		//(void)netifmonitor_cleanup(ddm);
+		(void)netifmonitor_cleanup(ddm);
 
 		(void)device_control_dynamic_udev_cleanup(ddm);
 

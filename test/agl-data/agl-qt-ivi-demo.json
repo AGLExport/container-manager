@@ -152,6 +152,7 @@
 						"behavior": {
 							"injection": 1,
 							"devnode": 0,
+							"allow": 0,
 							"permission": "rw"
 						}
 					},
@@ -163,6 +164,7 @@
 						"behavior": {
 							"injection": 1,
 							"devnode": 0,
+							"allow": 1,
 							"permission": "rwm"
 						}
 					}
@@ -179,6 +181,7 @@
 						"behavior": {
 							"injection": 1,
 							"devnode": 1,
+							"allow": 1,
 							"permission": "rw"
 						}
 					}
@@ -197,6 +200,11 @@
 					"hwaddr":	"00:16:3e:xx:xx:xx",
 					"mode": "bridge"
 				}
+			}
+		],
+		"dynamic": [
+			{
+				"ifname": 	"eth0"
 			}
 		]
 	}

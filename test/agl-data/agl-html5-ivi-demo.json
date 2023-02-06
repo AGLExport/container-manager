@@ -5,7 +5,7 @@
 		"autoboot": true,
 		"bootpriority": 10,
 		"rootfs": {
-			"path": "/opt/container/guests/agl-qt-ivi-demo/rootfs",
+			"path": "/opt/container/guests/agl-html5-ivi-demo/rootfs",
 			"filesystem":	"ext4",
 			"mode":		"rw",
 			"blockdev": [
@@ -15,7 +15,7 @@
 		},
 		"extradisk": [
 			{
-				"from": 	"/opt/container/guests/agl-qt-ivi-demo/nv",
+				"from": 	"/opt/container/guests/agl-html5-ivi-demo/nv",
 				"to":		"var/nonvolatile",
 				"filesystem":	"ext4",
 				"mode":		"rw",

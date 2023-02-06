@@ -64,7 +64,6 @@ int main(int argc, char *argv[])
 	sd_event *event = NULL;
 	containers_t *cs = NULL;
 	container_control_interface_t *cci = NULL;
-	dynamic_device_manager_t *ddm = NULL;
 
 	ret = sd_event_default(&event);
 	if (ret < 0)
@@ -86,22 +85,14 @@ int main(int argc, char *argv[])
 		goto finish;
 	}
 
-	ret = devc_device_manager_setup(cs, event);
+	ret = devc_device_manager_setup(cs, cci, event);
 	if (ret < 0) {
 		#ifdef _PRINTF_DEBUG_
 		fprintf(stderr,"devc_device_manager_setup: fail %d\n", ret);
 		#endif
 		goto finish;
 	}
-/*
-	ret = container_mngsm_regist_device_manager(cs, ddm);
-	if (ret < 0) {
-		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr,"container_mngsm_regist_device_manager: fail %d\n", ret);
-		#endif
-		goto finish;
-	}
-*/
+
 	// early device setup: setup all containers, for static device, gpio,
 	ret = devc_early_device_setup(cs);
 	if (ret < 0)

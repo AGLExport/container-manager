@@ -21,7 +21,8 @@ struct s_lxcutil_dynamic_device_request {
     int dev_major;      /**< major number of device. */
     int dev_minor;      /**< minor number of device. */
     int is_create_node; /**< create device node or not. 1: create node, 0: note create.*/
-    const char *devnode;      /**< device node name. */
+    int is_allow_device;    /**< allow/deny device or not. 1:yes, 0:no. */
+    const char *devnode;    /**< device node name. */
     const char *permission;
 };
 typedef struct s_lxcutil_dynamic_device_request lxcutil_dynamic_device_request_t;	/**< typedef for struct s_lxcutil_dynamic_device_request. */
@@ -31,6 +32,7 @@ int lxcutil_create_instance(container_config_t *cc);
 int lxcutil_container_shutdown(container_config_t *cc);
 int lxcutil_container_forcekill(container_config_t *cc);
 int lxcutil_release_instance(container_config_t *cc);
+pid_t lxcutil_get_init_pid(container_config_t *cc);
 
 int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_device_request_t *lddr);
 

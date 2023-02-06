@@ -29,195 +29,8 @@ static int container_start_preprocess_base(container_baseconfig_t *bc);
 static int container_cleanup_preprocess_base(container_baseconfig_t *bc);
 static int container_get_active_guest_by_role(containers_t *cs, char *role, container_config_t **active_cc);
 
-dynamic_device_elem_data_t *dynamic_device_elem_data_create(const char *devpath, const char *devtype, const char *subsystem, const char *devnode,
-															dev_t devnum, const char *diskseq, const char *partn);
-int dynamic_device_elem_data_free(dynamic_device_elem_data_t *dded);
 int container_restart(container_config_t *cc);
 
-/**
- * The function for dynamic device add/remove event handling.
- * Current implementation support block device only.
- *
- * @param [in]	cc	Pointer to container_config_t.
- * @param [in]	ddm	Pointer to dynamic_device_manager_t.
- * @return int
- * @retval  0 Success to operation.
- * @retval -1 Critical error.(Reserve)
- */
-int container_device_update_guest(container_config_t *cc, dynamic_device_manager_t *ddm)
-{
-#if 0
-	int ret = 1;
-	block_device_manager_t *blockdev = NULL;
-	container_dynamic_device_t *cdd = NULL;
-	dynamic_device_info_t *ddi = NULL;
-	container_dynamic_device_elem_t *cdde = NULL;
-	dynamic_device_elem_data_t *dded = NULL, *dded_n = NULL;
-	int cmp_devpath = 0, cmp_devtype = 0;
-
-	if (cc->runtime_stat.status != CONTAINER_STARTED) {
-		// Not running container, pending
-		return 0;
-	}
-
-	ret = dynamic_block_device_info_get(&blockdev, ddm);
-	if (ret < 0) {
-		// Not running dynamic device manager, pending
-		return 0;
-	}
-
-	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr, "container_device_update_guest : %s\n", cc->name);
-	#endif
-
-	cdd = &cc->deviceconfig.dynamic_device;
-
-	// status clean
-	dl_list_for_each(cdde, &cdd->dynamic_devlist, container_dynamic_device_elem_t, list) {
-		dl_list_for_each(dded, &cdde->device_list, dynamic_device_elem_data_t, list) {
-			dded->is_available = 0;
-		}
-	}
-
-	// check device
-	dl_list_for_each(ddi, &blockdev->list, dynamic_device_info_t, list) {
-		//HACK avoid ext4 fs disk/part
-		if (ddi->fsmagic == EXT4_SUPER_MAGIC)
-			continue;
-
-		dl_list_for_each(cdde, &cdd->dynamic_devlist, container_dynamic_device_elem_t, list) {
-
-			if (ddi->devpath == NULL || ddi->subsystem == NULL || ddi->devtype == NULL
-				|| cdde->devtype == NULL || cdde->subsystem == NULL || cdde->devpath == NULL)
-				continue;
-
-			cmp_devtype = strcmp(cdde->devtype, ddi->devtype);
-			if (cmp_devtype == 0) {
-				cmp_devpath = strncmp(cdde->devpath, ddi->devpath, strlen(cdde->devpath));
-				if (cmp_devpath == 0) {
-					if (strcmp(cdde->subsystem, ddi->subsystem) == 0) {
-						int found = 0;
-
-						dl_list_for_each(dded, &cdde->device_list, dynamic_device_elem_data_t, list) {
-							if (dded->devnum == ddi->devnum) {
-								dded->is_available = 1;
-								found = 1;
-							}
-						}
-
-						if (found == 0) {
-							// new device
-							dynamic_device_elem_data_t *dded_new = NULL;
-							dded_new = dynamic_device_elem_data_create(ddi->devpath, ddi->devtype, ddi->subsystem, ddi->devnode
-																		, ddi->devnum, ddi->diskseq, ddi->partn);
-
-							dded_new->is_available = 1;
-
-							//add device to guest container
-							ret = lxcutil_dynamic_device_add_to_guest(cc, dded_new, cdde->mode);
-							if (ret < 0) {
-								// fail to add - not register device into internal device list, retry in next event time.
-								dynamic_device_elem_data_free(dded_new);
-							} else {
-								// success to add
-								dl_list_add(&cdde->device_list, &dded_new->list);
-
-								#ifdef _PRINTF_DEBUG_
-								fprintf(stderr, "device update add %s to %s\n", dded_new->devpath, cc->name);
-								#endif
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// remove device
-	dl_list_for_each(cdde, &cdd->dynamic_devlist, container_dynamic_device_elem_t, list) {
-		dl_list_for_each_safe(dded, dded_n, &cdde->device_list, dynamic_device_elem_data_t, list) {
-			if (dded->is_available == 0)
-			{
-				//remove device from guest container
-				ret = lxcutil_dynamic_device_remove_from_guest(cc, dded, cdde->mode);
-				if (ret < 0) {
-					//  fail to remove - not remove device from internal device list, retry in next event time.
-					;
-				} else {
-					// success to remove
-					dl_list_del(&dded->list);
-					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr, "device update del %s from %s\n", dded->devpath, cc->name);
-					#endif
-					dynamic_device_elem_data_free(dded);
-				}
-			}
-		}
-	}
-#endif
-	return 0;
-}
-/**
- * The function for dynamic device cleanup for stopped (exited, dead) guest container.
- *
- * @param [in]	cc	Pointer to container_config_t.
- * @return int
- * @retval  0 Success to operation.
- * @retval -1 Critical error.(Reserve)
- */
-int container_device_remove_element(container_config_t *cc)
-{
-#if 0
-	container_dynamic_device_t *cdd = NULL;
-	container_dynamic_device_elem_t *cdde = NULL;
-	dynamic_device_elem_data_t *dded = NULL, *dded_n = NULL;
-
-	cdd = &cc->deviceconfig.dynamic_device;
-
-	// remove all dynamic device elem data
-	dl_list_for_each(cdde, &cdd->dynamic_devlist, container_dynamic_device_elem_t, list) {
-		dl_list_for_each_safe(dded, dded_n, &cdde->device_list, dynamic_device_elem_data_t, list) {
-			// remove
-			dl_list_del(&dded->list);
-			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr, "device remove %s from %s\n", dded->devpath, cc->name);
-			#endif
-			dynamic_device_elem_data_free(dded);
-		}
-	}
-#endif
-	return 0;
-}
-/**
- * Dispatch dynamic device update operation to all guest container.
- *
- * @param [in]	cs	Pointer to containers_t
- * @return int
- * @retval  0 Success.
- * @retval -1 Critical error.
- */
-int container_device_updated(containers_t *cs)
-{
-	int num;
-	int ret = 1;
-	int result = -1;
-	container_config_t *cc = NULL;
-
-	num = cs->num_of_container;
-
-	for(int i=0;i < num;i++) {
-		cc = cs->containers[i];
-		ret = container_device_update_guest(cc, cs->ddm);
-		if (ret < 0)
-			goto err_ret;
-	}
-
-	return 0;
-
-err_ret:
-
-	return result;
-}
 /**
  * The function for dynamic network interface add (remove) event handling.
  *
@@ -229,7 +42,6 @@ err_ret:
  */
 int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_t *ddm)
 {
-#if 0
 	int ret = -1;
 	network_interface_manager_t *netif = NULL;
 	container_dynamic_netif_t *cdn = NULL;
@@ -299,7 +111,7 @@ int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_
 			#endif
 		}
 	}
-#endif
+
 	return 0;
 }
 /**
@@ -1060,8 +872,7 @@ int container_all_dynamic_device_update_notification(containers_t *cs)
 		return -1;
 	}
 
-	// dynamic device update - if these return error, recover to update timing
-	(void) cci->device_updated(cci);
+	// Async dynamic device update - if these return error, recover to update timing
 	(void) cci->netif_updated(cci);
 
 	return 0;
@@ -1079,7 +890,6 @@ int container_terminate(container_config_t *cc)
 {
 	(void) lxcutil_release_instance(cc);
 	(void) container_netif_remove_element(cc);
-	(void) container_device_remove_element(cc);
 
 	return 0;
 }
@@ -1346,68 +1156,3 @@ static int container_cleanup_preprocess_base(container_baseconfig_t *bc)
 
 	return 0;
 }
-/**
- * Create dynamic_device_elem_data_t object from dynamic device informations.
- *
- * @param [in]	devpath		device path of target device.
- * @param [in]	devtype		device typeof target device.
- * @param [in]	subsystem	subsystem name of target device.
- * @param [in]	devnode		device node name of target device.
- * @param [in]	devnum		device major and minor number of target device.
- * @param [in]	diskseq		diskseq of target device.
- * @param [in]	partn		partition number of target device.
- * @return dynamic_device_elem_data_t*
- * @retval !=NULL Success to create dynamic_device_elem_data_t object.
- * @retval ==NULL memory allocation error.
- */
-dynamic_device_elem_data_t *dynamic_device_elem_data_create(const char *devpath, const char *devtype, const char *subsystem, const char *devnode,
-															dev_t devnum, const char *diskseq, const char *partn)
-{
-	dynamic_device_elem_data_t *dded = NULL;
-
-	dded = (dynamic_device_elem_data_t*)malloc(sizeof(dynamic_device_elem_data_t));
-	if (dded == NULL)
-		return NULL;
-
-	memset(dded, 0 ,sizeof(dynamic_device_elem_data_t));
-
-	dded->devpath = strdup(devpath);
-	dded->devtype = strdup(devtype);
-	dded->subsystem = strdup(subsystem);
-	dded->devnode = strdup(devnode);
-	dded->devnum = devnum;
-
-	//options
-	if (diskseq != NULL)
-		dded->diskseq = strdup(diskseq);
-	if (partn != NULL)
-		dded->partn = strdup(partn);
-
-	dl_list_init(&dded->list);
-
-	return dded;
-}
-/**
- * Release dynamic_device_elem_data_t object.
- *
- * @param [in]	dded	Pointer to dynamic_device_elem_data_t.
- * @return int
- * @retval  0 Success to free memory.
- * @retval -1 Argument error.
- */
-int dynamic_device_elem_data_free(dynamic_device_elem_data_t *dded)
-{
-	if (dded == NULL)
-		return -1;
-
-	free(dded->devpath);
-	free(dded->devtype);
-	free(dded->subsystem);
-	free(dded->devnode);
-	free(dded->diskseq);
-	free(dded->partn);
-	free(dded);
-
-	return 0;
-}
-
