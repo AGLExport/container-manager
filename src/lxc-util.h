@@ -36,8 +36,6 @@ pid_t lxcutil_get_init_pid(container_config_t *cc);
 
 int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_device_request_t *lddr);
 
-//int lxcutil_dynamic_device_add_to_guest(container_config_t *cc, dynamic_device_elem_data_t *dded, int mode);
-//int lxcutil_dynamic_device_remove_from_guest(container_config_t *cc, dynamic_device_elem_data_t *dded, int mode);
 int lxcutil_dynamic_networkif_add_to_guest(container_config_t *cc, container_dynamic_netif_elem_t *cdne);
 
 //-----------------------------------------------------------------------------
