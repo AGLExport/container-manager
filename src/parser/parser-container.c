@@ -1264,9 +1264,9 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 
 					dl_list_add_tail(&p->rule.extra_list, &pre->list);
 
-					//#ifdef _PRINTF_DEBUG_
+					#ifdef _PRINTF_DEBUG_
 					fprintf(stdout,"cmparser: cmparser_parse_dynamic_dev_item extra %s = %s\n", pre->checker, pre->value);
-					//#endif
+					#endif
 				}
 			}
 		}
@@ -1358,9 +1358,9 @@ static int cmparser_parse_dynamic_dev(container_dynamic_device_t *ddc, const cJS
 				dl_list_init(&p->list);
 				dl_list_init(&p->items);
 
-				//#ifdef _PRINTF_DEBUG_
+				#ifdef _PRINTF_DEBUG_
 				fprintf(stdout,"cmparser: dynamic_device.devpath = %s\n", p->devpath);
-				//#endif
+				#endif
 
 				items = cJSON_GetObjectItemCaseSensitive(elem, "items");
 				if (cJSON_IsArray(items)) {

@@ -12,7 +12,6 @@
 #include <sys/types.h>
 #include <net/if.h>
 #include "list.h"
-//#include "container.h"
 #include "container-control-interface.h"
 
 struct s_dynamic_device_udev;
@@ -20,31 +19,6 @@ typedef struct s_dynamic_device_udev dynamic_device_udev_t;
 
 struct s_netifmonitor;
 typedef struct s_netifmonitor netifmonitor_t;
-//-----------------------------------------------------------------------------
-// udev device ---------------------------------
-/**
- * @struct	s_dynamic_device_info
- * @brief	The data structure for dynamic device, these member data are constructed from uevent.
- */
-struct s_dynamic_device_info {
-	struct dl_list list;	/**< Double link list header. */
-	char *syspath;			/**< sysfs path for this device. */
-	char *sysname;			/**< sysname fo this device. */
-	char *devpath;			/**< device path for this device. */
-	char *devtype;			/**< device type for this device. */
-	char *subsystem;		/**< subsystem name for this device. */
-	char *devnode;			/**< device node name for this device. - char/block device only */
-	dev_t devnum;			/**< device major and minor number for this device. - char/block device only */
-	char *diskseq;			/**< diskseq for this device. - block device - disk/partition only */
-	char *partn;			/**< partition num for this device. - block device - partition only */
-	int ifindex;			/**< network interface index - net only */
-	//-- drop data
-	//char *sysnum; -- from udev_device_get_sysnum
-	//char *driver; -- from udev_device_get_driver
-	//--- internal control data
-	uint32_t fsmagic;		/**< file system magic code. 0 is no fs> */
-};
-typedef struct s_dynamic_device_info dynamic_device_info_t;	/**< typedef for struct s_dynamic_device_info. */
 //-----------------------------------------------------------------------------
 // network interface ---------------------------------
 /**

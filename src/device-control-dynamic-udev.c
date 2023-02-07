@@ -55,15 +55,9 @@ const char dev_subsys_block[] = "block";
 const char dev_subsys_net[] = "net";
 
 /**
- * @var		block_dev_blacklist
- * @brief	Black list for block device management.  When device name mach this list, that device is not manage by dynamic device manager.
+ * @var
+ * @brief
  */
-static const char *block_dev_blacklist[] = {
-	"/dev/mmcblk",
-	"/dev/nvme",
-	NULL,
-};
-
 static const char *force_exclude_fs[] = {
 	"ext4",
 	NULL,
