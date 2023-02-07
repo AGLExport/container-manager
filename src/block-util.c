@@ -28,8 +28,6 @@ int block_util_getfs(const char *devpath, block_device_info_t *bdi)
 	int ret = -1;
 	const char *data;
 	size_t sz;
-	uint32_t magic = 0;
-	uint8_t *pmagic = (uint8_t*)&magic;
 
 	if (devpath == NULL || bdi == NULL)
 		return -1;
@@ -42,7 +40,7 @@ int block_util_getfs(const char *devpath, block_device_info_t *bdi)
 	if (ret < 0)
 		goto error_ret;
 
-	ret = blkid_probe_set_superblocks_flags(blk, BLKID_SUBLKS_LABEL | BLKID_SUBLKS_MAGIC);
+	ret = blkid_probe_set_superblocks_flags(blk, BLKID_SUBLKS_LABEL | BLKID_SUBLKS_TYPE);
 	if (ret < 0)
 		goto error_ret;
 
@@ -50,23 +48,14 @@ int block_util_getfs(const char *devpath, block_device_info_t *bdi)
 	if (ret < 0)
 		goto error_ret;
 
-	// fs magic
-	ret = blkid_probe_lookup_value(blk, "SBMAGIC", &data, &sz);
-	if (ret == 0) {
-		if (sz == 4) {
-			pmagic[0] = data[0];
-			pmagic[1] = data[1];
-			pmagic[2] = data[2];
-			pmagic[3] = data[3];
-		} else if (sz == 2) {
-			pmagic[0] = data[0];
-			pmagic[1] = data[1];
-		} else {
-			goto error_ret;
-		}
-	} else {
-		goto error_ret;
-	}
+	// fs type
+	ret = blkid_probe_lookup_value(blk, "TYPE", &data, &sz);
+	if (ret == 0 && sz <= 31) {
+		// have a vol label
+		memcpy(bdi->type, data, sz);
+		bdi->type[sz] = '\0';
+	} else
+		bdi->type[0] = '\0';
 
 	// volume label
 	ret = blkid_probe_lookup_value(blk, "LABEL", &data, &sz);
@@ -77,12 +66,10 @@ int block_util_getfs(const char *devpath, block_device_info_t *bdi)
 	} else
 		bdi->volume_label[0] = '\0';
 
-	bdi->fsmagic = magic;
-
 	blkid_free_probe(blk);
 
 	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr, "%s : magic = %4x, label = %s\n", devpath, bdi->fsmagic, bdi->volume_label);
+	fprintf(stderr, "%s : type = %s, label = %s\n", devpath, bdi->type, bdi->volume_label);
 	#endif
 
 	return 0;

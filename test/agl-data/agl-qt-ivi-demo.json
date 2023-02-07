@@ -159,7 +159,13 @@
 					{
 						"subsystem": "block",
 						"rule": {
-							"action": ["add", "remove","change"]
+							"action": ["add", "remove","change"],
+							"extra" : [
+								{
+									"checker": "exclude-fs",
+									"value": "exfat"
+								}
+							]
 						},
 						"behavior": {
 							"injection": 1,

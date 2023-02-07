@@ -1165,7 +1165,9 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 	if (!(cJSON_IsString(subsystem) && (subsystem->valuestring != NULL)))
 		return -2;
 
-fprintf(stdout,"cmparser: subsystem = %s\n", subsystem->valuestring);
+	#ifdef _PRINTF_DEBUG_
+	fprintf(stdout,"cmparser: subsystem = %s\n", subsystem->valuestring);
+	#endif
 
 	p = (dynamic_device_entry_items_t*)malloc(sizeof(dynamic_device_entry_items_t));
 	if (p == NULL)
@@ -1175,10 +1177,11 @@ fprintf(stdout,"cmparser: subsystem = %s\n", subsystem->valuestring);
 	p->subsystem = strdup(subsystem->valuestring);
 	dl_list_init(&p->list);
 	dl_list_init(&p->rule.devtype_list);
+	dl_list_init(&p->rule.extra_list);
 
 	rule = cJSON_GetObjectItemCaseSensitive(item, "rule");
 	if (cJSON_IsObject(rule)) {
-		cJSON *devtype = NULL, *action = NULL;
+		cJSON *devtype = NULL, *action = NULL, *extra = NULL;
 
 		devtype = cJSON_GetObjectItemCaseSensitive(rule, "devtype");
 		if (cJSON_IsArray(devtype)) {
@@ -1196,7 +1199,9 @@ fprintf(stdout,"cmparser: subsystem = %s\n", subsystem->valuestring);
 					strncpy(pli->string, devtypestr->valuestring, sizeof(pli->string)-1);
 					dl_list_add_tail(&p->rule.devtype_list, &pli->list);
 
+					#ifdef _PRINTF_DEBUG_
 					fprintf(stdout,"cmparser: cmparser_parse_dynamic_dev_item devtype = %s\n", pli->string);
+					#endif
 				}
 			}
 		}
@@ -1226,8 +1231,44 @@ fprintf(stdout,"cmparser: subsystem = %s\n", subsystem->valuestring);
 					}
 				}
 			}
-
+			#ifdef _PRINTF_DEBUG_
 			fprintf(stdout,"cmparser: cmparser_parse_dynamic_dev_item action add=%d remove=%d change=%d\n", p->rule.action.add, p->rule.action.remove, p->rule.action.change);
+			#endif
+		}
+
+		extra = cJSON_GetObjectItemCaseSensitive(rule, "extra");
+		if (cJSON_IsArray(extra)) {
+			cJSON *extra_elem = NULL;
+
+			cJSON_ArrayForEach(extra_elem, extra) {
+				if (cJSON_IsObject(extra_elem)) {
+					cJSON *extra_checker = NULL, *extra_value = NULL;
+					dynamic_device_entry_items_rule_extra_t *pre = NULL;
+
+					extra_checker = cJSON_GetObjectItemCaseSensitive(extra_elem, "checker");
+					if (!(cJSON_IsString(extra_checker) && (extra_checker->valuestring != NULL)))
+						continue;
+
+					extra_value = cJSON_GetObjectItemCaseSensitive(extra_elem, "value");
+					if (!(cJSON_IsString(extra_value) && (extra_value->valuestring != NULL)))
+						continue;
+
+					pre = (dynamic_device_entry_items_rule_extra_t*)malloc(sizeof(dynamic_device_entry_items_rule_extra_t));
+					if (pre == NULL)
+						goto err_ret;
+
+					memset(pre, 0, sizeof(dynamic_device_entry_items_rule_extra_t));
+					dl_list_init(&pre->list);
+					pre->checker = strdup(extra_checker->valuestring);
+					pre->value = strdup(extra_value->valuestring);
+
+					dl_list_add_tail(&p->rule.extra_list, &pre->list);
+
+					//#ifdef _PRINTF_DEBUG_
+					fprintf(stdout,"cmparser: cmparser_parse_dynamic_dev_item extra %s = %s\n", pre->checker, pre->value);
+					//#endif
+				}
+			}
 		}
 	}
 
@@ -1257,8 +1298,9 @@ fprintf(stdout,"cmparser: subsystem = %s\n", subsystem->valuestring);
 		if (cJSON_IsString(permission) && (permission->valuestring != NULL)) {
 			p->behavior.permission = strdup(permission->valuestring);
 		}
-
+		#ifdef _PRINTF_DEBUG_
 		fprintf(stdout,"cmparser: cmparser_parse_dynamic_dev_item behavior injection=%d devnode=%d permission=%s\n", p->behavior.injection, p->behavior.devnode, p->behavior.permission);
+		#endif
 	}
 
 	dl_list_add_tail(&dde->items, &p->list);
@@ -1912,6 +1954,7 @@ void cmparser_release_config(container_config_t *cc)
 
 			while(dl_list_empty(&dde->items) == 0) {
 				short_string_list_item_t *pli = NULL;
+				dynamic_device_entry_items_rule_extra_t *pre = NULL;
 
 				ddei = dl_list_last(&dde->items, dynamic_device_entry_items_t, list);
 				dl_list_del(&ddei->list);
@@ -1920,6 +1963,14 @@ void cmparser_release_config(container_config_t *cc)
 					pli = dl_list_last(&ddei->rule.devtype_list, short_string_list_item_t, list);
 					dl_list_del(&pli->list);
 					free(pli);
+				}
+
+				while(dl_list_empty(&ddei->rule.extra_list) == 0) {
+					pre = dl_list_last(&ddei->rule.extra_list, dynamic_device_entry_items_rule_extra_t, list);
+					dl_list_del(&pre->list);
+					free(pre->checker);
+					free(pre->value);
+					free(pre);
 				}
 
 				free(ddei->behavior.permission);

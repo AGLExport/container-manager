@@ -368,41 +368,6 @@ struct s_container_static_device {
 };
 typedef struct s_container_static_device container_static_device_t;	/**< typedef for struct s_container_static_device. */
 
-# if 0
-/**
- * @struct	s_dynamic_device_elem_data
- * @brief	The data structure for dynamic device management.  It's a list element for device_list of s_container_dynamic_device_elem.  This data assign to s_container_dynamic_device_elem dynamically.
- */
-struct s_dynamic_device_elem_data {
-	struct dl_list list;	/**< Double link list header. */
-	char *devpath;			/**< device path of this device. */
-	char *devtype;			/**< device typeof this device. */
-	char *subsystem;		/**< subsystem name of this device. */
-	char *devnode;			/**< device node name of this device. - char/block device only */
-	dev_t devnum;			/**< device major and minor number of this device. - char/block device only. */
-	char *diskseq;			/**< diskseq of this device. - block device - disk/partition only. */
-	char *partn;			/**< partition num of this device. - block device - partition only. */
-	//--- internal control data
-	int is_available;		/**< this dynamic device is available. */
-};
-typedef struct s_dynamic_device_elem_data dynamic_device_elem_data_t;	/**< typedef for struct s_dynamic_device_elem_data. */
-
-/**
- * @struct	s_container_dynamic_device_elem
- * @brief	The data structure for dynamic device setting.  It's a list element for dynamic_devlist of s_container_dynamic_device.  This has dynamic device assignment key.
- */
-struct s_container_dynamic_device_elem {
-	struct dl_list list;	/**< Double link list header */
-	char *devpath;			/**< Assignment device path into this guest container. */
-	char *subsystem;		/**< Assignment device subsystem into this guest container. */
-	char *devtype;			/**< Assignment device type into this guest container. */
-	int mode;				/**< uevent injection mode in this device. */
-	//--- internal control data
-	struct dl_list device_list;	/**< Double link list for s_dynamic_device_elem_data to manage dynamic device assignment.*/
-};
-typedef struct s_container_dynamic_device_elem container_dynamic_device_elem_t;	/**< typedef for struct s_container_dynamic_device_elem. */
-#endif
-
 /**
  * @struct
  * @brief
@@ -433,12 +398,23 @@ typedef struct s_uevent_action uevent_action_t;
  * @struct
  * @brief
  */
+struct s_dynamic_device_entry_items_rule_extra {
+	struct dl_list list;	/**< Double link list header */
+	char *checker;			/**<  */
+	char *value;			/**<  */
+};
+typedef struct s_dynamic_device_entry_items_rule_extra dynamic_device_entry_items_rule_extra_t;
+
+/**
+ * @struct
+ * @brief
+ */
 struct s_dynamic_device_entry_items_rule {
 	uevent_action_t action;
 	struct dl_list devtype_list;	/**< Double link list for devtype. */
+	struct dl_list extra_list;		/**< Double link list for extra. */
 };
 typedef struct s_dynamic_device_entry_items_rule dynamic_device_entry_items_rule_t;
-
 
 /**
  * @struct

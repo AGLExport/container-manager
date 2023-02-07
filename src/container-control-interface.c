@@ -84,7 +84,6 @@ err_return:
  */
 int container_mngsm_interface_free(containers_t *cs)
 {
-
 	if (cs == NULL)
 		return -2;
 

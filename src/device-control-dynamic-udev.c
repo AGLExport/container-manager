@@ -32,11 +32,14 @@ struct s_dynamic_device_udev {
 	containers_t *cs;	/**< TODO */
 };
 
+typedef int (*extra_checker_func_t)(struct dl_list *extra_list,  struct udev_device *pdev);
+
 struct s_uevent_device_info {
 	const char *devpath;
 	const char *subsystem;
 	const char *action;
 	const char *devtype;
+	extra_checker_func_t checker_func;
 };
 typedef struct s_uevent_device_info uevent_device_info_t;
 
@@ -61,11 +64,18 @@ static const char *block_dev_blacklist[] = {
 	NULL,
 };
 
+static const char *force_exclude_fs[] = {
+	"ext4",
+	NULL,
+};
+
 static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm);
 static int device_control_dynamic_udev_create_info(uevent_device_info_t *udi, lxcutil_dynamic_device_request_t *lddr, struct udev_list_entry *le);
-static container_config_t *device_control_dynamic_udev_get_target_container(containers_t *cs, uevent_device_info_t *udi, dynamic_device_entry_items_behavior_t **behavior);
-static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uevent_device_info_t *udi, dynamic_device_entry_items_behavior_t **behavior);
+static container_config_t *device_control_dynamic_udev_get_target_container(containers_t *cs, uevent_device_info_t *udi, struct udev_device *pdev, dynamic_device_entry_items_behavior_t **behavior);
+static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uevent_device_info_t *udi, struct udev_device *pdev, dynamic_device_entry_items_behavior_t **behavior);
 static int device_control_dynamic_udev_create_injection_message(uevent_injection_message_t *uim, uevent_device_info_t *udi, struct udev_list_entry *le);
+
+static int extra_checker_block_device(struct dl_list *extra_list,  struct udev_device *pdev);
 
 /**
  * Event handler for libudev.
@@ -97,7 +107,8 @@ static int udev_event_handler(sd_event_source *event, int fd, uint32_t revents, 
 		sd_event_source_disable_unref(event);
 	} else if ((revents & EPOLLIN) != 0) {
 		// Receive
-		ret = device_control_dynamic_udev_devevent(ddm);
+		// Not check error. TODO Fix
+		(void)device_control_dynamic_udev_devevent(ddm);
 	}
 
 	return ret;
@@ -105,7 +116,7 @@ static int udev_event_handler(sd_event_source *event, int fd, uint32_t revents, 
 
 /**
  * Sub function for uevent monitor.
- * This function analyze supported device type (block, net) and create device information object (dynamic_device_info_t).
+ * This function analyze uevent and injection to guest if necessary.
  *
  * @param [in]	ddm	Pointer to dynamic_device_manager_t.
  * @return int
@@ -138,9 +149,11 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 
 	ret = device_control_dynamic_udev_create_info(&udi, &lddr, le);
 	if (ret == 0) {
+		#ifdef _PRINTF_DEBUG_
 		fprintf(stderr,"udi: action=%s devpath=%s devtype=%s subsystem=%s\n", udi.action, udi.devpath, udi.devtype, udi.subsystem);
+		#endif
 
-		cc = device_control_dynamic_udev_get_target_container(ddu->cs, &udi, &behavior);
+		cc = device_control_dynamic_udev_get_target_container(ddu->cs, &udi, pdev, &behavior);
 		if (cc == NULL)
 			goto bypass_ret;	// Not match rule
 	} else {
@@ -170,35 +183,19 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 		memset(uim.message, 0 , sizeof(uim.message));
 		uim.used = 0;
 
-		fprintf(stderr,"INJECTION: ");
-
-		// TODO uevent injection
 		ret = device_control_dynamic_udev_create_injection_message(&uim, &udi, le);
-		fprintf(stderr,"\n");
 		if (ret < 0){
 			goto error_ret;
 		}
 
 		target_pid = lxcutil_get_init_pid(cc);
-		ret = uevent_injection_to_pid(target_pid, &uim);
+		if (target_pid >= 0) {
+			ret = uevent_injection_to_pid(target_pid, &uim);
+			if (ret < 0) {
+				goto error_ret;
+			}
+		}
 	}
-
-
-#if 0
-	le = udev_device_get_properties_list_entry(pdev);
-	while (le != NULL) {
-		const char* elem_name = NULL;
-		const char* elem_value = NULL;
-
-		elem_name = udev_list_entry_get_name(le);
-		elem_value = udev_list_entry_get_value(le);
-
-		fprintf(stderr,"%s=%s ", elem_name, elem_value);
-
-		le = udev_list_entry_get_next(le);
-	}
-#endif
-
 
 bypass_ret:
 	udev_device_unref(pdev);
@@ -235,6 +232,18 @@ static const char *trimmed_devname(const char* devnode)
 
 	return pstr;
 }
+/**
+ * Sub function for uevent monitor.
+ * This function create uevent from udev properties list.
+ *
+ * @param [in,out]	uim	Pointer to uevent_injection_message_t.
+ * @param [in]	udi	Pointer to uevent_device_info_t.
+ * @param [in]	le	Pointer to udev_list_entry.
+ * @return int
+ * @retval	0	Success to get device info.
+ * @retval	-1	Internal error.
+ * @retval	-2	Argument error. (Reserve)
+ */
 static int device_control_dynamic_udev_create_injection_message(uevent_injection_message_t *uim, uevent_device_info_t *udi, struct udev_list_entry *le)
 {
 	int ret = -1;
@@ -244,15 +253,19 @@ static int device_control_dynamic_udev_create_injection_message(uevent_injection
 	remain = sizeof(uim->message) - 1;
 	buf = &uim->message[0];
 
+	#ifdef _PRINTF_DEBUG_
+	fprintf(stderr,"INJECTION: ");
+	#endif
+
 	// add@/devices/pci0000:00/0000:00:08.1/0000:05:00.3/usb4/4-2/4-2:1.0/host3/target3:0:0/3:0:0:0/block/sdb/sdb1
 	ret = snprintf(&buf[usage], remain, "%s@%s", udi->action, udi->devpath);
 	if ((!(ret < remain)) || ret < 0)
-		return -2;
+		return -1;
 
 	usage = usage + ret + 1 /*NULL term*/;
 	remain = sizeof(uim->message) - 1 - usage;
 	if (remain < 0)
-		return -2;
+		return -1;
 
 	// create body.
 	while (le != NULL) {
@@ -271,14 +284,16 @@ static int device_control_dynamic_udev_create_injection_message(uevent_injection
 
 			ret = snprintf(&buf[usage], remain, "%s=%s", elem_name, elem_value);
 			if ((!(ret < remain)) || ret < 0)
-				return -2;
+				return -1;
 
 			usage = usage + ret + 1 /*NULL term*/;
 			remain = sizeof(uim->message) - 1 - usage;
 			if (remain < 0)
-				return -2;
+				return -1;
 
+			#ifdef _PRINTF_DEBUG_
 			fprintf(stderr,"%s=%s ", elem_name, elem_value);
+			#endif
 		}
 
 		le = udev_list_entry_get_next(le);
@@ -286,9 +301,24 @@ static int device_control_dynamic_udev_create_injection_message(uevent_injection
 
 	uim->used = usage;
 
+	#ifdef _PRINTF_DEBUG_
+	fprintf(stderr,"\n");
+	#endif
+
 	return 0;
 }
-
+/**
+ * Sub function for uevent monitor.
+ * This function create uevent info to use device assignment check and operations from udev properties list.
+ *
+ * @param [out]	udi		Pointer to uevent_device_info_t.
+ * @param [out]	lddr	Pointer to lxcutil_dynamic_device_request_t.
+ * @param [in]	le		Pointer to udev_list_entry.
+ * @return int
+ * @retval	0	Success to get device info.
+ * @retval	-1	Internal error.
+ * @retval	-2	Argument error. (Reserve)
+ */
 static int device_control_dynamic_udev_create_info(uevent_device_info_t *udi, lxcutil_dynamic_device_request_t *lddr, struct udev_list_entry *le)
 {
 	lddr->dev_major = -1;
@@ -317,6 +347,7 @@ static int device_control_dynamic_udev_create_info(uevent_device_info_t *udi, lx
 
 			if (strcmp(elem_value, dev_subsys_block) == 0) {
 				lddr->devtype = DEVNODE_TYPE_BLK;
+				udi->checker_func = extra_checker_block_device;
 			} if (strcmp(elem_value, dev_subsys_net) == 0) {
 				lddr->devtype = DEVNODE_TYPE_NET;
 			} else {
@@ -355,8 +386,18 @@ static int device_control_dynamic_udev_create_info(uevent_device_info_t *udi, lx
 
 	return 0;
 }
-
-static container_config_t *device_control_dynamic_udev_get_target_container(containers_t *cs, uevent_device_info_t *udi, dynamic_device_entry_items_behavior_t **behavior)
+/**
+ * Sub function for uevent monitor.
+ * This function check device assignment to all containers. It return behavior for target device.
+ *
+ * @param [in]	cs	Pointer to containers_t.
+ * @param [in]	udi	Pointer to uevent_device_info_t.
+ * @param [out]	le	Double pointer to dynamic_device_entry_items_behavior_t.
+ * @return int
+ * @retval	!= NULL	A container_config_t for device assignment target.
+ * @retval	NULL	Not found target.
+ */
+static container_config_t *device_control_dynamic_udev_get_target_container(containers_t *cs, uevent_device_info_t *udi, struct udev_device *pdev, dynamic_device_entry_items_behavior_t **behavior)
 {
 	int num = 0, ret = -1;
 	container_config_t *cc = NULL;
@@ -365,7 +406,7 @@ static container_config_t *device_control_dynamic_udev_get_target_container(cont
 
 	for(int i=0;i < num;i++) {
 		cc = cs->containers[i];
-		ret = device_control_dynamic_udev_rule_judgment(cc, udi, behavior);
+		ret = device_control_dynamic_udev_rule_judgment(cc, udi, pdev, behavior);
 		if (ret == 1)
 			return cc;
 	}
@@ -385,35 +426,36 @@ static int device_control_dynamic_udev_test_action(const char *actionstr, uevent
 			ret = 1;
 	} else if (strcmp("remove", actionstr) == 0) {
 		if (action->remove == 1)
-			ret = 1;
+			ret = 2;
 	} else if (strcmp("change", actionstr) == 0) {
 		if (action->change == 1)
-			ret = 1;
+			ret = 3;
 	} else if (strcmp("move", actionstr) == 0) {
 		if (action->move == 1)
-			ret = 1;
+			ret = 4;
 	} else if (strcmp("online", actionstr) == 0) {
 		if (action->online == 1)
-			ret = 1;
+			ret = 5;
 	} else if (strcmp("offline", actionstr) == 0) {
 		if (action->offline == 1)
-			ret = 1;
+			ret = 6;
 	} else if (strcmp("bind", actionstr) == 0) {
 		if (action->bind == 1)
-			ret = 1;
+			ret = 7;
 	} else if (strcmp("unbind", actionstr) == 0) {
 		if (action->unbind == 1)
-			ret = 1;
+			ret = 8;
 	}
 
 	return ret;
 }
 
-static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uevent_device_info_t *udi, dynamic_device_entry_items_behavior_t **behavior)
+static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uevent_device_info_t *udi, struct udev_device *pdev, dynamic_device_entry_items_behavior_t **behavior)
 {
 	container_dynamic_device_t *cdd = NULL;
 	container_dynamic_device_entry_t *cdde = NULL;
 	int ret = 0;
+	int action_code = 0;
 	int result = 0;
 
 	if (cc->runtime_stat.status != CONTAINER_STARTED) {
@@ -440,8 +482,8 @@ static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uev
 				if (strncmp(ddei->subsystem, udi->subsystem, strlen(ddei->subsystem)) == 0) {
 					// Match subsystem
 
-					ret = device_control_dynamic_udev_test_action(udi->action, &ddei->rule.action);
-					if (ret != 1)
+					action_code = device_control_dynamic_udev_test_action(udi->action, &ddei->rule.action);
+					if (action_code == 0)
 						continue;	//Not match
 
 					// empty or not
@@ -457,6 +499,13 @@ static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uev
 					}
 				}
 
+				if (action_code == 1 && udi->checker_func != NULL && result == 1) {
+					// This method exec add action only
+					ret = udi->checker_func(&ddei->rule.extra_list,  pdev);
+					if (ret != 1)
+						result = 0;
+				}
+
 				if (result == 1) {
 					(*behavior) = &ddei->behavior;
 					goto function_return;
@@ -469,6 +518,67 @@ function_return:
 	return result;
 }
 
+static int extra_checker_block_device(struct dl_list *extra_list,  struct udev_device *pdev)
+{
+	int ret = -1, result = -1;
+	struct udev_list_entry *le = NULL;
+	dynamic_device_entry_items_rule_extra_t *pre= NULL;
+	const char *devnode = NULL;
+
+	le = udev_device_get_properties_list_entry(pdev);
+	while (le != NULL) {
+		const char* elem_name = NULL;
+		const char* elem_value = NULL;
+
+		elem_name = udev_list_entry_get_name(le);
+		elem_value = udev_list_entry_get_value(le);
+
+		if (strcmp(elem_name, "DEVNAME") == 0) {
+			devnode = elem_value;
+		}
+
+		le = udev_list_entry_get_next(le);
+	}
+
+	if (devnode != NULL) {
+		block_device_info_t bdi;
+
+		memset(&bdi, 0 , sizeof(bdi));
+
+		ret = block_util_getfs(devnode, &bdi);
+		if (ret == 0) {
+			for(int i=0; force_exclude_fs[i] != NULL; i++) {
+				if (strcmp(bdi.type, force_exclude_fs[i]) == 0) {
+					result = 0;
+					goto bypass_ret;
+				}
+			}
+
+			dl_list_for_each(pre, extra_list, dynamic_device_entry_items_rule_extra_t, list) {
+				if (pre->checker == NULL || pre->value == NULL)
+					continue;
+
+				if (strcmp(pre->checker, "exclude-fs") == 0) {
+					result = 1;
+					if (strcmp(bdi.type, pre->value) == 0) {
+						result = 0;
+					}
+					break;
+				} else if (strcmp(pre->checker, "include-fs") == 0) {
+					result = 0;
+					if (strcmp(bdi.type, pre->value) == 0) {
+						result = 1;
+					}
+					break;
+				}
+			}
+		}
+	}
+
+bypass_ret:
+
+	return result;
+}
 /**
  * Sub function for uevent monitor.
  * Setup for the uevent monitor event loop.
