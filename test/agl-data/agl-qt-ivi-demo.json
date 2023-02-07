@@ -141,16 +141,57 @@
 		],
 		"dynamic": [
 			{
-				"devpath":		"/devices/platform/soc/ee0a0100.usb/usb2/",
-				"subsystem":	"block",
-				"devtype":		"disk",
-				"mode":	3
+				"devpath": "/devices/platform/soc/ee0a0100.usb/usb2/",
+				"items": [
+					{
+						"subsystem": "usb",
+						"rule": {
+							"devtype": ["usb_device","usb_interface"],
+							"action": ["add", "remove"]
+						},
+						"behavior": {
+							"injection": 1,
+							"devnode": 0,
+							"allow": 0,
+							"permission": "rw"
+						}
+					},
+					{
+						"subsystem": "block",
+						"rule": {
+							"action": ["add", "remove","change"],
+							"extra" : [
+								{
+									"checker": "exclude-fs",
+									"value": "exfat"
+								}
+							]
+						},
+						"behavior": {
+							"injection": 1,
+							"devnode": 0,
+							"allow": 1,
+							"permission": "rwm"
+						}
+					}
+				]
 			},
 			{
-				"devpath":		"/devices/platform/soc/ee0a0100.usb/usb2/",
-				"subsystem":	"block",
-				"devtype":		"partition",
-				"mode":	3
+				"devpath": "/devices/platform/soc/ee0a0100.usb/usb2/",
+				"items": [
+					{
+						"subsystem": "hid",
+						"rule": {
+							"action": ["add", "remove"]
+						},
+						"behavior": {
+							"injection": 1,
+							"devnode": 1,
+							"allow": 1,
+							"permission": "rw"
+						}
+					}
+				]
 			}
 		]
 	},
@@ -165,6 +206,11 @@
 					"hwaddr":	"00:16:3e:xx:xx:xx",
 					"mode": "bridge"
 				}
+			}
+		],
+		"dynamic": [
+			{
+				"ifname": 	"eth0"
 			}
 		]
 	}

@@ -18,7 +18,7 @@
 #include <sys/sysmacros.h>
 
 #include "cm-utils.h"
-#include "udev-util.h"
+#include "device-control-dynamic-udev.h"
 #include "net-util.h"
 
 /**
@@ -32,7 +32,7 @@
  * @retval  0	Success to setup dynamic device manager.
  * @retval -1	Critical error.
  */
-int devc_device_manager_setup(dynamic_device_manager_t **pddm, container_control_interface_t *cci, sd_event *event)
+int devc_device_manager_setup(containers_t *cs, container_control_interface_t *cci, sd_event *event)
 {
 	int ret = 1;
 	int result = -1;
@@ -42,15 +42,17 @@ int devc_device_manager_setup(dynamic_device_manager_t **pddm, container_control
 	if (ddm == NULL)
 		return -1;
 
-	ret = udevmonitor_setup(ddm, cci, event);
+	memset(ddm, 0, sizeof(dynamic_device_manager_t));
+
+	cs->ddm = ddm;
+
+	ret = device_control_dynamic_udev_setup(ddm, cs, event);
 	if (ret < 0)
 		goto err_ret;
 
 	ret = netifmonitor_setup(ddm, cci, event);
 	if (ret < 0)
 		goto err_ret;
-
-	(*pddm) = ddm;
 
 	return 0;
 
@@ -66,13 +68,19 @@ err_ret:
  * @retval  0	Success to cleanup.
  * @retval  -1	Critical error. (Reserve)
  */
-int devc_device_manager_cleanup(dynamic_device_manager_t *ddm)
+int devc_device_manager_cleanup(containers_t *cs)
 {
-	(void)netifmonitor_cleanup(ddm);
+	dynamic_device_manager_t *ddm = NULL;
 
-	(void)udevmonitor_cleanup(ddm);
+	ddm = cs->ddm;
+	if (ddm != NULL) {
+		(void)netifmonitor_cleanup(ddm);
 
-	free(ddm);
+		(void)device_control_dynamic_udev_cleanup(ddm);
+
+		free(ddm);
+	}
+	cs->ddm = NULL;
 
 	return 0;
 }

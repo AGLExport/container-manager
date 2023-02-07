@@ -13,13 +13,13 @@ containermanager_SOURCES = \
 	block-util.c \
 	lxc-util.c \
 	net-util.c \
-	udev-util.c \
 	signal-util.c \
 	proc-util.c \
 	uevent_injection.c \
 	container-config.c \
 	device-control-static.c \
 	device-control-dynamic.c \
+	device-control-dynamic-udev.c \
 	container-control.c \
 	container-control-interface.c \
 	container-control-exec.c \

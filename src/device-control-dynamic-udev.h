@@ -10,9 +10,10 @@
 #include <stdint.h>
 #include <systemd/sd-event.h>
 #include "devicemng.h"
+#include "container.h"
 //-----------------------------------------------------------------------------
-int udevmonitor_setup(dynamic_device_manager_t *ddm, container_control_interface_t *cci, sd_event *event);
-int udevmonitor_cleanup(dynamic_device_manager_t *ddm);
+int device_control_dynamic_udev_setup(dynamic_device_manager_t *ddm, containers_t *cs, sd_event *event);
+int device_control_dynamic_udev_cleanup(dynamic_device_manager_t *ddm);
 
 //-----------------------------------------------------------------------------
 #endif //#ifndef UDEV_UTIL_H

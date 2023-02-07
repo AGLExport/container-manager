@@ -17,7 +17,6 @@
 struct s_container_control_interface {
 	void *mngsm;	/**< Pointer to parent container manager state machine. */
 
-	int (*device_updated)(struct s_container_control_interface *cci);	/**< Function pointer for device update notification interface. */
 	int (*netif_updated)(struct s_container_control_interface *cci);	/**< Function pointer for network interface update notification interface. */
 
 	int (*system_shutdown)(struct s_container_control_interface *cci);	/**< Function pointer for received shutdown request notification interface. */
