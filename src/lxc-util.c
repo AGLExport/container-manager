@@ -533,7 +533,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 				buf[0] = '\0';
 
 				slen = snprintf(buf, buflen, "c %d:%d rw", iioelem->major, iioelem->minor); // static node is block to mknod
-				if (slen == buflen)
+				if (slen >= buflen)
 					continue;	// buffer over -> drop data
 
 				bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", buf);
