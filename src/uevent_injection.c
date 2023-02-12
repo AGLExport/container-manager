@@ -126,8 +126,7 @@ err_return:
  * Inject uevent to guest container using pid.
  *
  * @param [in]	target_pid	Target process pid.
- * @param [in]	dded		Pointer to dynamic_device_elem_data_t that include injecting device information.
- * @param [in]	action		String for device action. (add/remove)
+ * @param [in]	uim			Pointer to uevent_injection_message_t.
  * @return int
  * @retval	0	Success to inject uevent message.
  * @retval	-1	Argument error.

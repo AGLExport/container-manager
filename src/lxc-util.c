@@ -991,7 +991,17 @@ static int lxcutil_add_remove_guest_node(pid_t target_pid, const char *path, int
 
 	return 0;
 }
-
+/**
+ * The function of dynamic device operation.
+ * Device allow/deny setting by cgroup.
+ * Device node creation and remove.
+ *
+ * @param [in]	cc		Pointer to container_config_t of target container.
+ * @param [in]	lddr	The path for device node in guest.
+ * @return int
+ * @retval 0	Success to operations.
+ * @retval -1	Critical error.
+ */
 int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_device_request_t *lddr)
 {
 	bool bret = false;
@@ -1012,6 +1022,7 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 	if (lddr->dev_major < 0 || lddr->dev_minor < 0)
 		return 0;	// No need to allow/deny device by cgroup
 
+	// Device allow/deny setting by cgroup.
 	if (lddr->is_allow_device == 1) {
 		const char *permission = NULL;
 		const char perm_default[] = "rw";
@@ -1032,12 +1043,16 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 			goto err_ret;
 		}
 
-		if (lddr->operation == 1) {
+		if (lddr->operation == DCD_UEVENT_ACTION_ADD) {
 			bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.allow", buf);
+			#ifdef _PRINTF_DEBUG_
 			fprintf(stderr, "lxc set_cgroup_item: %s = %s\n", "devices.allow", buf);
-		} else if (lddr->operation == 2) {
+			#endif
+		} else if (lddr->operation == DCD_UEVENT_ACTION_REMOVE) {
 			bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.deny", buf);
+			#ifdef _PRINTF_DEBUG_
 			fprintf(stderr, "lxc set_cgroup_item: %s = %s\n", "devices.deny", buf);
+			#endif
 		}
 		if (bret == false) {
 			#ifdef _PRINTF_DEBUG_
@@ -1048,6 +1063,7 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 		}
 	}
 
+	// Device node creation and remove.
 	if (lddr->is_create_node == 1) {
 		dev_t devnum = 0;
 		ret = -1;
@@ -1056,9 +1072,9 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 		target_pid = lxcutil_get_init_pid(cc);
 
 		devnum = makedev(lddr->dev_major, lddr->dev_minor);
-		if (lddr->operation == 1) {
+		if (lddr->operation == DCD_UEVENT_ACTION_ADD) {
 			ret = lxcutil_add_remove_guest_node(target_pid, lddr->devnode, 1, devnum);
-		} else if (lddr->operation == 2) {
+		} else if (lddr->operation == DCD_UEVENT_ACTION_REMOVE) {
 			ret = lxcutil_add_remove_guest_node(target_pid, lddr->devnode, 0, devnum);
 		}
 		if (ret < 0) {

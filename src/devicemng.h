@@ -17,6 +17,53 @@
 struct s_dynamic_device_udev;
 typedef struct s_dynamic_device_udev dynamic_device_udev_t;
 
+/**
+ * @def	DCD_UEVENT_ACTION_NON
+ * @brief	The uevent action code for non.  It's for internal use.
+ */
+#define DCD_UEVENT_ACTION_NON		(0)
+/**
+ * @def	DCD_UEVENT_ACTION_ADD
+ * @brief	The uevent action code for add.  It's for internal use.
+ */
+#define DCD_UEVENT_ACTION_ADD		(1)
+/**
+ * @def	DCD_UEVENT_ACTION_REMOVE
+ * @brief	The uevent action code for remove.  It's for internal use.
+ */
+#define DCD_UEVENT_ACTION_REMOVE	(2)
+/**
+ * @def	DCD_UEVENT_ACTION_CHANGE
+ * @brief	The uevent action code for change.  It's for internal use.
+ */
+#define DCD_UEVENT_ACTION_CHANGE	(3)
+/**
+ * @def	DCD_UEVENT_ACTION_MOVE
+ * @brief	The uevent action code for move.  It's for internal use.
+ */
+#define DCD_UEVENT_ACTION_MOVE		(4)
+/**
+ * @def	DCD_UEVENT_ACTION_ONLINE
+ * @brief	The uevent action code for online.  It's for internal use.
+ */
+#define DCD_UEVENT_ACTION_ONLINE	(5)
+/**
+ * @def	DCD_UEVENT_ACTION_OFFLINE
+ * @brief	The uevent action code for offline.  It's for internal use.
+ */
+#define DCD_UEVENT_ACTION_OFFLINE	(6)
+/**
+ * @def	DCD_UEVENT_ACTION_BIND
+ * @brief	The uevent action code for bind.  It's for internal use.
+ */
+#define DCD_UEVENT_ACTION_BIND		(7)
+/**
+ * @def	DCD_UEVENT_ACTION_UNBIND
+ * @brief	The uevent action code for unbind.  It's for internal use.
+ */
+#define DCD_UEVENT_ACTION_UNBIND	(8)
+
+
 struct s_netifmonitor;
 typedef struct s_netifmonitor netifmonitor_t;
 //-----------------------------------------------------------------------------
