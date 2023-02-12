@@ -268,7 +268,8 @@ containers_t *create_container_configs(const char *config_file)
 				if (strstr(dent->d_name, ".json") != NULL) {
 
 					buf[slen] = '\0';
-					(void)strncat(buf, dent->d_name, buflen);
+					buf[(sizeof(buf) - 1)] = '\0';
+					strncpy(&buf[slen], dent->d_name, buflen);
 
 					// parse container config.
 					ret = cmparser_create_from_file(&cc, buf);
