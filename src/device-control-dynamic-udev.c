@@ -29,19 +29,33 @@ struct s_dynamic_device_udev {
 	struct udev* pudev;					/**< The udev object created by libudev. */
 	struct udev_monitor *pudev_monitor;	/**< The udev_monitor object created by libudev.  */
 	sd_event_source *libudev_source ;	/**< The sd event source controlled by libudev. */
-	containers_t *cs;	/**< TODO */
+	containers_t *cs;					/**< Pointer to the top data structure for container manager. */
 };
 
+/**
+ * The function pointer type for subsystem specific assignment rule check.
+ *
+ * @param [in]	extra_list	Extra rule list from container config.
+ * @param [in]	pdev		Pointer to struct udev_device.
+ * @return int
+ * @retval	1	Match to rule.
+ * @retval	0	Not match to rule.
+ * @retval	-1	Generic error.
+ */
 typedef int (*extra_checker_func_t)(struct dl_list *extra_list,  struct udev_device *pdev);
 
+/**
+ * @struct	s_uevent_device_info
+ * @brief	The data structure for device assignment rule check.
+ */
 struct s_uevent_device_info {
-	const char *devpath;
-	const char *subsystem;
-	const char *action;
-	const char *devtype;
-	extra_checker_func_t checker_func;
+	const char *devpath;	/**< The devpath property from libudev. */
+	const char *subsystem;	/**< The subsystem property from libudev. */
+	const char *action;		/**< The action property from libudev. */
+	const char *devtype;	/**< The devtype property from libudev. */
+	extra_checker_func_t checker_func;	/**< The function pointer for subsystem specific assignment rule check. */
 };
-typedef struct s_uevent_device_info uevent_device_info_t;
+typedef struct s_uevent_device_info uevent_device_info_t;	/**< typedef for struct s_uevent_device_info. */
 
 /**
  * @var		dev_subsys_block
@@ -55,15 +69,9 @@ const char dev_subsys_block[] = "block";
 const char dev_subsys_net[] = "net";
 
 /**
- * @var		block_dev_blacklist
- * @brief	Black list for block device management.  When device name mach this list, that device is not manage by dynamic device manager.
+ * @var		force_exclude_fs
+ * @brief	Defined string table to use in filesystem based device masking.
  */
-static const char *block_dev_blacklist[] = {
-	"/dev/mmcblk",
-	"/dev/nvme",
-	NULL,
-};
-
 static const char *force_exclude_fs[] = {
 	"ext4",
 	NULL,
@@ -71,8 +79,10 @@ static const char *force_exclude_fs[] = {
 
 static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm);
 static int device_control_dynamic_udev_create_info(uevent_device_info_t *udi, lxcutil_dynamic_device_request_t *lddr, struct udev_list_entry *le);
-static container_config_t *device_control_dynamic_udev_get_target_container(containers_t *cs, uevent_device_info_t *udi, struct udev_device *pdev, dynamic_device_entry_items_behavior_t **behavior);
-static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uevent_device_info_t *udi, struct udev_device *pdev, dynamic_device_entry_items_behavior_t **behavior);
+static container_config_t *device_control_dynamic_udev_get_target_container(containers_t *cs, uevent_device_info_t *udi, struct udev_device *pdev
+																			, dynamic_device_entry_items_behavior_t **behavior);
+static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uevent_device_info_t *udi, struct udev_device *pdev
+													, dynamic_device_entry_items_behavior_t **behavior);
 static int device_control_dynamic_udev_create_injection_message(uevent_injection_message_t *uim, uevent_device_info_t *udi, struct udev_list_entry *le);
 
 static int extra_checker_block_device(struct dl_list *extra_list,  struct udev_device *pdev);
@@ -332,19 +342,24 @@ static int device_control_dynamic_udev_create_info(uevent_device_info_t *udi, lx
 		elem_value = udev_list_entry_get_value(le);
 
 		if (strcmp(elem_name, "ACTION") == 0) {
+			// set to uevent device info
 			udi->action = elem_value;
 
+			// set to lxcutil dynamic device request
 			if (strcmp(elem_value, "add") == 0) {
-				lddr->operation = 1;
+				lddr->operation = DCD_UEVENT_ACTION_ADD;
 			} else if (strcmp(elem_value, "remove") == 0) {
-				lddr->operation = 2;
+				lddr->operation = DCD_UEVENT_ACTION_REMOVE;
 			}
 		} else if (strcmp(elem_name, "DEVPATH") == 0) {
+			// set to uevent device info
 			udi->devpath = elem_value;
 
 		} else if (strcmp(elem_name, "SUBSYSTEM") == 0) {
+			// set to uevent device info
 			udi->subsystem = elem_value;
 
+			// set to lxcutil dynamic device request
 			if (strcmp(elem_value, dev_subsys_block) == 0) {
 				lddr->devtype = DEVNODE_TYPE_BLK;
 				udi->checker_func = extra_checker_block_device;
@@ -354,15 +369,18 @@ static int device_control_dynamic_udev_create_info(uevent_device_info_t *udi, lx
 				lddr->devtype = DEVNODE_TYPE_CHR;
 			}
 		} else if (strcmp(elem_name, "DEVTYPE") == 0) {
+			// set to uevent device info
 			udi->devtype = elem_value;
 
 		} else if (strcmp(elem_name, "DEVNAME") == 0) {
+			// set to lxcutil dynamic device request
 			lddr->devnode = elem_value;
 
 		} else if (strcmp(elem_name, "MAJOR") == 0) {
 			char *endptr = NULL;
 			int value = 0;
 
+			// set to lxcutil dynamic device request
 			value = strtol(elem_value, &endptr, 10);
 			if (elem_value == endptr) {
 				lddr->dev_major = -1;
@@ -373,6 +391,7 @@ static int device_control_dynamic_udev_create_info(uevent_device_info_t *udi, lx
 			char *endptr = NULL;
 			int value = 0;
 
+			// set to lxcutil dynamic device request
 			value = strtol(elem_value, &endptr, 10);
 			if (elem_value == endptr) {
 				lddr->dev_minor = -1;
@@ -390,14 +409,16 @@ static int device_control_dynamic_udev_create_info(uevent_device_info_t *udi, lx
  * Sub function for uevent monitor.
  * This function check device assignment to all containers. It return behavior for target device.
  *
- * @param [in]	cs	Pointer to containers_t.
- * @param [in]	udi	Pointer to uevent_device_info_t.
- * @param [out]	le	Double pointer to dynamic_device_entry_items_behavior_t.
+ * @param [in]	cs		Pointer to containers_t.
+ * @param [in]	udi		Pointer to uevent_device_info_t.
+ * @param [in]	pdev	Pointer to struct udev_device.
+ * @param [out]	le		Double pointer to dynamic_device_entry_items_behavior_t.
  * @return int
  * @retval	!= NULL	A container_config_t for device assignment target.
  * @retval	NULL	Not found target.
  */
-static container_config_t *device_control_dynamic_udev_get_target_container(containers_t *cs, uevent_device_info_t *udi, struct udev_device *pdev, dynamic_device_entry_items_behavior_t **behavior)
+static container_config_t *device_control_dynamic_udev_get_target_container(containers_t *cs, uevent_device_info_t *udi, struct udev_device *pdev
+																			, dynamic_device_entry_items_behavior_t **behavior)
 {
 	int num = 0, ret = -1;
 	container_config_t *cc = NULL;
@@ -413,44 +434,67 @@ static container_config_t *device_control_dynamic_udev_get_target_container(cont
 
 	return NULL;
 }
-
+/**
+ * Sub function for uevent monitor.
+ * Test uevent to match handling rule.
+ *
+ * @param [in]	actionstr	The string of uevent action.
+ * @param [in]	action		Pointer to uevent_action_t.
+ * @return int
+ * @retval	0<	Target uevent code to match handling rule.
+ * @retval	0	An action of actionstr does not match handling rule.
+ * @retval	<0	Internal error (Not use).
+ */
 static int device_control_dynamic_udev_test_action(const char *actionstr, uevent_action_t *action)
 {
-	int ret = 0;
+	int ret = DCD_UEVENT_ACTION_NON;
 
 	if (actionstr == NULL || action == NULL)
 		return ret;
 
 	if (strcmp("add", actionstr) == 0) {
 		if (action->add == 1)
-			ret = 1;
+			ret = DCD_UEVENT_ACTION_ADD;
 	} else if (strcmp("remove", actionstr) == 0) {
 		if (action->remove == 1)
-			ret = 2;
+			ret = DCD_UEVENT_ACTION_REMOVE;
 	} else if (strcmp("change", actionstr) == 0) {
 		if (action->change == 1)
-			ret = 3;
+			ret = DCD_UEVENT_ACTION_CHANGE;
 	} else if (strcmp("move", actionstr) == 0) {
 		if (action->move == 1)
-			ret = 4;
+			ret = DCD_UEVENT_ACTION_MOVE;
 	} else if (strcmp("online", actionstr) == 0) {
 		if (action->online == 1)
-			ret = 5;
+			ret = DCD_UEVENT_ACTION_ONLINE;
 	} else if (strcmp("offline", actionstr) == 0) {
 		if (action->offline == 1)
-			ret = 6;
+			ret = DCD_UEVENT_ACTION_OFFLINE;
 	} else if (strcmp("bind", actionstr) == 0) {
 		if (action->bind == 1)
-			ret = 7;
+			ret = DCD_UEVENT_ACTION_BIND;
 	} else if (strcmp("unbind", actionstr) == 0) {
 		if (action->unbind == 1)
-			ret = 8;
+			ret = DCD_UEVENT_ACTION_UNBIND;
 	}
 
 	return ret;
 }
-
-static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uevent_device_info_t *udi, struct udev_device *pdev, dynamic_device_entry_items_behavior_t **behavior)
+/**
+ * Sub function for uevent monitor.
+ * This function test to match between the dynamic device handling rule and uevent device info.
+ * When that is matched, it provide reference to the behavior data inside a container config.
+ *
+ * @param [in]	cc			Pointer to container_config_t.
+ * @param [in]	udi			Pointer to uevent_device_info_t.
+ * @param [in]	pdev		Pointer to struct udev_device.
+ * @param [out]	behavior	Double pointer to dynamic_device_entry_items_behavior_t.  It use to get reference to the behavior data.
+ * @return int
+ * @retval	0	Success to event handling.
+ * @retval	-1	Internal error (Not use).
+ */
+static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uevent_device_info_t *udi, struct udev_device *pdev
+													, dynamic_device_entry_items_behavior_t **behavior)
 {
 	container_dynamic_device_t *cdd = NULL;
 	container_dynamic_device_entry_t *cdde = NULL;
@@ -517,14 +561,25 @@ static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uev
 function_return:
 	return result;
 }
-
+/**
+ * Sub function for uevent monitor.
+ * Extra uevent checker function for block device.
+ *
+ * @param [in]	extra_list	Pointer to extra rule lest inside a container config.
+ * @param [in]	pdev		Pointer to struct udev_device.
+ * @return int
+ * @retval	1	Match to rule.
+ * @retval	0	Not match to rule.
+ * @retval	-1	Internal error (Not use).
+ */
 static int extra_checker_block_device(struct dl_list *extra_list,  struct udev_device *pdev)
 {
-	int ret = -1, result = -1;
+	int ret = -1, result = 0;
 	struct udev_list_entry *le = NULL;
 	dynamic_device_entry_items_rule_extra_t *pre= NULL;
 	const char *devnode = NULL;
 
+	// Analyze udev properties list.
 	le = udev_device_get_properties_list_entry(pdev);
 	while (le != NULL) {
 		const char* elem_name = NULL;

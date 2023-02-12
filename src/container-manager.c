@@ -11,7 +11,6 @@
 #include <errno.h>
 
 #include "signal-util.h"
-//#include "udev-util.h"
 #include "net-util.h"
 #include "lxc-util.h"
 #include "block-util.h"
