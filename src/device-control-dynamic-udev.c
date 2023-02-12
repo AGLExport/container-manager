@@ -37,12 +37,13 @@ struct s_dynamic_device_udev {
  *
  * @param [in]	extra_list	Extra rule list from container config.
  * @param [in]	pdev		Pointer to struct udev_device.
+ * @param [in]	action		Uevent action.
  * @return int
  * @retval	1	Match to rule.
  * @retval	0	Not match to rule.
  * @retval	-1	Generic error.
  */
-typedef int (*extra_checker_func_t)(struct dl_list *extra_list,  struct udev_device *pdev);
+typedef int (*extra_checker_func_t)(struct dl_list *extra_list,  struct udev_device *pdev, int action);
 
 /**
  * @struct	s_uevent_device_info
@@ -85,7 +86,7 @@ static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uev
 													, dynamic_device_entry_items_behavior_t **behavior);
 static int device_control_dynamic_udev_create_injection_message(uevent_injection_message_t *uim, uevent_device_info_t *udi, struct udev_list_entry *le);
 
-static int extra_checker_block_device(struct dl_list *extra_list,  struct udev_device *pdev);
+static int extra_checker_block_device(struct dl_list *extra_list,  struct udev_device *pdev, int action);
 
 /**
  * Event handler for libudev.
@@ -543,11 +544,13 @@ static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uev
 					}
 				}
 
-				if (action_code == 1 && udi->checker_func != NULL && result == 1) {
-					// This method exec add action only
-					ret = udi->checker_func(&ddei->rule.extra_list,  pdev);
-					if (ret != 1)
-						result = 0;
+				if (udi->checker_func != NULL && result == 1) {
+					// Have a extra rule?
+					if (dl_list_empty(&ddei->rule.extra_list) == 0) {
+						ret = udi->checker_func(&ddei->rule.extra_list, pdev, action_code);
+						if (ret != 1)
+							result = 0;
+					}
 				}
 
 				if (result == 1) {
@@ -567,17 +570,21 @@ function_return:
  *
  * @param [in]	extra_list	Pointer to extra rule lest inside a container config.
  * @param [in]	pdev		Pointer to struct udev_device.
- * @return int
+ * @param [in]	action		Uevent action.
  * @retval	1	Match to rule.
  * @retval	0	Not match to rule.
  * @retval	-1	Internal error (Not use).
  */
-static int extra_checker_block_device(struct dl_list *extra_list,  struct udev_device *pdev)
+static int extra_checker_block_device(struct dl_list *extra_list,  struct udev_device *pdev, int action)
 {
 	int ret = -1, result = 0;
 	struct udev_list_entry *le = NULL;
 	dynamic_device_entry_items_rule_extra_t *pre= NULL;
 	const char *devnode = NULL;
+
+	// Block device is only to check in add event case.
+	if (action != DCD_UEVENT_ACTION_ADD)
+		return 1;
 
 	// Analyze udev properties list.
 	le = udev_device_get_properties_list_entry(pdev);
