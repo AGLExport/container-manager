@@ -68,7 +68,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 				slen = snprintf(buf, buflen, "%s %s none bind,ro,create=dir", exdisk->from, exdisk->to);
 			}
 
-			if (slen != buflen) {
+			if (slen >= buflen) {
 				bret = plxc->set_config_item(plxc, "lxc.mount.entry", buf);
 				if (bret == false) {
 					result = -1;
@@ -223,7 +223,7 @@ static int lxcutil_set_config_resource(struct lxc_container *plxc, container_res
 				continue;	//drop data
 
 			slen = snprintf(buf, buflen, "lxc.cgroup.%s", melem->object);
-			if (slen == buflen)
+			if (slen >= buflen)
 				continue;	// buffer over -> drop data
 
 			bret = plxc->set_config_item(plxc, buf, melem->value);
@@ -283,7 +283,7 @@ static int lxcutil_set_config_fs(struct lxc_container *plxc, container_fsconfig_
 				continue;	//drop data
 
 			slen = snprintf(buf, buflen, "%s %s %s %s", melem->from, melem->to, melem->fstype, melem->option);
-			if (slen == buflen)
+			if (slen >= buflen)
 				continue;	// buffer over -> drop data
 
 			bret = plxc->set_config_item(plxc, "lxc.mount.entry", buf);
@@ -299,7 +299,7 @@ static int lxcutil_set_config_fs(struct lxc_container *plxc, container_fsconfig_
 				continue;	//drop data
 
 			slen = snprintf(buf, buflen, "%s %s %s %s", melem->from, melem->to, melem->fstype, melem->option);
-			if (slen == buflen)
+			if (slen >= buflen)
 				continue;	// buffer over -> drop data
 
 			bret = plxc->set_config_item(plxc, "lxc.mount.entry", buf);
@@ -401,11 +401,11 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 		if (develem->wideallow == 1) {
 			// allow all minor
 			slen = snprintf(buf, buflen, "%s %d:* rw", pdevtype, develem->major); // static node is block to mknod
-			if (slen == buflen)
+			if (slen >= buflen)
 				continue;	// buffer over -> drop data
 		} else {
 			slen = snprintf(buf, buflen, "%s %d:%d rw", pdevtype, develem->major, develem->minor); // static node is block to mknod
-			if (slen == buflen)
+			if (slen >= buflen)
 				continue;	// buffer over -> drop data
 		}
 
@@ -533,7 +533,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 				buf[0] = '\0';
 
 				slen = snprintf(buf, buflen, "c %d:%d rw", iioelem->major, iioelem->minor); // static node is block to mknod
-				if (slen == buflen)
+				if (slen >= buflen)
 					continue;	// buffer over -> drop data
 
 				bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", buf);
