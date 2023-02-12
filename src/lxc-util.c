@@ -510,7 +510,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 					continue;	// buffer over -> drop data
 
 				buflen = sizeof(buf) - slen - 1;
-				if (develem->optional == 1) {
+				if (iioelem->optional == 1) {
 					(void)strncpy(&buf[slen], ",optional", buflen);
 					slen = slen + sizeof(",optional") - 1;
 				}
