@@ -44,17 +44,25 @@
 			"type":		"cgroup",
 			"object":	"cpuset.cpus",
 			"value":	"1"
+		},
+		{
+			"type":		"prlimit",
+			"object":	"rtprio",
+			"value":	"50"
+		},
+		{
+			"type":		"cgroup",
+			"object":	"kernel.sched_rt_period_us",
+			"value":	"1000000"
+		},
+		{
+			"type":		"cgroup",
+			"object":	"kernel.sched_rt_runtime_us",
+			"value":	"1000000"
 		}
 	],
 	"fs": {
 		"mount": [
-			{
-				"type": 	"filesystem",
-				"from": 	"shm",
-				"to":		"/dev/shm",
-				"fstype":	"tmpfs",
-				"option": 	"defaults 0 0"
-			},
 			{
 				"type": 	"filesystem",
 				"from": 	"tmpfs",

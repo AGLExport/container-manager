@@ -142,6 +142,16 @@ typedef struct s_container_baseconfig container_baseconfig_t;	/**< typedef for s
  * @brief	Resource type is cgroup.  It use at s_container_resource_elem.type.
  */
 #define RESOURCE_TYPE_CGROUP	(1)
+/**
+ * @def	RESOURCE_TYPE_PRLIMIT
+ * @brief	Resource type is prlimit.  It use at s_container_resource_elem.type.
+ */
+#define RESOURCE_TYPE_PRLIMIT	(2)
+/**
+ * @def	RESOURCE_TYPE_SYSCTL
+ * @brief	Resource type is sysctl.  It use at s_container_resource_elem.type.
+ */
+#define RESOURCE_TYPE_SYSCTL	(3)
 
 /**
  * @struct	s_container_resource_elem

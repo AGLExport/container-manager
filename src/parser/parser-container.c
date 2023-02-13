@@ -614,10 +614,16 @@ err_ret:
 static int cmparser_parser_get_resourcetype(const char *str)
 {
 	static const char ccgroup[] = "cgroup";
+	static const char cprlimit[] = "prlimit";
+	static const char csysctl[] = "sysctl";
 	int ret = 0;
 
 	if (strncmp(ccgroup, str, sizeof(ccgroup)) == 0)
 		ret = RESOURCE_TYPE_CGROUP;
+	else if (strncmp(cprlimit, str, sizeof(cprlimit)) == 0)
+		ret = RESOURCE_TYPE_PRLIMIT;
+	else if (strncmp(csysctl, str, sizeof(csysctl)) == 0)
+		ret = RESOURCE_TYPE_SYSCTL;
 
 	return ret;
 }
