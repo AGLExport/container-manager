@@ -177,3 +177,36 @@ int64_t get_current_time_ms(void)
 
 	return ms;
 }
+/**
+ * Short time sleep.
+ *
+ * @param [in]	wait_time	sleep time(ms).
+ * @return void
+ */
+void sleep_ms_time(int64_t wait_time)
+{
+	int ret = -1;
+	struct timespec req, rem;
+
+	if (wait_time < 0)
+		return;
+
+	req.tv_sec = wait_time / 1000;	//ms to sec
+	req.tv_nsec = (wait_time % 1000) * 1000 * 1000;	//ms to nsec
+	rem.tv_sec = 0;
+	rem.tv_nsec = 0;
+
+	for(int i=0;i < 10; i++) {	// INTR recover is 10 times.  To avoid no return.
+		ret = nanosleep(&req, &rem);
+		if (ret < 0 && errno == EINTR) {
+			req.tv_sec = rem.tv_sec;
+			req.tv_nsec = rem.tv_nsec;
+			rem.tv_sec = 0;
+			rem.tv_nsec = 0;
+			continue;
+		}
+		break;
+	}
+
+	return;
+}

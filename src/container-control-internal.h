@@ -128,7 +128,7 @@ int container_monitor_addguest(containers_t *cs, container_config_t *cc);
 int container_start_by_role(containers_t *cs, char *role);
 int container_start(container_config_t *cc);
 int container_terminate(container_config_t *cc);
-int container_cleanup(container_config_t *cc);
+int container_cleanup(container_config_t *cc, int64_t timeout);
 
 //-----------------------------------------------------------------------------
 #endif //#ifndef CONTAINER_CONTROL_INTERNAL_H

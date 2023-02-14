@@ -18,6 +18,7 @@ int node_check(const char *path);
 int mkdir_p(const char *dir, mode_t mode);
 int wait_child_pid(pid_t pid);
 int64_t get_current_time_ms(void);
+void sleep_ms_time(int64_t wait_time);
 
 //-----------------------------------------------------------------------------
 #endif //#ifndef CM_UTIL_H
