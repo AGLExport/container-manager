@@ -115,7 +115,7 @@ int mkdir_p(const char *dir, mode_t mode)
 
 	memset(path, 0, sizeof(path));
 
-	len = strlen(dir);
+	len = strnlen(dir, PATH_MAX-1);
 
 	for(int i=1; i < len; i++) {
 		if (path[i] == '/') {
