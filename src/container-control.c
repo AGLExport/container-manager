@@ -509,7 +509,7 @@ int container_mngsm_terminate(containers_t *cs)
 
 	for(int i=0;i < num;i++) {
 		cc = cs->containers[i];
-		(void) container_cleanup(cc);
+		(void) container_cleanup(cc, 500);
 	}
 
 	return 0;

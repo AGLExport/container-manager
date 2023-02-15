@@ -26,7 +26,7 @@
 #include "device-control.h"
 
 static int container_start_preprocess_base(container_baseconfig_t *bc);
-static int container_cleanup_preprocess_base(container_baseconfig_t *bc);
+static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t timeout);
 static int container_get_active_guest_by_role(containers_t *cs, char *role, container_config_t **active_cc);
 
 int container_restart(container_config_t *cc);
@@ -286,7 +286,7 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 			if (ret < 0) {
 				//In fail case, force kill.
 				(void) lxcutil_container_forcekill(cc);
-				(void) container_cleanup(cc);
+				(void) container_terminate(cc);
 				cc->runtime_stat.status = CONTAINER_NOT_STARTED; // guest is force dead
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 				fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
@@ -334,7 +334,7 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 			if (ret < 0) {
 				//In fail case, force kill.
 				(void) lxcutil_container_forcekill(cc);
-				(void) container_cleanup(cc);
+				(void) container_terminate(cc);
 				cc->runtime_stat.status = CONTAINER_EXIT; // guest is force exit
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 				fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
@@ -408,7 +408,7 @@ int container_request_reboot(container_config_t *cc, int sys_state)
 			if (ret < 0) {
 				//In fail case, force kill.
 				(void) lxcutil_container_forcekill(cc);
-				(void) container_cleanup(cc);
+				(void) container_terminate(cc);
 				cc->runtime_stat.status = CONTAINER_DEAD; // guest is force dead
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 				fprintf(stderr,"[CM CRITICAL ERROR] container_request_reboot fourcekill to %s.\n", cc->name);
@@ -456,7 +456,7 @@ int container_request_reboot(container_config_t *cc, int sys_state)
 			if (ret < 0) {
 				//In fail case, force kill.
 				(void) lxcutil_container_forcekill(cc);
-				(void) container_cleanup(cc);
+				(void) container_terminate(cc);
 				cc->runtime_stat.status = CONTAINER_EXIT; // guest is force exit
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 				fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
@@ -595,7 +595,7 @@ int container_exec_internal_event(containers_t *cs)
 				if (ret == 0 && cc != active_cc) {
 					// When cc != active_cc, change active guest cc to active_cc and disable cc.
 					cc->runtime_stat.status = CONTAINER_DISABLE;
-					(void) container_cleanup(cc);
+					(void) container_cleanup(cc, 0);
 
 					// Enable active_cc
 					active_cc->runtime_stat.status = CONTAINER_NOT_STARTED;
@@ -897,15 +897,16 @@ int container_terminate(container_config_t *cc)
  * This function is preprocess for container manager exit and post process for runtime shutdown.
  * This function exec to filesystem unmount and same function of container_terminate.
  *
- * @param [in]	cc	Pointer to container_config_t.
+ * @param [in]	cc		Pointer to container_config_t.
+ * @param [in]	timeout	The timeout (ms) -  relative.  When timeout is less than 1, it will not do internal retry.
  * @return int
  * @retval  0 Success.
  * @retval -1 Critical error.(Reserve)
  */
-int container_cleanup(container_config_t *cc)
+int container_cleanup(container_config_t *cc, int64_t timeout)
 {
 	(void) container_terminate(cc);
-	(void) container_cleanup_preprocess_base(&cc->baseconfig);
+	(void) container_cleanup_preprocess_base(&cc->baseconfig, timeout);
 
 	return 0;
 }
@@ -993,7 +994,7 @@ static int container_start_mountdisk_ab(char **devs, const char *path, const cha
 	int ret = 1;
 	const char * dev = NULL;
 
-	if (side < 0 || side > 2)
+	if (side < 0 || side >= 2)	//side is 0 or 1 only
 		return -3;
 
 	dev = devs[side];
@@ -1109,15 +1110,81 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
  * Cleanup for container start base preprocess.
  * This function exec unmount operation a part of base config cleanup operation.
  *
+ * @param [in]	path		Unmount path.
+ * @param [in]	timeout_at	The timeout (ms) -  relative.  When timeout is less than 1, it will not do internal retry.
+ * @param [in]	retry_max	Max etry count to avoid no return.
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 unmount error.(Reserve)
+ * @retval -2 Syscall error.(Reserve)
+ */
+static int container_cleanup_unmountdisk(const char *path, int64_t timeout_at, int retry_max)
+{
+	int ret = -1;
+	int umount_complete = 0;
+	int retry_count = 0; // for test;
+
+	// unmount rootfs
+	umount_complete = 0;
+
+	for (retry_count = 0; retry_count < retry_max; retry_count++) {
+		ret = umount(path);
+		if (ret < 0) {
+			if (errno == EBUSY) {
+				// need to retry.
+				if (timeout_at < get_current_time_ms()) {
+					// retry timeout
+					umount_complete = 0;
+					break;
+				}
+				sleep_ms_time(50);	//wait
+				continue;
+			} else {
+				// not mounted at mount point
+				umount_complete = 1;
+				break;
+			}
+		}
+		// Success to unmount
+		umount_complete = 1;
+		break;
+	}
+
+	#ifdef _PRINTF_DEBUG_
+	fprintf(stderr,"container_cleanup_unmountdisk: retry = %d for unmount at %s.\n", retry_count, path);
+	#endif
+
+	if (umount_complete == 0) {
+		// In case of unmount time out -> lazy unmount
+		(void) umount2(path, MNT_DETACH);
+		#ifdef _PRINTF_DEBUG_
+		fprintf(stderr,"container_cleanup_unmountdisk: lazy unmount at %s.\n", path);
+		#endif
+	}
+
+	return 0;
+}
+/**
+ * Cleanup for container start base preprocess.
+ * This function exec unmount operation a part of base config cleanup operation.
+ *
  * @param [in]	bc	Pointer to container_baseconfig_t.
+ * @param [in]	timeout	The timeout (ms) -  relative.  When timeout is less than 1, it will not do internal retry.
  * @return int
  * @retval  0 Success.
  * @retval -1 unmount error.
  * @retval -2 Syscall error.
  */
-static int container_cleanup_preprocess_base(container_baseconfig_t *bc)
+static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t timeout)
 {
-	int ret = -1;
+	int64_t timeout_time = 0;
+	int retry_max = 0; // for test;
+
+	if (timeout < 0)
+		timeout = 0;
+
+	timeout_time = get_current_time_ms() + timeout;
+	retry_max = (timeout / 50) + 1;
 
 	// unmount extradisk
 	if (!dl_list_empty(&bc->extradisk_list)) {
@@ -1125,34 +1192,12 @@ static int container_cleanup_preprocess_base(container_baseconfig_t *bc)
 
 		dl_list_for_each(exdisk, &bc->extradisk_list, container_baseconfig_extradisk_t, list) {
 
-			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"container_cleanup_preprocess_base: unmount to %s.\n", exdisk->from);
-			#endif
-			ret = umount(exdisk->from);
-			if (ret < 0) {
-				if (errno == EBUSY) {
-					(void) umount2(exdisk->from, MNT_DETACH);
-					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"container_cleanup_preprocess_base: lazy unmount to %s.\n", exdisk->from);
-					#endif
-				}
-			}
+			(void) container_cleanup_unmountdisk(exdisk->from, timeout_time, retry_max);
 		}
 	}
 
 	// unmount rootfs
-	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr,"container_cleanup_preprocess_base: unmount to rootfs %s.\n", bc->rootfs.path);
-	#endif
-	ret = umount(bc->rootfs.path);
-	if (ret < 0) {
-		if (errno == EBUSY) {
-			(void) umount2(bc->rootfs.path, MNT_DETACH);
-			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"container_cleanup_preprocess_base: lazy unmount to rootfs %s.\n", bc->rootfs.path);
-			#endif
-		}
-	}
+	(void) container_cleanup_unmountdisk(bc->rootfs.path, timeout_time, retry_max);
 
 	return 0;
 }

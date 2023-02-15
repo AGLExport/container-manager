@@ -234,6 +234,38 @@ static int lxcutil_set_config_resource(struct lxc_container *plxc, container_res
 				#endif
 				goto err_ret;
 			}
+		} else 	if (melem->type == RESOURCE_TYPE_PRLIMIT) {
+			if (melem->object == NULL || melem->value == NULL)
+				continue;	//drop data
+
+			slen = snprintf(buf, buflen, "lxc.prlimit.%s", melem->object);
+			if (slen >= buflen)
+				continue;	// buffer over -> drop data
+
+			bret = plxc->set_config_item(plxc, buf, melem->value);
+			if (bret == false) {
+				result = -1;
+				#ifdef _PRINTF_DEBUG_
+				fprintf(stderr,"lxcutil: lxcutil_set_config_resource set config %s = %s fail.\n", buf, melem->value);
+				#endif
+				goto err_ret;
+			}
+		} else if (melem->type == RESOURCE_TYPE_SYSCTL) {
+			if (melem->object == NULL || melem->value == NULL)
+				continue;	//drop data
+
+			slen = snprintf(buf, buflen, "lxc.sysctl.%s", melem->object);
+			if (slen >= buflen)
+				continue;	// buffer over -> drop data
+
+			bret = plxc->set_config_item(plxc, buf, melem->value);
+			if (bret == false) {
+				result = -1;
+				#ifdef _PRINTF_DEBUG_
+				fprintf(stderr,"lxcutil: lxcutil_set_config_resource set config %s = %s fail.\n", buf, melem->value);
+				#endif
+				goto err_ret;
+			}
 		} else {
 			; //nop
 		}
@@ -533,7 +565,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 				buf[0] = '\0';
 
 				slen = snprintf(buf, buflen, "c %d:%d rw", iioelem->major, iioelem->minor); // static node is block to mknod
-				if (slen == buflen)
+				if (slen >= buflen)
 					continue;	// buffer over -> drop data
 
 				bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", buf);
