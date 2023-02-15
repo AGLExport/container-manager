@@ -994,7 +994,7 @@ static int container_start_mountdisk_ab(char **devs, const char *path, const cha
 	int ret = 1;
 	const char * dev = NULL;
 
-	if (side < 0 || side > 2)
+	if (side < 0 || side >= 2)	//side is 0 or 1 only
 		return -3;
 
 	dev = devs[side];
