@@ -1110,6 +1110,64 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
  * Cleanup for container start base preprocess.
  * This function exec unmount operation a part of base config cleanup operation.
  *
+ * @param [in]	path		Unmount path.
+ * @param [in]	timeout_at	The timeout (ms) -  relative.  When timeout is less than 1, it will not do internal retry.
+ * @param [in]	retry_max	Max etry count to avoid no return.
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 unmount error.(Reserve)
+ * @retval -2 Syscall error.(Reserve)
+ */
+static int container_cleanup_unmountdisk(const char *path, int64_t timeout_at, int retry_max)
+{
+	int ret = -1;
+	int umount_complete = 0;
+	int retry_count = 0; // for test;
+
+	// unmount rootfs
+	umount_complete = 0;
+
+	for (retry_count = 0; retry_count < retry_max; retry_count++) {
+		ret = umount(path);
+		if (ret < 0) {
+			if (errno == EBUSY) {
+				// need to retry.
+				if (timeout_at < get_current_time_ms()) {
+					// retry timeout
+					umount_complete = 0;
+					break;
+				}
+				sleep_ms_time(50);	//wait
+				continue;
+			} else {
+				// not mounted at mount point
+				umount_complete = 1;
+				break;
+			}
+		}
+		// Success to unmount
+		umount_complete = 1;
+		break;
+	}
+
+	#ifdef _PRINTF_DEBUG_
+	fprintf(stderr,"container_cleanup_unmountdisk: retry = %d for unmount at %s.\n", retry_count, path);
+	#endif
+
+	if (umount_complete == 0) {
+		// In case of unmount time out -> lazy unmount
+		(void) umount2(path, MNT_DETACH);
+		#ifdef _PRINTF_DEBUG_
+		fprintf(stderr,"container_cleanup_unmountdisk: lazy unmount at %s.\n", path);
+		#endif
+	}
+
+	return 0;
+}
+/**
+ * Cleanup for container start base preprocess.
+ * This function exec unmount operation a part of base config cleanup operation.
+ *
  * @param [in]	bc	Pointer to container_baseconfig_t.
  * @param [in]	timeout	The timeout (ms) -  relative.  When timeout is less than 1, it will not do internal retry.
  * @return int
@@ -1119,97 +1177,27 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
  */
 static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t timeout)
 {
-	int ret = -1;
-	int umount_complete = 0;
 	int64_t timeout_time = 0;
-	int retry_count = 0; // for test;
+	int retry_max = 0; // for test;
 
 	if (timeout < 0)
 		timeout = 0;
 
 	timeout_time = get_current_time_ms() + timeout;
+	retry_max = (timeout / 50) + 1;
 
 	// unmount extradisk
 	if (!dl_list_empty(&bc->extradisk_list)) {
 		container_baseconfig_extradisk_t *exdisk = NULL;
 
 		dl_list_for_each(exdisk, &bc->extradisk_list, container_baseconfig_extradisk_t, list) {
-			umount_complete = 0;
-			retry_count = 0;
-			for (int i=0; i < ((timeout / 50) + 1); i++) {
-				ret = umount(exdisk->from);
-				if (ret < 0) {
-					if (errno == EBUSY) {
-						// need to retry.
-						if (timeout_time < get_current_time_ms()) {
-							// retry timeout
-							umount_complete = 0;
-							break;
-						}
-						sleep_ms_time(50);	//wait
-						retry_count++;
-						continue;
-					} else {
-						// not mounted at mount point
-						umount_complete = 1;
-						break;
-					}
-				}
-				umount_complete = 1;
-				break;
-			}
 
-			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"container_cleanup_preprocess_base: retry = %d for unmount to fs %s.\n", retry_count, exdisk->from);
-			#endif
-
-			if (umount_complete == 0) {
-				// In case of unmount time out -> lazy unmount
-				(void) umount2(exdisk->from, MNT_DETACH);
-				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"container_cleanup_preprocess_base: lazy unmount to fs %s.\n", exdisk->from);
-				#endif
-			}
+			(void) container_cleanup_unmountdisk(exdisk->from, timeout_time, retry_max);
 		}
 	}
 
 	// unmount rootfs
-	umount_complete = 0;
-	retry_count = 0;
-	for (int i=0; i < ((timeout / 50) + 1); i++) {
-		ret = umount(bc->rootfs.path);
-		if (ret < 0) {
-			if (errno == EBUSY) {
-				// need to retry.
-				if (timeout_time < get_current_time_ms()) {
-					// retry timeout
-					umount_complete = 0;
-					break;
-				}
-				sleep_ms_time(50);	//wait
-				retry_count++;
-				continue;
-			} else {
-				// not mounted at mount point
-				umount_complete = 1;
-				break;
-			}
-		}
-		umount_complete = 1;
-		break;
-	}
-
-	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr,"container_cleanup_preprocess_base: retry = %d for unmount to rootfs %s.\n", retry_count, bc->rootfs.path);
-	#endif
-
-	if (umount_complete == 0) {
-		// In case of unmount time out -> lazy unmount
-		(void) umount2(bc->rootfs.path, MNT_DETACH);
-		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr,"container_cleanup_preprocess_base: lazy unmount to rootfs %s.\n", bc->rootfs.path);
-		#endif
-	}
+	(void) container_cleanup_unmountdisk(bc->rootfs.path, timeout_time, retry_max);
 
 	return 0;
 }
