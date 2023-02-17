@@ -230,7 +230,7 @@ error_ret:
  */
 static const char *trimmed_devname(const char* devnode)
 {
-	const char *cmpstr = "/dev/";
+	const char cmpstr[] = "/dev/";
 	const char *pstr = NULL;
 	int cmplen = 0;
 
@@ -517,15 +517,20 @@ static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uev
 		result = 0;
 
 		if (strncmp(cdde->devpath, udi->devpath, strlen(cdde->devpath)) == 0) {
-			// Match devpath
+			// Match devpath :
+			// cdde = "/a/b/c"  udi = "/a/b/c/d" this case shall judge "match".
+			// cdde = "/a/b/c"  udi = "/a/b/" this case shall judge "not match".
 			dynamic_device_entry_items_t *ddei = NULL;
 
 			dl_list_for_each(ddei, &cdde->items, dynamic_device_entry_items_t, list) {
 				if (ddei->subsystem == NULL)
 					continue;	// No data.
 
-				if (strncmp(ddei->subsystem, udi->subsystem, strlen(ddei->subsystem)) == 0) {
+				if (strcmp(ddei->subsystem, udi->subsystem) == 0) {
 					// Match subsystem
+					// ddei = "hid"     udi = "hid" this case shall judge "match".
+					// ddei = "hid"     udi = "hidraw" this case shall judge "not match".
+					// ddei = "hidraw"  udi = "hid" this case shall judge "not match".
 
 					action_code = device_control_dynamic_udev_test_action(udi->action, &ddei->rule.action);
 					if (action_code == 0)
