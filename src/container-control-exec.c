@@ -1122,7 +1122,7 @@ static int container_cleanup_unmountdisk(const char *path, int64_t timeout_at, i
 {
 	int ret = -1;
 	int umount_complete = 0;
-	int retry_count = 0; // for test;
+	int retry_count = 0;
 
 	// unmount rootfs
 	umount_complete = 0;
@@ -1178,7 +1178,7 @@ static int container_cleanup_unmountdisk(const char *path, int64_t timeout_at, i
 static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t timeout)
 {
 	int64_t timeout_time = 0;
-	int retry_max = 0; // for test;
+	int retry_max = 0;
 
 	if (timeout < 0)
 		timeout = 0;
