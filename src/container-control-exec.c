@@ -918,6 +918,7 @@ int container_cleanup(container_config_t *cc, int64_t timeout)
  * @param [in]	path	Mount path.
  * @param [in]	fstype	Name of file system. When fstype == NULL, file system is auto.
  * @param [in]	mntflag	Mount flag.
+ * @param [in]	option	Filesystem specific option.
  * @return int
  * @retval  1 Success - secondary.
  * @retval  0 Success - primary.
@@ -925,7 +926,7 @@ int container_cleanup(container_config_t *cc, int64_t timeout)
  * @retval -2 Syscall error.
  * @retval -3 Arg. error.
  */
-static int container_start_mountdisk_failover(char **devs, const char *path, const char *fstype, unsigned long mntflag)
+static int container_start_mountdisk_failover(char **devs, const char *path, const char *fstype, unsigned long mntflag, char* option)
 {
 	int ret = -1;
 	int mntdisk = -1;
@@ -934,7 +935,7 @@ static int container_start_mountdisk_failover(char **devs, const char *path, con
 	for (int i=0; i < 2; i++) {
 		dev = devs[i];
 
-		ret = mount(dev, path, fstype, mntflag, NULL);
+		ret = mount(dev, path, fstype, mntflag, option);
 		if (ret < 0) {
 			if (errno == EBUSY) {
 				// already mounted
@@ -949,7 +950,7 @@ static int container_start_mountdisk_failover(char **devs, const char *path, con
 					continue;
 				}
 
-				ret = mount(dev, path, fstype, mntflag, NULL);
+				ret = mount(dev, path, fstype, mntflag, option);
 				if (ret < 0) {
 					#ifdef _PRINTF_DEBUG_
 					fprintf(stderr,"container_start_preprocess_base: %s re-mount fail.\n", path);
@@ -982,6 +983,7 @@ static int container_start_mountdisk_failover(char **devs, const char *path, con
  * @param [in]	path	Mount path.
  * @param [in]	fstype	Name of file system. When fstype == NULL, file system is auto.
  * @param [in]	mntflag	Mount flag.
+ * @param [in]	option	Filesystem specific option.
  * @param [in]	side	Mount side a(=0) or b(=1).
  * @return int
  * @retval  0 Success.
@@ -989,7 +991,7 @@ static int container_start_mountdisk_failover(char **devs, const char *path, con
  * @retval -2 Syscall error.
  * @retval -3 Arg. error.
  */
-static int container_start_mountdisk_ab(char **devs, const char *path, const char *fstype, unsigned long mntflag, int side)
+static int container_start_mountdisk_ab(char **devs, const char *path, const char *fstype, unsigned long mntflag, char* option, int side)
 {
 	int ret = 1;
 	const char * dev = NULL;
@@ -999,7 +1001,7 @@ static int container_start_mountdisk_ab(char **devs, const char *path, const cha
 
 	dev = devs[side];
 
-	ret = mount(dev, path, fstype, mntflag, NULL);
+	ret = mount(dev, path, fstype, mntflag, option);
 	if (ret < 0) {
 		if (errno == EBUSY) {
 			// already mounted
@@ -1014,7 +1016,7 @@ static int container_start_mountdisk_ab(char **devs, const char *path, const cha
 				return -1;
 			}
 
-			ret = mount(dev, path, fstype, mntflag, NULL);
+			ret = mount(dev, path, fstype, mntflag, option);
 			if (ret < 0) {
 				#ifdef _PRINTF_DEBUG_
 				fprintf(stderr,"container_start_mountdisk_ab: %s re-mount fail.\n", path);
@@ -1060,7 +1062,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 	}
 
 	ret = container_start_mountdisk_ab(bc->rootfs.blockdev, bc->rootfs.path
-										, bc->rootfs.filesystem, mntflag, bc->abboot);
+										, bc->rootfs.filesystem, mntflag, bc->rootfs.option, bc->abboot);
 	if ( ret < 0) {
 		// root fs mount is mandatory.
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
@@ -1082,7 +1084,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 
 			if (exdisk->redundancy == DISKREDUNDANCY_TYPE_AB)
 			{
-				ret = container_start_mountdisk_ab(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, bc->abboot);
+				ret = container_start_mountdisk_ab(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, exdisk->option, bc->abboot);
 				if (ret < 0) {
 					// AB disk mount is mandatory function.
 					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
@@ -1091,7 +1093,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 					return -1;
 				}
 			} else {
-				ret = container_start_mountdisk_failover(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag);
+				ret = container_start_mountdisk_failover(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, exdisk->option);
 				if (ret < 0) {
 					// Failover disk mount is optional function.
 					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR

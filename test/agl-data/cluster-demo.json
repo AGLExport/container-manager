@@ -19,6 +19,7 @@
 				"to":		"var/nonvolatile",
 				"filesystem":	"ext4",
 				"mode":		"rw",
+				"option":	"data=ordered,errors=remount-ro",
 				"redundancy":	"failover",
 				"blockdev": [
 					"/dev/mmcblk1p9",
