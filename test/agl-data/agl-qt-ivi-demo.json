@@ -50,16 +50,6 @@
 			"type":		"prlimit",
 			"object":	"rtprio",
 			"value":	"10"
-		},
-		{
-			"type":		"cgroup",
-			"object":	"kernel.sched_rt_period_us",
-			"value":	"1000000"
-		},
-		{
-			"type":		"cgroup",
-			"object":	"kernel.sched_rt_runtime_us",
-			"value":	"950000"
 		}
 	],
 	"fs": {
