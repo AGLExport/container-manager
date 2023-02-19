@@ -194,9 +194,9 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 	option = cJSON_GetObjectItemCaseSensitive(rootfs, "option");
 	if (cJSON_IsString(option) && (option->valuestring != NULL)) {
 		bc->rootfs.option = strdup(option->valuestring);
-		//#ifdef _PRINTF_DEBUG_
+		#ifdef _PRINTF_DEBUG_
 		fprintf(stdout,"cmparser: mode = %s\n", bc->rootfs.option);
-		//#endif
+		#endif
 	} else {
 		// When don't have disk option setting, It's use default for filesystem.
 		bc->rootfs.option = NULL;
@@ -334,9 +334,9 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 		option = cJSON_GetObjectItemCaseSensitive(disk, "option");
 		if (cJSON_IsString(option) && (option->valuestring != NULL)) {
 			optionstr = option->valuestring;
-			//#ifdef _PRINTF_DEBUG_
+			#ifdef _PRINTF_DEBUG_
 			fprintf(stdout,"cmparser: base-extradisk mode = %s\n",optionstr);
-			//#endif
+			#endif
 		} else {
 			// When don't have disk option setting, It's use default for filesystem.
 			optionstr = NULL;
