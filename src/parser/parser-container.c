@@ -148,7 +148,7 @@ static int cmparser_parser_get_diskmountfailop(const char *str)
 static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *rootfs)
 {
 	int result = -1;
-	cJSON *path = NULL, *filesystem = NULL, *mode = NULL, *blockdev = NULL;
+	cJSON *path = NULL, *filesystem = NULL, *mode = NULL, *option= NULL, *blockdev = NULL;
 
 	path = cJSON_GetObjectItemCaseSensitive(rootfs, "path");
 	if (cJSON_IsString(path) && (path->valuestring != NULL)) {
@@ -189,6 +189,17 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 	} else {
 		// When don't have disk mount mode setting, It's use ro mount as a default.
 		bc->rootfs.mode = DISKMOUNT_TYPE_RO;
+	}
+
+	option = cJSON_GetObjectItemCaseSensitive(rootfs, "option");
+	if (cJSON_IsString(option) && (option->valuestring != NULL)) {
+		bc->rootfs.option = strdup(option->valuestring);
+		#ifdef _PRINTF_DEBUG_
+		fprintf(stdout,"cmparser: mode = %s\n", bc->rootfs.option);
+		#endif
+	} else {
+		// When don't have disk option setting, It's use default for filesystem.
+		bc->rootfs.option = NULL;
 	}
 
 	blockdev = cJSON_GetObjectItemCaseSensitive(rootfs, "blockdev");
@@ -232,6 +243,9 @@ err_ret:
 	(void) free(bc->rootfs.blockdev[0]);
 	bc->rootfs.blockdev[0] = NULL;
 
+	(void) free(bc->rootfs.option);
+	bc->rootfs.option = NULL;
+
 	(void) free(bc->rootfs.filesystem);
 	bc->rootfs.filesystem = NULL;
 
@@ -258,10 +272,10 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 
 	cJSON_ArrayForEach(disk, extradisk) {
 		cJSON *from = NULL, *to = NULL,  *blockdev = NULL;
-		cJSON *filesystem = NULL, *mode = NULL, *redundancy = NULL;
+		cJSON *filesystem = NULL, *mode = NULL, *option = NULL, *redundancy = NULL;
 		container_baseconfig_extradisk_t *exdisk = NULL;
 		int mntmode = 0, mntredundancy = 0;
-		char *bdev[2], *fsstr = NULL;
+		char *bdev[2], *fsstr = NULL, *optionstr = NULL;
 		bdev[0] = NULL;
 		bdev[1] = NULL;
 
@@ -315,6 +329,17 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 		} else {
 			// When don't have disk mount mode setting, It's use ro mount as a default.
 			mntmode = DISKMOUNT_TYPE_RO;
+		}
+
+		option = cJSON_GetObjectItemCaseSensitive(disk, "option");
+		if (cJSON_IsString(option) && (option->valuestring != NULL)) {
+			optionstr = option->valuestring;
+			#ifdef _PRINTF_DEBUG_
+			fprintf(stdout,"cmparser: base-extradisk mode = %s\n",optionstr);
+			#endif
+		} else {
+			// When don't have disk option setting, It's use default for filesystem.
+			optionstr = NULL;
 		}
 
 		redundancy = cJSON_GetObjectItemCaseSensitive(disk, "redundancy");
@@ -374,6 +399,8 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 			exdisk->filesystem = strdup(fsstr);
 		exdisk->mode = mntmode;
 		exdisk->redundancy = mntredundancy;
+		if (optionstr != NULL)
+			exdisk->option = strdup(optionstr);
 		exdisk->blockdev[0] = strdup(bdev[0]);
 		if (bdev[1] != NULL)
 			exdisk->blockdev[1] = strdup(bdev[1]);
@@ -2079,6 +2106,7 @@ void cmparser_release_config(container_config_t *cc)
 			dl_list_del(&exdisk->list);
 			free(exdisk->blockdev[0]);
 			free(exdisk->blockdev[1]);
+			free(exdisk->option);
 			free(exdisk->filesystem);
 			free(exdisk->to);
 			free(exdisk->from);
@@ -2087,6 +2115,7 @@ void cmparser_release_config(container_config_t *cc)
 
 		free(cc->baseconfig.rootfs.blockdev[0]);
 		free(cc->baseconfig.rootfs.blockdev[1]);
+		free(cc->baseconfig.rootfs.option);
 		free(cc->baseconfig.rootfs.filesystem);
 		free(cc->baseconfig.rootfs.path);
 	}

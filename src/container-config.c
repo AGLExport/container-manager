@@ -16,6 +16,8 @@
 
 #include "container-config.h"
 
+#undef _PRINTF_DEBUG_
+
 /**
  * @var		DEFAULT_CONF_PATH
  * @brief	Default container manager config path.
