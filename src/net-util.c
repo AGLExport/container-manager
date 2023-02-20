@@ -129,7 +129,7 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 	int ifindex = 0;
 	char ifname[IFNAMSIZ+1];
 
-	memset(ifname, 0, sizeof(ifname));
+	(void) memset(ifname, 0, sizeof(ifname));
 
 	netif = &ddm->netif;
 	nfm = (struct s_netifmonitor*)ddm->netifmon;
@@ -151,7 +151,7 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 	if (nfi_new == NULL)
 		goto out;
 
-	memset(nfi_new, 0, sizeof(network_interface_info_t));
+	(void) memset(nfi_new, 0, sizeof(network_interface_info_t));
 	nfi_new->ifindex = ifindex;
 	memcpy(nfi_new->ifname, ifname, sizeof(nfi_new->ifname));
 	dl_list_init(&nfi_new->list);
@@ -347,7 +347,7 @@ int netifmonitor_setup(dynamic_device_manager_t *ddm, container_control_interfac
 	if (netifmon == NULL)
 		goto err_return;
 
-	memset(netifmon,0,sizeof(struct s_netifmonitor));
+	(void) memset(netifmon,0,sizeof(struct s_netifmonitor));
 
 	nl = mnl_socket_open2(NETLINK_ROUTE, SOCK_CLOEXEC | SOCK_NONBLOCK);
 	if (nl == NULL)

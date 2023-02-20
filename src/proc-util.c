@@ -77,7 +77,7 @@ static int procutil_get_cmdline(char **ppbuf, int *ppbuf_size)
 			goto error_ret;
 		}
 
-		memset(pbuf, 0, buffer_size);
+		(void) memset(pbuf, 0, buffer_size);
 
 		do {
 			ret = read(fd, pbuf, buffer_size);
@@ -208,7 +208,7 @@ int procutil_create(procutil_t **ppu)
 	if (pu == NULL)
 		return -1;
 
-	memset(pu, 0, sizeof(procutil_t));
+	(void) memset(pu, 0, sizeof(procutil_t));
 	dl_list_init(&pu->argument_list);
 
 	ret = procutil_get_cmdline(&pbuf, &pbuf_size);

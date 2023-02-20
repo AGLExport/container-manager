@@ -74,7 +74,7 @@ static int uevent_injection_child(int net_ns_fd, const char *message, int messag
 	char *pevmessage = NULL;
 
 	// create injection message
-	memset(buf, 0 , sizeof(buf));
+	(void) memset(buf, 0 , sizeof(buf));
 
 	nlh = mnl_nlmsg_put_header(buf);
 	nlh->nlmsg_type	= UEVENT_SEND;

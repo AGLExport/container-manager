@@ -42,7 +42,7 @@ int devc_device_manager_setup(containers_t *cs, container_control_interface_t *c
 	if (ddm == NULL)
 		return -1;
 
-	memset(ddm, 0, sizeof(dynamic_device_manager_t));
+	(void) memset(ddm, 0, sizeof(dynamic_device_manager_t));
 
 	cs->ddm = ddm;
 

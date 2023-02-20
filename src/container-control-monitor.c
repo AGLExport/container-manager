@@ -45,7 +45,7 @@ static int container_monitor_state_change(containers_t *cs, int status, int num)
 
 	cm = (struct s_container_mngsm*)cs->cms;
 
-	memset(&command, 0, sizeof(command));
+	(void) memset(&command, 0, sizeof(command));
 
 	command.header.command = CONTAINER_MNGSM_COMMAND_GUEST_EXIT;
 	command.data.container_number = num;

@@ -109,7 +109,7 @@ static int container_mngsm_commsocket_handler(sd_event_source *event, int fd, ui
 		sd_event_source_disable_unref(event);
 	} else if ((revents & EPOLLIN) != 0) {
 		// Event receive
-		memset(buf, 0, sizeof(buf));
+		(void) memset(buf, 0, sizeof(buf));
 
 		rret = read(fd, buf, sizeof(buf));
 		if (rret > 0) {
@@ -272,7 +272,7 @@ static int container_mngsm_timer_handler(sd_event_source *es, uint64_t usec, voi
 	cs = (containers_t*)userdata;
 	cm = cs->cms;
 
-	memset(&command, 0, sizeof(command));
+	(void) memset(&command, 0, sizeof(command));
 
 	command.header.command = CONTAINER_MNGSM_COMMAND_TIMER_TICK;
 
@@ -543,7 +543,7 @@ int container_mngsm_setup(containers_t **pcs, sd_event *event, const char *confi
 	if (cs->cms == NULL)
 		goto err_return;
 
-	memset(cs->cms, 0, sizeof(struct s_container_mngsm));
+	(void) memset(cs->cms, 0, sizeof(struct s_container_mngsm));
 	cs->cms->secondary_fd = -1;
 
 	ret = container_mngsm_do_system(cs);

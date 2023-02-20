@@ -151,8 +151,8 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 	if (pdev == NULL)
 		goto error_ret;
 
-	memset(&udi, 0, sizeof(udi));
-	memset(&lddr, 0, sizeof(lddr));
+	(void) memset(&udi, 0, sizeof(udi));
+	(void) memset(&lddr, 0, sizeof(lddr));
 
 	le = udev_device_get_properties_list_entry(pdev);
 	if (le == NULL)
@@ -191,7 +191,7 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 		uevent_injection_message_t uim;
 		pid_t target_pid = 0;
 
-		memset(uim.message, 0 , sizeof(uim.message));
+		(void) memset(uim.message, 0 , sizeof(uim.message));
 		uim.used = 0;
 
 		ret = device_control_dynamic_udev_create_injection_message(&uim, &udi, le);
@@ -610,7 +610,7 @@ static int extra_checker_block_device(struct dl_list *extra_list,  struct udev_d
 	if (devnode != NULL) {
 		block_device_info_t bdi;
 
-		memset(&bdi, 0 , sizeof(bdi));
+		(void) memset(&bdi, 0 , sizeof(bdi));
 
 		ret = block_util_getfs(devnode, &bdi);
 		if (ret == 0) {
@@ -674,7 +674,7 @@ int device_control_dynamic_udev_setup(dynamic_device_manager_t *ddm, containers_
 	if (ddu == NULL)
 		goto err_return;
 
-	memset(ddu, 0, sizeof(struct s_dynamic_device_udev));
+	(void) memset(ddu, 0, sizeof(struct s_dynamic_device_udev));
 
 	pudev = udev_new();
 	if (pudev == NULL)

@@ -37,7 +37,7 @@ char *cmparser_read_jsonstring(const char *file)
 	if (fd < 0)
 		goto err_ret;
 
-	memset(&sb, 0, sizeof(sb));
+	(void) memset(&sb, 0, sizeof(sb));
 	ret = fstat(fd, &sb);
 	if (ret < 0)
 		goto err_ret;
@@ -49,7 +49,7 @@ char *cmparser_read_jsonstring(const char *file)
 	if (strbuf == NULL)
 		goto err_ret;
 
-	memset(strbuf, 0, sb.st_size + 1);
+	(void) memset(strbuf, 0, sb.st_size + 1);
 	rsize = read(fd, strbuf, (sb.st_size));
 	if (rsize < 0)
 		goto err_ret;
