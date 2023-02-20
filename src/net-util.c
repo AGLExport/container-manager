@@ -153,7 +153,7 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 
 	(void) memset(nfi_new, 0, sizeof(network_interface_info_t));
 	nfi_new->ifindex = ifindex;
-	memcpy(nfi_new->ifname, ifname, sizeof(nfi_new->ifname));
+	(void) memcpy(nfi_new->ifname, ifname, sizeof(nfi_new->ifname));
 	dl_list_init(&nfi_new->list);
 
 	if (nlh->nlmsg_type == RTM_NEWLINK) {

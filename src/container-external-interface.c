@@ -596,7 +596,7 @@ int container_external_interface_setup(containers_t *cs, sd_event *event)
 
 	(void) memset(&name, 0, sizeof(name));
 	name.sun_family = AF_UNIX;
-	memcpy(name.sun_path, CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME, sizeof(CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME));
+	(void) memcpy(name.sun_path, CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME, sizeof(CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME));
 
 	ret = bind(fd, (const struct sockaddr *) &name, sizeof(CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME) + sizeof(sa_family_t));
 	if (ret < 0) {

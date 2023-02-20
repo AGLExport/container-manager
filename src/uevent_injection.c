@@ -82,7 +82,7 @@ static int uevent_injection_child(int net_ns_fd, const char *message, int messag
 	nlh->nlmsg_pid = 0;
 
 	pevmessage = mnl_nlmsg_put_extra_header(nlh, messagesize);
-	memcpy(pevmessage, message, messagesize);
+	(void) memcpy(pevmessage, message, messagesize);
 
 	// event injection
 	ret = setns(net_ns_fd, CLONE_NEWNET);
