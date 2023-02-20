@@ -89,7 +89,7 @@ static int procutil_get_cmdline(char **ppbuf, int *ppbuf_size)
 			(*ppbuf_size) = (int)buffer_size;
 			(*ppbuf) = pbuf;
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stdout,"procutil: Got cmdline %s\n", pbuf);
+			(void) fprintf(stdout,"procutil: Got cmdline %s\n", pbuf);
 			#endif
 			break;
 		}
@@ -165,7 +165,7 @@ static int procutil_create_argument_list(procutil_t *pu, int buf_size)
 				}
 				dl_list_add_tail(&pu->argument_list, &pelem->list);
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stdout,"procutil: Got cmdline arg %s = %s\n", pelem->var, pelem->value);
+				(void) fprintf(stdout,"procutil: Got cmdline arg %s = %s\n", pelem->var, pelem->value);
 				#endif
 			}
 

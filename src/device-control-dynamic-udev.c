@@ -161,7 +161,7 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 	ret = device_control_dynamic_udev_create_info(&udi, &lddr, le);
 	if (ret == 0) {
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr,"udi: action=%s devpath=%s devtype=%s subsystem=%s\n", udi.action, udi.devpath, udi.devtype, udi.subsystem);
+		(void) fprintf(stdout,"udi: action=%s devpath=%s devtype=%s subsystem=%s\n", udi.action, udi.devpath, udi.devtype, udi.subsystem);
 		#endif
 
 		cc = device_control_dynamic_udev_get_target_container(ddu->cs, &udi, pdev, &behavior);
@@ -265,7 +265,7 @@ static int device_control_dynamic_udev_create_injection_message(uevent_injection
 	buf = &uim->message[0];
 
 	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr,"INJECTION: ");
+	(void) fprintf(stdout,"INJECTION: ");
 	#endif
 
 	// add@/devices/pci0000:00/0000:00:08.1/0000:05:00.3/usb4/4-2/4-2:1.0/host3/target3:0:0/3:0:0:0/block/sdb/sdb1
@@ -303,7 +303,7 @@ static int device_control_dynamic_udev_create_injection_message(uevent_injection
 				return -1;
 
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"%s=%s ", elem_name, elem_value);
+			(void) fprintf(stdout,"%s=%s ", elem_name, elem_value);
 			#endif
 		}
 
@@ -313,7 +313,7 @@ static int device_control_dynamic_udev_create_injection_message(uevent_injection
 	uim->used = usage;
 
 	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr,"\n");
+	(void) fprintf(stdout,"\n");
 	#endif
 
 	return 0;

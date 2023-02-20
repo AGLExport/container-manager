@@ -43,7 +43,7 @@ static char *status_string[] = {
 
 static void usage(void)
 {
-	fprintf(stdout,
+	(void) fprintf(stdout,
 		"usage: [options] \n\n"
 	    " --help                   print help strings.\n"
 	    " --get-guest-list         get guest container list from container manager.\n"
@@ -73,7 +73,7 @@ static int cm_socket_setup(void)
 	}
 
 	name.sun_family = AF_UNIX;
-	memcpy(name.sun_path, CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME, sizeof(CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME));
+	(void) memcpy(name.sun_path, CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME, sizeof(CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME));
 
 	ret = connect(fd, (const struct sockaddr *) &name, sizeof(CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME) + sizeof(sa_family_t));
 	if (ret < 0) {
@@ -136,60 +136,60 @@ void cm_get_guest_list(int json)
 	// Create client socket
 	fd = cm_socket_setup();
 	if (fd < 0) {
-		fprintf(stderr,"Container manager is busy.\n");
+		(void) fprintf(stderr,"Container manager is busy.\n");
 		goto error_return;
 	}
 
 	packet.header.command = CONTAINER_EXTIF_COMMAND_GETGUESTS;
 	sret = write(fd, &packet, sizeof(packet));
 	if (sret < sizeof(packet)) {
-		fprintf(stderr,"Container manager is confuse.\n");
+		(void) fprintf(stderr,"Container manager is confuse.\n");
 		goto error_return;
 	}
 
 	ret = cm_socket_wait_response(fd, 1000);
 	if (ret < 0) {
-		fprintf(stderr,"Container manager communication is un available.\n");
+		(void) fprintf(stderr,"Container manager communication is un available.\n");
 		goto error_return;
 	}
 
 	sret = read(fd, &response, sizeof(response));
 	if (sret < sizeof(response)) {
-		fprintf(stderr,"Container manager is confuse. sret = %d errno = %d\n", sret, errno);
+		(void) fprintf(stderr,"Container manager is confuse. sret = %d errno = %d\n", sret, errno);
 		goto error_return;
 	}
 
 	if (response.header.command == CONTAINER_EXTIF_COMMAND_RESPONSE_GETGUESTS) {
 		if (json == 1) {
 			int i = 0;
-			fprintf(stdout, "{\n");
-			fprintf(stdout, "	\"guest-status\": [\n");
+			(void) fprintf(stdout, "{\n");
+			(void) fprintf(stdout, "	\"guest-status\": [\n");
 			while (1) {
 				if (response.guests[i].status >= CONTAINER_EXTIF_GUEST_STATUS_DISABLE
 					&& response.guests[i].status <= CONTAINER_EXTIF_GUEST_STATUS_EXIT) {
-					fprintf(stdout, "		{\n");
-					fprintf(stdout, "			\"guest-name\": \"%s\",\n", response.guests[i].guest_name);
-					fprintf(stdout, "			\"role-name\": \"%s\",\n", response.guests[i].role_name);
-					fprintf(stdout, "			\"status\": \"%s\"\n", status_string[response.guests[i].status]);
+					(void) fprintf(stdout, "		{\n");
+					(void) fprintf(stdout, "			\"guest-name\": \"%s\",\n", response.guests[i].guest_name);
+					(void) fprintf(stdout, "			\"role-name\": \"%s\",\n", response.guests[i].role_name);
+					(void) fprintf(stdout, "			\"status\": \"%s\"\n", status_string[response.guests[i].status]);
 				}
 
 				i++;
 				if (i < response.num_of_guests) {
-					fprintf(stdout, "		},\n");
+					(void) fprintf(stdout, "		},\n");
 				} else {
-					fprintf(stdout, "		}\n");
+					(void) fprintf(stdout, "		}\n");
 					break;
 				}
 			}
-			fprintf(stdout, "	]\n");
-			fprintf(stdout, "}\n");
+			(void) fprintf(stdout, "	]\n");
+			(void) fprintf(stdout, "}\n");
 		} else {
-			fprintf(stdout, "HEADER: %32s,%12s,%12s \n", "name", "role", "status");
+			(void) fprintf(stdout, "HEADER: %32s,%12s,%12s \n", "name", "role", "status");
 			for (int i = 0; i < response.num_of_guests; i++) {
 				if (response.guests[i].status >= CONTAINER_EXTIF_GUEST_STATUS_DISABLE
 					&& response.guests[i].status <= CONTAINER_EXTIF_GUEST_STATUS_EXIT) {
 
-					fprintf(stdout, "        %32s,%12s,%12s \n"
+					(void) fprintf(stdout, "        %32s,%12s,%12s \n"
 						, response.guests[i].guest_name
 						, response.guests[i].role_name
 						, status_string[response.guests[i].status] );
@@ -219,7 +219,7 @@ void cm_get_guest_lifecycle(int code, char *name)
 	// Create client socket
 	fd = cm_socket_setup();
 	if (fd < 0) {
-		fprintf(stderr,"Container manager is busy.\n");
+		(void) fprintf(stderr,"Container manager is busy.\n");
 		goto error_return;
 	}
 
@@ -249,34 +249,34 @@ void cm_get_guest_lifecycle(int code, char *name)
 
 	sret = write(fd, &packet, sizeof(packet));
 	if (sret < sizeof(packet)) {
-		fprintf(stderr,"Container manager is confuse.\n");
+		(void) fprintf(stderr,"Container manager is confuse.\n");
 		goto error_return;
 	}
 
 	ret = cm_socket_wait_response(fd, 1000);
 	if (ret < 0) {
-		fprintf(stderr,"Container manager communication is un available.\n");
+		(void) fprintf(stderr,"Container manager communication is un available.\n");
 		goto error_return;
 	}
 
 	sret = read(fd, &response, sizeof(response));
 	if (sret < sizeof(response)) {
-		fprintf(stderr,"Container manager is confuse. sret = %d errno = %d\n", sret, errno);
+		(void) fprintf(stderr,"Container manager is confuse. sret = %d errno = %d\n", sret, errno);
 		goto error_return;
 	}
 
 	if (response.header.command == CONTAINER_EXTIF_COMMAND_RESPONSE_LIFECYCLE) {
 
 		if (response.response == CONTAINER_EXTIF_LIFECYCLE_RESPONSE_ACCEPT) {
-			fprintf(stdout, "Command accept.\n");
+			(void) fprintf(stdout, "Command accept.\n");
 		} else if (response.response == CONTAINER_EXTIF_LIFECYCLE_RESPONSE_NONAME) {
-			fprintf(stdout, "Command no guest name of %s.\n", name);
+			(void) fprintf(stdout, "Command no guest name of %s.\n", name);
 		} else if (response.response == CONTAINER_EXTIF_LIFECYCLE_RESPONSE_NOROLE) {
-			fprintf(stdout, "Command no guest role of %s.\n", name);
+			(void) fprintf(stdout, "Command no guest role of %s.\n", name);
 		} else if (response.response == CONTAINER_EXTIF_LIFECYCLE_RESPONSE_ERROR) {
-			fprintf(stdout, "Command error.\n");
+			(void) fprintf(stdout, "Command error.\n");
 		} else {
-			fprintf(stdout, "Command unknown error.\n");
+			(void) fprintf(stdout, "Command unknown error.\n");
 		}
 	}
 
@@ -301,7 +301,7 @@ void cm_get_guest_change(int code, char *name)
 	// Create client socket
 	fd = cm_socket_setup();
 	if (fd < 0) {
-		fprintf(stderr,"Container manager is busy.\n");
+		(void) fprintf(stderr,"Container manager is busy.\n");
 		goto error_return;
 	}
 
@@ -315,32 +315,32 @@ void cm_get_guest_change(int code, char *name)
 
 	sret = write(fd, &packet, sizeof(packet));
 	if (sret < sizeof(packet)) {
-		fprintf(stderr,"Container manager is confuse.\n");
+		(void) fprintf(stderr,"Container manager is confuse.\n");
 		goto error_return;
 	}
 
 	ret = cm_socket_wait_response(fd, 1000);
 	if (ret < 0) {
-		fprintf(stderr,"Container manager communication is un available.\n");
+		(void) fprintf(stderr,"Container manager communication is un available.\n");
 		goto error_return;
 	}
 
 	sret = read(fd, &response, sizeof(response));
 	if (sret < sizeof(response)) {
-		fprintf(stderr,"Container manager is confuse. sret = %d errno = %d\n", sret, errno);
+		(void) fprintf(stderr,"Container manager is confuse. sret = %d errno = %d\n", sret, errno);
 		goto error_return;
 	}
 
 	if (response.header.command == CONTAINER_EXTIF_COMMAND_RESPONSE_CHANGE) {
 
 		if (response.response == CONTAINER_EXTIF_CHANGE_RESPONSE_ACCEPT) {
-			fprintf(stdout, "Command accept.\n");
+			(void) fprintf(stdout, "Command accept.\n");
 		} else if (response.response == CONTAINER_EXTIF_CHANGE_RESPONSE_NONAME) {
-			fprintf(stdout, "Command no guest name of %s.\n", name);
+			(void) fprintf(stdout, "Command no guest name of %s.\n", name);
 		} else if (response.response == CONTAINER_EXTIF_CHANGE_RESPONSE_ERROR) {
-			fprintf(stdout, "Command error.\n");
+			(void) fprintf(stdout, "Command error.\n");
 		} else {
-			fprintf(stdout, "Command unknown error.\n");
+			(void) fprintf(stdout, "Command unknown error.\n");
 		}
 	}
 
@@ -374,7 +374,7 @@ int main(int argc, char *argv[])
 			break;
 		} else {
 			//TODO
-			fprintf(stderr, "TODO\n");
+			(void) fprintf(stderr, "TODO\n");
 			break;
 		}
 	} while(1);

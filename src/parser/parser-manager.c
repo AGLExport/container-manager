@@ -71,7 +71,7 @@ int cmparser_manager_create_from_file(container_manager_config_t **cm, const cha
 		if (cJSON_IsString(configdir) && (configdir->valuestring != NULL)) {
 			cmcfg->configdir = strdup(configdir->valuestring);
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stdout,"\ncmcfg: configdir %s\n", cmcfg->configdir);
+			(void) fprintf(stdout,"\ncmcfg: configdir %s\n", cmcfg->configdir);
 			#endif
 		} else {
 			result = -2;
@@ -93,13 +93,13 @@ int cmparser_manager_create_from_file(container_manager_config_t **cm, const cha
 				name = cJSON_GetObjectItemCaseSensitive(elem, "name");
 				if (cJSON_IsString(name) && (name->valuestring != NULL)) {
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stdout,"cmcfg: etherbridge name = %s\n",name->valuestring);
+					(void) fprintf(stdout,"cmcfg: etherbridge name = %s\n",name->valuestring);
 					#endif
 					;
 				} else {
 					// Mandatory value, drop this entry.
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stdout,"cmcfg: etherbridge name is from not set. It's mandatory value\n");
+					(void) fprintf(stdout,"cmcfg: etherbridge name is from not set. It's mandatory value\n");
 					#endif
 					continue;
 				}

@@ -49,7 +49,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 	if (bret == false) {
 		result = -1;
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.rootfs.path", buf);
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.rootfs.path", buf);
 		#endif
 		goto err_ret;
 	}
@@ -73,7 +73,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 				if (bret == false) {
 					result = -1;
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.entry", buf);
+					(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.entry", buf);
 					#endif
 					goto err_ret;
 				}
@@ -86,7 +86,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 	if (bret == false) {
 		result = -1;
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.signal.halt", bc->lifecycle.halt);
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.signal.halt", bc->lifecycle.halt);
 		#endif
 		goto err_ret;
 	}
@@ -95,7 +95,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 	if (bret == false) {
 		result = -1;
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.signal.reboot", bc->lifecycle.reboot);
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.signal.reboot", bc->lifecycle.reboot);
 		#endif
 		goto err_ret;
 	}
@@ -107,7 +107,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 			if (bret == false) {
 				result = -1;
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.cap.drop", bc->cap.drop);
+				(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.cap.drop", bc->cap.drop);
 				#endif
 				goto err_ret;
 			}
@@ -120,7 +120,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 			if (bret == false) {
 				result = -1;
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.cap.keep", bc->cap.keep);
+				(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.cap.keep", bc->cap.keep);
 				#endif
 				goto err_ret;
 			}
@@ -134,7 +134,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 		if (ret >= sizeof(buf)) {
 			result = -2;
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"lxcutil: lxcutil_set_config_base idmap (uid) too long parameter.\n");
+			(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base idmap (uid) too long parameter.\n");
 			#endif
 			goto err_ret;
 		}
@@ -143,7 +143,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 		if (bret == false) {
 			result = -1;
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.idmap", buf);
+			(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.idmap", buf);
 			#endif
 			goto err_ret;
 		}
@@ -153,7 +153,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 		if (ret >= sizeof(buf)) {
 			result = -2;
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"lxcutil: lxcutil_set_config_base idmap (gid) too long parameter.\n");
+			(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base idmap (gid) too long parameter.\n");
 			#endif
 			goto err_ret;
 		}
@@ -162,7 +162,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 		if (bret == false) {
 			result = -1;
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.idmap", buf);
+			(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.idmap", buf);
 			#endif
 			goto err_ret;
 		}
@@ -174,7 +174,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 	if (bret == false) {
 		result = -1;
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s fail.\n", "lxc.tty.max");
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base set config %s fail.\n", "lxc.tty.max");
 		#endif
 		goto err_ret;
 	}
@@ -183,7 +183,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 	if (bret == false) {
 		result = -1;
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s fail.\n", "lxc.tty.max");
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base set config %s fail.\n", "lxc.tty.max");
 		#endif
 		goto err_ret;
 	}
@@ -230,7 +230,7 @@ static int lxcutil_set_config_resource(struct lxc_container *plxc, container_res
 			if (bret == false) {
 				result = -1;
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"lxcutil: lxcutil_set_config_resource set config %s = %s fail.\n", buf, melem->value);
+				(void) fprintf(stdout,"lxcutil: lxcutil_set_config_resource set config %s = %s fail.\n", buf, melem->value);
 				#endif
 				goto err_ret;
 			}
@@ -246,7 +246,7 @@ static int lxcutil_set_config_resource(struct lxc_container *plxc, container_res
 			if (bret == false) {
 				result = -1;
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"lxcutil: lxcutil_set_config_resource set config %s = %s fail.\n", buf, melem->value);
+				(void) fprintf(stdout,"lxcutil: lxcutil_set_config_resource set config %s = %s fail.\n", buf, melem->value);
 				#endif
 				goto err_ret;
 			}
@@ -262,7 +262,7 @@ static int lxcutil_set_config_resource(struct lxc_container *plxc, container_res
 			if (bret == false) {
 				result = -1;
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"lxcutil: lxcutil_set_config_resource set config %s = %s fail.\n", buf, melem->value);
+				(void) fprintf(stdout,"lxcutil: lxcutil_set_config_resource set config %s = %s fail.\n", buf, melem->value);
 				#endif
 				goto err_ret;
 			}
@@ -302,7 +302,7 @@ static int lxcutil_set_config_fs(struct lxc_container *plxc, container_fsconfig_
 	if (bret == false) {
 		result = -1;
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr,"lxcutil: lxcutil_set_config_fs set config %s = %s fail.\n", "lxc.mount.auto", "cgroup:mixed proc:mixed sys:mixed");
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_fs set config %s = %s fail.\n", "lxc.mount.auto", "cgroup:mixed proc:mixed sys:mixed");
 		#endif
 		goto err_ret;
 	}
@@ -322,7 +322,7 @@ static int lxcutil_set_config_fs(struct lxc_container *plxc, container_fsconfig_
 			if (bret == false) {
 				result = -1;
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"lxcutil: lxcutil_set_config_fs set config %s = %s fail.\n", "lxc.mount.entry", buf);
+				(void) fprintf(stdout,"lxcutil: lxcutil_set_config_fs set config %s = %s fail.\n", "lxc.mount.entry", buf);
 				#endif
 				goto err_ret;
 			}
@@ -338,7 +338,7 @@ static int lxcutil_set_config_fs(struct lxc_container *plxc, container_fsconfig_
 			if (bret == false) {
 				result = -1;
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"lxcutil: lxcutil_set_config_fs set config %s = %s fail.\n", "lxc.mount.entry", buf);
+				(void) fprintf(stdout,"lxcutil: lxcutil_set_config_fs set config %s = %s fail.\n", "lxc.mount.entry", buf);
 				#endif
 				goto err_ret;
 			}
@@ -416,7 +416,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 		if (bret == false) {
 			result = -1;
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.entry", buf);
+			(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.entry", buf);
 			#endif
 			goto err_ret;
 		}
@@ -474,7 +474,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 				if (bret == false) {
 					result = -1;
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.entry", buf);
+					(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.entry", buf);
 					#endif
 					goto err_ret;
 				}
@@ -503,13 +503,13 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 			if(iioelem->optional == 1) {
 				// If device is optional, no device case is skip
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"lxcutil: lxcutil_set_config_base skip  %s\n", iioelem->sysfrom);
+				(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base skip  %s\n", iioelem->sysfrom);
 				#endif
 				continue;
 			} else {
 				// Not optional, error.
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"lxcutil: lxcutil_set_config_base not valid sys %s - error\n", iioelem->sysfrom);
+				(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base not valid sys %s - error\n", iioelem->sysfrom);
 				#endif
 				result = -2;
 				goto err_ret;
@@ -524,7 +524,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 		if (bret == false) {
 			result = -1;
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.entry", buf);
+			(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.entry", buf);
 			#endif
 			goto err_ret;
 		}
@@ -555,7 +555,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 				if (bret == false) {
 					result = -1;
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.entry", buf);
+					(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.entry", buf);
 					#endif
 					goto err_ret;
 				}
@@ -572,7 +572,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 				if (bret == false) {
 					result = -1;
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.entry", buf);
+					(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.entry", buf);
 					#endif
 					goto err_ret;
 				}
@@ -580,13 +580,13 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 				if(iioelem->optional == 0) {
 					// Not optional, error.
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"lxcutil: lxcutil_set_config_base not valid dev %s - error\n", iioelem->devfrom);
+					(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base not valid dev %s - error\n", iioelem->devfrom);
 					#endif
 					result = -2;
 					goto err_ret;
 				}
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"lxcutil: lxcutil_set_config_base skip  %s\n", iioelem->devfrom);
+				(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base skip  %s\n", iioelem->devfrom);
 				#endif
 			}
 		}
@@ -631,7 +631,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 			if (bret == false) {
 				result = -1;
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, "veth");
+				(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, "veth");
 				#endif
 				goto err_ret;
 			}
@@ -643,7 +643,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 				if (bret == false) {
 					result = -1;
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->name);
+					(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->name);
 					#endif
 					goto err_ret;
 				}
@@ -656,7 +656,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 				if (bret == false) {
 					result = -1;
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->link);
+					(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->link);
 					#endif
 					goto err_ret;
 				}
@@ -669,7 +669,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 				if (bret == false) {
 					result = -1;
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->flags);
+					(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->flags);
 					#endif
 					goto err_ret;
 				}
@@ -682,7 +682,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 				if (bret == false) {
 					result = -1;
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->hwaddr);
+					(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->hwaddr);
 					#endif
 					goto err_ret;
 				}
@@ -695,7 +695,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 				if (bret == false) {
 					result = -1;
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->mode);
+					(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->mode);
 					#endif
 					goto err_ret;
 				}
@@ -708,7 +708,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 				if (bret == false) {
 					result = -1;
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->address);
+					(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->address);
 					#endif
 					goto err_ret;
 				}
@@ -721,7 +721,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 				if (bret == false) {
 					result = -1;
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->gateway);
+					(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->gateway);
 					#endif
 					goto err_ret;
 				}
@@ -757,7 +757,7 @@ int lxcutil_create_instance(container_config_t *cc)
 	if (plxc == NULL) {
 		result = -2;
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr,"lxcutil: lxcutil_create_instance container %s create fail.\n",cc->name);
+		(void) fprintf(stdout,"lxcutil: lxcutil_create_instance container %s create fail.\n",cc->name);
 		#endif
 		goto err_ret;
 	}
@@ -768,7 +768,7 @@ int lxcutil_create_instance(container_config_t *cc)
 	if (bret == false) {
 		result = -1;
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr,"lxcutil: lxcutil_create_instance set config %s = %s fail.\n", "lxc.uts.name", cc->name);
+		(void) fprintf(stdout,"lxcutil: lxcutil_create_instance set config %s = %s fail.\n", "lxc.uts.name", cc->name);
 		#endif
 		goto err_ret;
 	}
@@ -819,7 +819,7 @@ int lxcutil_create_instance(container_config_t *cc)
 		snprintf(buf, sizeof(buf)-1, "/tmp/dbgcfg-%s.txt", cc->name);
 		bret = plxc->save_config(cc->runtime_stat.lxc, buf);
 		if (bret == false)
-			fprintf(stderr,"lxcutil: save_config fail.\n");
+			(void) fprintf(stdout,"lxcutil: save_config fail.\n");
 
 	}
 	#endif
@@ -848,7 +848,7 @@ int lxcutil_container_shutdown(container_config_t *cc)
 	if (cc->runtime_stat.lxc != NULL) {
 		bret = cc->runtime_stat.lxc->shutdown(cc->runtime_stat.lxc, 0);	//non block shutdown
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr, "lxcutil_container_shutdown: shutdown request to guest %s\n", cc->name);
+		(void) fprintf(stdout, "lxcutil_container_shutdown: shutdown request to guest %s\n", cc->name);
 		#endif
 	}
 
@@ -875,7 +875,7 @@ int lxcutil_container_forcekill(container_config_t *cc)
 		if (pid > 0) {
 			(void) kill(pid, SIGKILL);
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr, "lxcutil_container_forcekill: kill signal send to guest %s\n", cc->name );
+			(void) fprintf(stdout, "lxcutil_container_forcekill: kill signal send to guest %s\n", cc->name );
 			#endif
 		}
 	}
@@ -1081,17 +1081,17 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 		if (lddr->operation == DCD_UEVENT_ACTION_ADD) {
 			bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.allow", buf);
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr, "lxc set_cgroup_item: %s = %s\n", "devices.allow", buf);
+			(void) fprintf(stdout, "lxc set_cgroup_item: %s = %s\n", "devices.allow", buf);
 			#endif
 		} else if (lddr->operation == DCD_UEVENT_ACTION_REMOVE) {
 			bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.deny", buf);
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr, "lxc set_cgroup_item: %s = %s\n", "devices.deny", buf);
+			(void) fprintf(stdout, "lxc set_cgroup_item: %s = %s\n", "devices.deny", buf);
 			#endif
 		}
 		if (bret == false) {
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr, "lxcutil_dynamic_device_operation: fail set_cgroup_item %s\n", buf);
+			(void) fprintf(stdout, "lxcutil_dynamic_device_operation: fail set_cgroup_item %s\n", buf);
 			#endif
 			result = -2;
 			goto err_ret;
@@ -1114,7 +1114,7 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 		}
 		if (ret < 0) {
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr, "lxcutil_dynamic_device_operation: fail lxcutil_add_remove_guest_node (%d) %s\n", ret, lddr->devnode);
+			(void) fprintf(stdout, "lxcutil_dynamic_device_operation: fail lxcutil_add_remove_guest_node (%d) %s\n", ret, lddr->devnode);
 			#endif
 			result = -1;
 			goto err_ret;
@@ -1145,7 +1145,7 @@ int lxcutil_dynamic_networkif_add_to_guest(container_config_t *cc, container_dyn
 	if (cc->runtime_stat.lxc != NULL) {
 		bret = cc->runtime_stat.lxc->attach_interface(cc->runtime_stat.lxc, cdne->ifname, cdne->ifname);
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr, "lxcutil_dynamic_networkif_add_to_guest: network interface %s assign to %s\n", cdne->ifname, cc->name );
+		(void) fprintf(stdout, "lxcutil_dynamic_networkif_add_to_guest: network interface %s assign to %s\n", cdne->ifname, cc->name );
 		#endif
 	}
 
