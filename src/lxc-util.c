@@ -38,7 +38,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 	char buf[1024];
 	int buflen = 0, slen = 0;
 
-	memset(buf,0,sizeof(buf));
+	(void) memset(buf,0,sizeof(buf));
 
 	// rootfs
 	slen = snprintf(buf, (sizeof(buf)-1), "dir:%s", bc->rootfs.path);
@@ -59,7 +59,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 		container_baseconfig_extradisk_t *exdisk = NULL;
 
 		dl_list_for_each(exdisk, &bc->extradisk_list, container_baseconfig_extradisk_t, list) {
-			memset(buf, 0, sizeof(buf));
+			(void) memset(buf, 0, sizeof(buf));
 			buflen = sizeof(buf) -1;
 
 			if (exdisk->mode == DISKMOUNT_TYPE_RW) {
@@ -68,7 +68,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 				slen = snprintf(buf, buflen, "%s %s none bind,ro,create=dir", exdisk->from, exdisk->to);
 			}
 
-			if (slen >= buflen) {
+			if (slen < buflen) {
 				bret = plxc->set_config_item(plxc, "lxc.mount.entry", buf);
 				if (bret == false) {
 					result = -1;
@@ -129,7 +129,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 
 	// idmap - optional
 	if (bc->idmaps.enabled == 1) {
-		memset(buf,0,sizeof(buf));
+		(void) memset(buf,0,sizeof(buf));
 		ret = snprintf(buf,sizeof(buf),"u %d %d %d", bc->idmaps.uid.guest_root_id, bc->idmaps.uid.host_start_id, bc->idmaps.uid.num_of_id);
 		if (ret >= sizeof(buf)) {
 			result = -2;
@@ -148,7 +148,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 			goto err_ret;
 		}
 
-		memset(buf,0,sizeof(buf));
+		(void) memset(buf,0,sizeof(buf));
 		ret = snprintf(buf,sizeof(buf),"g %d %d %d", bc->idmaps.gid.guest_root_id, bc->idmaps.gid.host_start_id, bc->idmaps.gid.num_of_id);
 		if (ret >= sizeof(buf)) {
 			result = -2;
@@ -212,7 +212,7 @@ static int lxcutil_set_config_resource(struct lxc_container *plxc, container_res
 	int slen = 0, buflen = 0;
 	container_resource_elem_t *melem = NULL;
 
-	memset(buf,0,sizeof(buf));
+	(void) memset(buf,0,sizeof(buf));
 
 	dl_list_for_each(melem, &rsc->resource.resourcelist, container_resource_elem_t, list) {
 		buflen = sizeof(buf) - 1;
@@ -295,7 +295,7 @@ static int lxcutil_set_config_fs(struct lxc_container *plxc, container_fsconfig_
 	int slen = 0, buflen = 0;
 	container_fsmount_elem_t *melem = NULL;
 
-	memset(buf,0,sizeof(buf));
+	(void) memset(buf,0,sizeof(buf));
 
 	// static settings
 	bret = plxc->set_config_item(plxc, "lxc.mount.auto", "cgroup:mixed proc:mixed sys:mixed");
@@ -309,7 +309,7 @@ static int lxcutil_set_config_fs(struct lxc_container *plxc, container_fsconfig_
 
 	dl_list_for_each(melem, &fsc->fsmount.mountlist, container_fsmount_elem_t, list) {
 		buflen = sizeof(buf) - 1;
-		memset(buf,0,sizeof(buf));
+		(void) memset(buf,0,sizeof(buf));
 		if (melem->type == FSMOUNT_TYPE_FILESYSTEM) {
 			if (melem->from == NULL || melem->to == NULL || melem->fstype == NULL || melem->option == NULL)
 				continue;	//drop data
@@ -375,14 +375,14 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 	container_static_gpio_elem_t *gpioelem = NULL;
 	container_static_iio_elem_t *iioelem = NULL;
 
-	memset(buf,0,sizeof(buf));
+	(void) memset(buf,0,sizeof(buf));
 
 	// static device node
 	dl_list_for_each(develem, &devc->static_device.static_devlist, container_static_device_elem_t, list) {
 		//device bind mount
 		slen = 0;
 		buflen = sizeof(buf) - slen - 1;
-		memset(buf,0,sizeof(buf));
+		(void) memset(buf,0,sizeof(buf));
 
 		if (develem->from == NULL || develem->to == NULL
 			|| (develem->optional == 0 && develem->is_valid == 0)) {
@@ -423,7 +423,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 
 		// device allow
 		buflen = sizeof(buf) - 1;
-		memset(buf,0,sizeof(buf));
+		(void) memset(buf,0,sizeof(buf));
 
 		if (develem->devtype == DEVNODE_TYPE_BLK)
 			pdevtype = sdevtype[1];
@@ -449,7 +449,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 		//device bind mount
 		slen = 0;
 		buflen = sizeof(buf) - slen - 1;
-		memset(buf,0,sizeof(buf));
+		(void) memset(buf,0,sizeof(buf));
 
 		if (gpioelem->from == NULL || gpioelem->to == NULL || develem->is_valid == 0) {
 			// gpio is mandatory device
@@ -616,7 +616,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 	container_static_netif_elem_t *netelem = NULL;
 	int num = 0;
 
-	memset(buf,0,sizeof(buf));
+	(void) memset(buf,0,sizeof(buf));
 
 	// static net if
 	dl_list_for_each(netelem, &netc->static_netif.static_netiflist, container_static_netif_elem_t, list) {
@@ -626,7 +626,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 		if (netelem->type == STATICNETIF_VETH) {
 			netif_elem_veth_t *veth = (netif_elem_veth_t*)netelem->setting;
 
-			(void)snprintf(buf, sizeof(buf), "lxc.net.%d.type", num);
+			(void)snprintf(buf, sizeof(buf), "lxc.net.%d.type", num);	//No issue for buffer length.
 			bret = plxc->set_config_item(plxc, buf, "veth");
 			if (bret == false) {
 				result = -1;
@@ -638,7 +638,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 
 			// name is optional, lxc default is ethX.
 			if (veth->name != NULL) {
-				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.name", num);
+				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.name", num);	//No issue for buffer length.
 				bret = plxc->set_config_item(plxc, buf, veth->name);
 				if (bret == false) {
 					result = -1;
@@ -651,7 +651,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 
 			// link - linking bridge device - is optional, lxc default is not linking.
 			if (veth->link != NULL) {
-				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.link", num);
+				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.link", num);	//No issue for buffer length.
 				bret = plxc->set_config_item(plxc, buf, veth->link);
 				if (bret == false) {
 					result = -1;
@@ -664,7 +664,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 
 			// flags is optional, lxc default is link down.
 			if (veth->flags != NULL) {
-				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.flags", num);
+				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.flags", num);	//No issue for buffer length.
 				bret = plxc->set_config_item(plxc, buf, veth->flags);
 				if (bret == false) {
 					result = -1;
@@ -677,7 +677,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 
 			// hwaddr is optional, lxc default is random mac address.
 			if (veth->hwaddr != NULL) {
-				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.hwaddr", num);
+				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.hwaddr", num);	//No issue for buffer length.
 				bret = plxc->set_config_item(plxc, buf, veth->hwaddr);
 				if (bret == false) {
 					result = -1;
@@ -690,7 +690,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 
 			// mode is optional, lxc default is bridge mode.
 			if (veth->mode != NULL) {
-				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.veth.mode", num);
+				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.veth.mode", num);	//No issue for buffer length.
 				bret = plxc->set_config_item(plxc, buf, veth->mode);
 				if (bret == false) {
 					result = -1;
@@ -703,7 +703,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 
 			// address is optional, lxc default is not set ip address.
 			if (veth->address != NULL) {
-				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.ipv4.address", num);
+				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.ipv4.address", num);	//No issue for buffer length.
 				bret = plxc->set_config_item(plxc, buf, veth->address);
 				if (bret == false) {
 					result = -1;
@@ -716,7 +716,7 @@ static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container
 
 			// gateway is optional, lxc default is not set default gateway.
 			if (veth->gateway != NULL) {
-				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.ipv4.gateway", num);
+				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.ipv4.gateway", num);	//No issue for buffer length.
 				bret = plxc->set_config_item(plxc, buf, veth->gateway);
 				if (bret == false) {
 					result = -1;
@@ -944,7 +944,7 @@ static int lxcutil_add_remove_guest_node_child(pid_t target_pid, const char *pat
 	int ret = -1;
 	char buf[PATH_MAX];
 
-	memset(buf, 0 , sizeof(buf));
+	(void) memset(buf, 0 , sizeof(buf));
 
 	ret = snprintf(buf, sizeof(buf), "/proc/%d/root", target_pid);
 	if (!(ret < sizeof(buf)-1)) {

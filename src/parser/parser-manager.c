@@ -60,7 +60,7 @@ int cmparser_manager_create_from_file(container_manager_config_t **cm, const cha
 		result = -3;
 		goto err_ret;
 	}
-	memset(cmcfg, 0, sizeof(container_manager_config_t));
+	(void) memset(cmcfg, 0, sizeof(container_manager_config_t));
 	dl_list_init(&cmcfg->role_list);
 	dl_list_init(&cmcfg->bridgelist);
 
@@ -106,7 +106,7 @@ int cmparser_manager_create_from_file(container_manager_config_t **cm, const cha
 
 				p = (container_manager_bridge_config_t*)malloc(sizeof(container_manager_bridge_config_t));
 				if (p != NULL) {
-					memset(p, 0 , sizeof(container_manager_bridge_config_t));
+					(void) memset(p, 0 , sizeof(container_manager_bridge_config_t));
 					dl_list_init(&p->list);
 
 					p->name = strdup(name->valuestring);

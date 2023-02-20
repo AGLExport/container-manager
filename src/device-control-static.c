@@ -333,7 +333,7 @@ static int devc_netbridge_setup(container_manager_config_t *cmc)
 			continue;
 		}
 
-		memset(buf, 0, sizeof(buf));
+		(void) memset(buf, 0, sizeof(buf));
 		strncpy(buf, elem->name, IFNAMSIZ);
 
 		ret = ioctl(sock, SIOCBRADDBR, buf);

@@ -64,7 +64,7 @@ static int cm_socket_setup(void)
 	int fd = -1;
 	int ret = -1;
 
-	memset(&name, 0, sizeof(name));
+	(void) memset(&name, 0, sizeof(name));
 
 	// Create client socket
 	fd = socket(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC | SOCK_NONBLOCK, AF_UNIX);
@@ -95,7 +95,7 @@ static int cm_socket_wait_response(int fd, int timeout)
 	int ret = -1;
 	struct pollfd poll_fds[1];
 
-	memset(&poll_fds, 0, sizeof(poll_fds));
+	(void) memset(&poll_fds, 0, sizeof(poll_fds));
 
 	poll_fds[0].fd = fd;
 	poll_fds[0].events = (POLLIN | POLLHUP | POLLERR | POLLNVAL);
@@ -130,8 +130,8 @@ void cm_get_guest_list(int json)
 	container_extif_command_get_t packet;
 	container_extif_command_get_response_t response;
 
-	memset(&packet, 0, sizeof(packet));
-	memset(&response, 0, sizeof(response));
+	(void) memset(&packet, 0, sizeof(packet));
+	(void) memset(&response, 0, sizeof(response));
 
 	// Create client socket
 	fd = cm_socket_setup();
@@ -213,8 +213,8 @@ void cm_get_guest_lifecycle(int code, char *name)
 	container_extif_command_lifecycle_t packet;
 	container_extif_command_lifecycle_response_t response;
 
-	memset(&packet, 0, sizeof(packet));
-	memset(&response, 0, sizeof(response));
+	(void) memset(&packet, 0, sizeof(packet));
+	(void) memset(&response, 0, sizeof(response));
 
 	// Create client socket
 	fd = cm_socket_setup();
@@ -295,8 +295,8 @@ void cm_get_guest_change(int code, char *name)
 	container_extif_command_change_t packet;
 	container_extif_command_change_response_t response;
 
-	memset(&packet, 0, sizeof(packet));
-	memset(&response, 0, sizeof(response));
+	(void) memset(&packet, 0, sizeof(packet));
+	(void) memset(&response, 0, sizeof(response));
 
 	// Create client socket
 	fd = cm_socket_setup();

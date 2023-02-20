@@ -390,7 +390,7 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 			result = -3;
 			goto err_ret;
 		}
-		memset(exdisk, 0 , sizeof(container_baseconfig_extradisk_t));
+		(void) memset(exdisk, 0 , sizeof(container_baseconfig_extradisk_t));
 
 		dl_list_init(&exdisk->list);
 		exdisk->from = strdup(from->valuestring);
@@ -610,7 +610,7 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 				p = (container_baseconfig_env_t*)malloc(sizeof(container_baseconfig_env_t));
 				if (p != NULL) {
 
-					memset(p, 0 , sizeof(container_baseconfig_env_t));
+					(void) memset(p, 0 , sizeof(container_baseconfig_env_t));
 					dl_list_init(&p->list);
 
 					p->envstring = strdup(env->valuestring);
@@ -705,7 +705,7 @@ static int cmparser_parse_resource(container_resourceconfig_t *rc, const cJSON *
 					goto err_ret;
 				}
 
-				memset(p, 0 , sizeof(container_resource_elem_t));
+				(void) memset(p, 0 , sizeof(container_resource_elem_t));
 				dl_list_init(&p->list);
 				p->type = typeval;
 				p->object = strdup(object->valuestring);
@@ -826,7 +826,7 @@ static int cmparser_parse_fs(container_fsconfig_t *fc, const cJSON *fs)
 					goto err_ret;
 				}
 
-				memset(p, 0 , sizeof(container_fsmount_elem_t));
+				(void) memset(p, 0 , sizeof(container_fsmount_elem_t));
 				dl_list_init(&p->list);
 				p->type = typeval;
 				p->from = strdup(from->valuestring);
@@ -986,7 +986,7 @@ static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON
 					if (p == NULL)
 						goto err_ret;
 
-					memset(p, 0 , sizeof(container_static_device_elem_t));
+					(void) memset(p, 0 , sizeof(container_static_device_elem_t));
 					dl_list_init(&p->list);
 
 					p->type = typeval;
@@ -1046,7 +1046,7 @@ static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON
 					if (p == NULL)
 						goto err_ret;
 
-					memset(p, 0 , sizeof(container_static_gpio_elem_t));
+					(void) memset(p, 0 , sizeof(container_static_gpio_elem_t));
 					dl_list_init(&p->list);
 
 					p->type = typeval;
@@ -1105,7 +1105,7 @@ static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON
 					if (p == NULL)
 						goto err_ret;
 
-					memset(p, 0 , sizeof(container_static_iio_elem_t));
+					(void) memset(p, 0 , sizeof(container_static_iio_elem_t));
 					dl_list_init(&p->list);
 
 					p->type = typeval;
@@ -1208,7 +1208,7 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 	if (p == NULL)
 		goto err_ret;
 
-	memset(p, 0 , sizeof(dynamic_device_entry_items_t));
+	(void) memset(p, 0 , sizeof(dynamic_device_entry_items_t));
 	p->subsystem = strdup(subsystem->valuestring);
 	dl_list_init(&p->list);
 	dl_list_init(&p->rule.devtype_list);
@@ -1231,7 +1231,7 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 					if (pli == NULL)
 						goto err_ret;
 
-					memset(pli, 0, sizeof(short_string_list_item_t));
+					(void) memset(pli, 0, sizeof(short_string_list_item_t));
 					dl_list_init(&pli->list);
 					strncpy(pli->string, devtypestr->valuestring, sizeof(pli->string)-1);
 					dl_list_add_tail(&p->rule.devtype_list, &pli->list);
@@ -1296,7 +1296,7 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 					if (pre == NULL)
 						goto err_ret;
 
-					memset(pre, 0, sizeof(dynamic_device_entry_items_rule_extra_t));
+					(void) memset(pre, 0, sizeof(dynamic_device_entry_items_rule_extra_t));
 					dl_list_init(&pre->list);
 					pre->checker = strdup(extra_checker->valuestring);
 					pre->value = strdup(extra_value->valuestring);
@@ -1401,7 +1401,7 @@ static int cmparser_parse_dynamic_dev(container_dynamic_device_t *ddc, const cJS
 				if (p == NULL)
 					goto err_ret;
 
-				memset(p, 0 , sizeof(container_dynamic_device_entry_t));
+				(void) memset(p, 0 , sizeof(container_dynamic_device_entry_t));
 				p->devpath = strdup(devpath->valuestring);
 				dl_list_init(&p->list);
 				dl_list_init(&p->items);
@@ -1694,7 +1694,7 @@ static int cmparser_parse_dynamic_netif(container_dynamic_netif_t *dnif, const c
 				if (p == NULL)
 					goto err_ret;
 
-				memset(p, 0 , sizeof(container_dynamic_netif_elem_t));
+				(void) memset(p, 0 , sizeof(container_dynamic_netif_elem_t));
 				dl_list_init(&p->list);
 
 				p->ifname = strdup(ifname->valuestring);
@@ -1801,7 +1801,7 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 		result = -3;
 		goto err_ret;
 	}
-	memset(ccfg, 0, sizeof(container_config_t));
+	(void) memset(ccfg, 0, sizeof(container_config_t));
 	dl_list_init(&ccfg->baseconfig.extradisk_list);
 	dl_list_init(&ccfg->baseconfig.envlist);
 	dl_list_init(&ccfg->resourceconfig.resource.resourcelist);

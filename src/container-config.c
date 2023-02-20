@@ -64,7 +64,7 @@ static int bind_container_to_role_list(containers_t* cs)
 						pelem = (container_manager_role_elem_t*)malloc(sizeof(container_manager_role_elem_t));
 						if (pelem != NULL) {
 
-							memset(pelem, 0 , sizeof(container_manager_role_elem_t));
+							(void) memset(pelem, 0 , sizeof(container_manager_role_elem_t));
 							dl_list_init(&pelem->list);
 							pelem->cc = cc;	//set guest info
 
@@ -93,7 +93,7 @@ static int bind_container_to_role_list(containers_t* cs)
 			if (cmrc != NULL) {
 				container_manager_role_elem_t *pelem = NULL;
 
-				memset(cmrc, 0 , sizeof(container_manager_role_config_t));
+				(void) memset(cmrc, 0 , sizeof(container_manager_role_config_t));
 				dl_list_init(&cmrc->list);
 				dl_list_init(&cmrc->container_list);
 
@@ -106,7 +106,7 @@ static int bind_container_to_role_list(containers_t* cs)
 				pelem = (container_manager_role_elem_t*)malloc(sizeof(container_manager_role_elem_t));
 				if (pelem != NULL) {
 
-					memset(pelem, 0 , sizeof(container_manager_role_elem_t));
+					(void) memset(pelem, 0 , sizeof(container_manager_role_elem_t));
 					dl_list_init(&pelem->list);
 					pelem->cc = NULL;	//dummy guest info
 
@@ -122,7 +122,7 @@ static int bind_container_to_role_list(containers_t* cs)
 				pelem = (container_manager_role_elem_t*)malloc(sizeof(container_manager_role_elem_t));
 				if (pelem != NULL) {
 
-					memset(pelem, 0 , sizeof(container_manager_role_elem_t));
+					(void) memset(pelem, 0 , sizeof(container_manager_role_elem_t));
 					dl_list_init(&pelem->list);
 					pelem->cc = cc;	//set guest info
 
@@ -233,7 +233,7 @@ containers_t *create_container_configs(const char *config_file)
 	char buf[1024];
 	int slen = 0, buflen = 0;
 
-	memset(ca,0,sizeof(ca));
+	(void) memset(ca,0,sizeof(ca));
 
 	conffile = config_file;
 	if (conffile == NULL) {
@@ -246,7 +246,7 @@ containers_t *create_container_configs(const char *config_file)
 
 	confdir = cm->configdir;
 
-	memset(buf,0,sizeof(buf));
+	(void) memset(buf,0,sizeof(buf));
 	buflen = sizeof(buf) - 1;
 	strncpy(buf, confdir, buflen);
 	slen = strlen(buf);
@@ -313,13 +313,13 @@ containers_t *create_container_configs(const char *config_file)
 	if (cs == NULL)
 		goto err_ret;
 
-	memset(cs, 0, sizeof(containers_t));
+	(void) memset(cs, 0, sizeof(containers_t));
 
 	cs->containers = (container_config_t**)malloc(sizeof(container_config_t*)*num);
 	if (cs->containers == NULL)
 		goto err_ret;
 
-	memset(cs->containers, 0, sizeof(container_config_t*)*num);
+	(void) memset(cs->containers, 0, sizeof(container_config_t*)*num);
 
 	for(int i=0; i < num; i++) {
 		cs->containers[i] = ca[i];

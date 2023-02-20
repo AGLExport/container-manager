@@ -111,7 +111,7 @@ static int container_external_interface_command_get(cm_external_interface_t *pex
 	int ret = -1;
 	ssize_t sret = -1;
 
-	memset(&guests_info, 0 , sizeof(guests_info));
+	(void) memset(&guests_info, 0 , sizeof(guests_info));
 
 	if(size >= sizeof(container_extif_command_get_t)) {
 		guests_info.header.command = CONTAINER_EXTIF_COMMAND_RESPONSE_GETGUESTS;
@@ -278,7 +278,7 @@ static int container_external_interface_command_lifecycle(cm_external_interface_
 	ssize_t sret = -1;
 	int ret = -1;
 
-	memset(&response, 0 , sizeof(response));
+	(void) memset(&response, 0 , sizeof(response));
 
 	if(size >= sizeof(container_extif_command_lifecycle_t)) {
 		if (pcom_life->subcommand == CONTAINER_EXTIF_SUBCOMMAND_FORCEREBOOT_GUEST) {
@@ -340,7 +340,7 @@ static int container_external_interface_command_change(cm_external_interface_t *
 	ssize_t sret = -1;
 	int ret = -1;
 
-	memset(&response, 0 , sizeof(response));
+	(void) memset(&response, 0 , sizeof(response));
 	response.header.command = CONTAINER_EXTIF_COMMAND_RESPONSE_CHANGE;
 	response.response = CONTAINER_EXTIF_CHANGE_RESPONSE_ERROR;
 
@@ -525,13 +525,12 @@ static int container_external_interface_incoming_handler(sd_event_source *event,
 		ret = sd_event_add_io(pextif->parent_eventloop, &pextif->interface_session_evsource, sessionfd,
 								(EPOLLIN | EPOLLHUP | EPOLLERR), container_external_interface_sessions_handler, pextif);
 		if (ret < 0)
-			goto error_return;
+			goto error_return_b;
 
 		// Set automatically fd close at delete object.
 		ret = sd_event_source_set_io_fd_own(pextif->interface_session_evsource, 1);
 		if (ret < 0) {
-			sd_event_source_disable_unref(pextif->interface_session_evsource);
-			goto error_return;
+			goto error_return_b;
 		}
 		// After this, shall not close sessionfd by close.
 		sessionfd = -1;
@@ -540,14 +539,15 @@ static int container_external_interface_incoming_handler(sd_event_source *event,
 
 	return 0;
 
-error_return:
-	if (sessionfd >= 0)
-		close(sessionfd);
-
+error_return_b:
 	if ((pextif != NULL) && (pextif->interface_session_evsource != NULL)) {
 		(void *) sd_event_source_disable_unref(pextif->interface_session_evsource);
 		pextif->interface_session_evsource = NULL;
 	}
+
+error_return:
+	if (sessionfd >= 0)
+		close(sessionfd);
 
 	return 0;
 }
@@ -583,7 +583,7 @@ int container_external_interface_setup(containers_t *cs, sd_event *event)
 		goto err_return;
 	}
 
-	memset(pextif, 0, sizeof(*pextif));
+	(void) memset(pextif, 0, sizeof(*pextif));
 
 	pextif->parent_eventloop = event;
 
@@ -594,7 +594,7 @@ int container_external_interface_setup(containers_t *cs, sd_event *event)
 		goto err_return;
 	}
 
-	memset(&name, 0, sizeof(name));
+	(void) memset(&name, 0, sizeof(name));
 	name.sun_family = AF_UNIX;
 	memcpy(name.sun_path, CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME, sizeof(CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME));
 

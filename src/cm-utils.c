@@ -113,7 +113,7 @@ int mkdir_p(const char *dir, mode_t mode)
 	int len = 0;
 	char path[PATH_MAX];
 
-	memset(path, 0, sizeof(path));
+	(void) memset(path, 0, sizeof(path));
 
 	len = strnlen(dir, PATH_MAX-1);
 
