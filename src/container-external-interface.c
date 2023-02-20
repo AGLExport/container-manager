@@ -525,13 +525,12 @@ static int container_external_interface_incoming_handler(sd_event_source *event,
 		ret = sd_event_add_io(pextif->parent_eventloop, &pextif->interface_session_evsource, sessionfd,
 								(EPOLLIN | EPOLLHUP | EPOLLERR), container_external_interface_sessions_handler, pextif);
 		if (ret < 0)
-			goto error_return;
+			goto error_return_b;
 
 		// Set automatically fd close at delete object.
 		ret = sd_event_source_set_io_fd_own(pextif->interface_session_evsource, 1);
 		if (ret < 0) {
-			sd_event_source_disable_unref(pextif->interface_session_evsource);
-			goto error_return;
+			goto error_return_b;
 		}
 		// After this, shall not close sessionfd by close.
 		sessionfd = -1;
@@ -540,14 +539,15 @@ static int container_external_interface_incoming_handler(sd_event_source *event,
 
 	return 0;
 
-error_return:
-	if (sessionfd >= 0)
-		close(sessionfd);
-
+error_return_b:
 	if ((pextif != NULL) && (pextif->interface_session_evsource != NULL)) {
 		(void *) sd_event_source_disable_unref(pextif->interface_session_evsource);
 		pextif->interface_session_evsource = NULL;
 	}
+
+error_return:
+	if (sessionfd >= 0)
+		close(sessionfd);
 
 	return 0;
 }
