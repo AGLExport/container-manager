@@ -34,8 +34,9 @@ int once_write(const char *path, const void* data, size_t size)
 	ssize_t ret = -1;
 
 	fd = open(path, (O_WRONLY | O_CLOEXEC | O_TRUNC));
-	if (fd < 0)
+	if (fd < 0) {
 		return -1;
+	}
 
 	do {
 		ret = write(fd, data, size);
@@ -63,8 +64,9 @@ int once_read(const char *path, void* data, size_t size)
 	ssize_t ret = -1;
 
 	fd = open(path, (O_RDONLY | O_CLOEXEC));
-	if (fd < 0)
+	if (fd < 0) {
 		return -1;
+	}
 
 	do {
 		ret = read(fd, data, size);
@@ -149,11 +151,13 @@ int wait_child_pid(pid_t pid)
 
 	} while (ret < 0 && errno == EINTR);
 
-	if (!WIFEXITED(status))
+	if (!WIFEXITED(status)) {
 		return -1;
+	}
 
-	if (WEXITSTATUS(status) != 0)
+	if (WEXITSTATUS(status) != 0) {
 		return -2;
+	}
 
 	return 0;
 }
@@ -188,8 +192,9 @@ void sleep_ms_time(int64_t wait_time)
 	int ret = -1;
 	struct timespec req, rem;
 
-	if (wait_time < 0)
+	if (wait_time < 0) {
 		return;
+	}
 
 	req.tv_sec = wait_time / 1000;	//ms to sec
 	req.tv_nsec = (wait_time % 1000) * 1000 * 1000;	//ms to nsec
