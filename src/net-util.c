@@ -95,7 +95,7 @@ static int sdutil_get_ifname(const struct nlmsghdr *nlh, char *ifname, int size)
 			ret = mnl_attr_validate(attr, MNL_TYPE_STRING);
 			if (ret == 0) {
 				pstr = mnl_attr_get_str(attr);
-				strncpy(ifname, pstr, size-1);
+				(void) strncpy(ifname, pstr, size-1);
 				result = 0;
 			}
 			break;
