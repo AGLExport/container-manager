@@ -45,12 +45,14 @@ static int open_namespace_fd(pid_t pid, const char *ns_name)
 	char buf[1024];
 
 	ret = snprintf(buf, sizeof(buf), "/proc/%d/ns/%s", pid, ns_name);
-	if (!(ret < sizeof(buf)))
+	if (!(ret < sizeof(buf))) {
 		return -1;
+	}
 
 	ret = open(buf, (O_RDONLY|O_CLOEXEC));
-	if (ret < 0)
+	if (ret < 0) {
 		return -2;
+	}
 
 	return ret;
 }
@@ -114,11 +116,13 @@ static int uevent_injection_child(int net_ns_fd, const char *message, int messag
 	return 0;
 
 err_return:
-	if (nl != NULL)
+	if (nl != NULL) {
 		mnl_socket_close(nl);
+	}
 
-	if (net_ns_fd >= 0)
+	if (net_ns_fd >= 0) {
 		close(net_ns_fd);
+	}
 
 	return result;
 }
@@ -141,8 +145,9 @@ int uevent_injection_to_pid(pid_t target_pid, uevent_injection_message_t *uim)
 	int net_ns_fd = -1;
 	pid_t child_pid = -1;
 
-	if (target_pid < 1 || uim == NULL)
+	if (target_pid < 1 || uim == NULL) {
 		return -1;
+	}
 
 	net_ns_fd = open_namespace_fd(target_pid, "net");
 	if (net_ns_fd < 0) {
@@ -162,8 +167,9 @@ int uevent_injection_to_pid(pid_t target_pid, uevent_injection_message_t *uim)
 	if (child_pid == 0) {
 		// run on child process, must be exit.
 		ret = uevent_injection_child(net_ns_fd, uim->message, uim->used);
-		if (ret < 0)
+		if (ret < 0) {
 			_exit(EXIT_FAILURE);
+		}
 
 		_exit(EXIT_SUCCESS);
 	}
@@ -183,8 +189,9 @@ int uevent_injection_to_pid(pid_t target_pid, uevent_injection_message_t *uim)
 
 err_return:
 
-	if (net_ns_fd >= 0)
+	if (net_ns_fd >= 0) {
 		close(net_ns_fd);
+	}
 
 	return result;
 }

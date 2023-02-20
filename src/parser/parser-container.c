@@ -105,10 +105,12 @@ static int cmparser_parser_get_diskmountmode(const char *str)
 	static const char read_write[] = "rw";
 	int ret = DISKMOUNT_TYPE_RO;
 
-	if (strncmp(read_only, str, sizeof(read_only)) == 0)
+	if (strncmp(read_only, str, sizeof(read_only)) == 0) {
 		ret = DISKMOUNT_TYPE_RO;
-	else if (strncmp(read_write, str, sizeof(read_write)) == 0)
+	}
+	else if (strncmp(read_write, str, sizeof(read_write)) == 0) {
 		ret = DISKMOUNT_TYPE_RW;
+	}
 
 	return ret;
 }
@@ -127,10 +129,12 @@ static int cmparser_parser_get_diskmountfailop(const char *str)
 	static const char ab[] = "ab";
 	int ret = DISKREDUNDANCY_TYPE_FAILOVER;
 
-	if (strncmp(failover, str, sizeof(failover)) == 0)
+	if (strncmp(failover, str, sizeof(failover)) == 0) {
 		ret = DISKREDUNDANCY_TYPE_FAILOVER;
-	else if (strncmp(ab, str, sizeof(ab)) == 0)
+	}
+	else if (strncmp(ab, str, sizeof(ab)) == 0) {
 		ret = DISKREDUNDANCY_TYPE_AB;
+	}
 
 	return ret;
 }
@@ -395,15 +399,18 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 		dl_list_init(&exdisk->list);
 		exdisk->from = strdup(from->valuestring);
 		exdisk->to = strdup(to->valuestring);
-		if (fsstr != NULL)
+		if (fsstr != NULL) {
 			exdisk->filesystem = strdup(fsstr);
+		}
 		exdisk->mode = mntmode;
 		exdisk->redundancy = mntredundancy;
-		if (optionstr != NULL)
+		if (optionstr != NULL) {
 			exdisk->option = strdup(optionstr);
+		}
 		exdisk->blockdev[0] = strdup(bdev[0]);
-		if (bdev[1] != NULL)
+		if (bdev[1] != NULL) {
 			exdisk->blockdev[1] = strdup(bdev[1]);
+		}
 
 		dl_list_add_tail(&bc->extradisk_list, &exdisk->list);
 
@@ -443,10 +450,12 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 	// Get autoboot data
 	autoboot = cJSON_GetObjectItemCaseSensitive(base, "autoboot");
 	if (cJSON_IsBool(autoboot)) {
-		if (cJSON_IsTrue(autoboot))
+		if (cJSON_IsTrue(autoboot)) {
 			bc->autoboot = 1;
-		else
+		}
+		else {
 			bc->autoboot = 0;
+		}
 
 		#ifdef _PRINTF_DEBUG_
 		(void) fprintf(stdout,"cmparser: base-autoboot value = %d\n",bc->autoboot);
@@ -476,8 +485,9 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 	rootfs = cJSON_GetObjectItemCaseSensitive(base, "rootfs");
 	if (cJSON_IsObject(rootfs)) {
 		result = cmparser_parse_base_rootfs(bc, rootfs);
-		if (result != 0)
+		if (result != 0) {
 			goto err_ret;
+		}
 	} else {
 		// Mandatory value
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
@@ -491,8 +501,9 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 	extradisk = cJSON_GetObjectItemCaseSensitive(base, "extradisk");
 	if (cJSON_IsArray(extradisk)) {
 		result = cmparser_parse_base_extradisk(bc, extradisk);
-		if (result != 0)
+		if (result != 0) {
 			goto err_ret;
+		}
 	}
 
 	// Get lifecycle data
@@ -645,12 +656,15 @@ static int cmparser_parser_get_resourcetype(const char *str)
 	static const char csysctl[] = "sysctl";
 	int ret = 0;
 
-	if (strncmp(ccgroup, str, sizeof(ccgroup)) == 0)
+	if (strncmp(ccgroup, str, sizeof(ccgroup)) == 0) {
 		ret = RESOURCE_TYPE_CGROUP;
-	else if (strncmp(cprlimit, str, sizeof(cprlimit)) == 0)
+	}
+	else if (strncmp(cprlimit, str, sizeof(cprlimit)) == 0) {
 		ret = RESOURCE_TYPE_PRLIMIT;
-	else if (strncmp(csysctl, str, sizeof(csysctl)) == 0)
+	}
+	else if (strncmp(csysctl, str, sizeof(csysctl)) == 0) {
 		ret = RESOURCE_TYPE_SYSCTL;
+	}
 
 	return ret;
 }
@@ -682,21 +696,25 @@ static int cmparser_parse_resource(container_resourceconfig_t *rc, const cJSON *
 				type = cJSON_GetObjectItemCaseSensitive(elem, "type");
 				if (cJSON_IsString(type) && (type->valuestring != NULL)) {
 					typeval = cmparser_parser_get_resourcetype(type->valuestring);
-					if (typeval == 0)
+					if (typeval == 0) {
 						continue;
+					}
 					#ifdef _PRINTF_DEBUG_
 					(void) fprintf(stdout,"cmparser: resource.type = %d\n",typeval);
 					#endif
-				} else
+				} else {
 					continue;
+				}
 
 				object = cJSON_GetObjectItemCaseSensitive(elem, "object");
-				if (!(cJSON_IsString(object) && (object->valuestring != NULL)))
+				if (!(cJSON_IsString(object) && (object->valuestring != NULL))) {
 					continue;
+				}
 
 				value = cJSON_GetObjectItemCaseSensitive(elem, "value");
-				if (!(cJSON_IsString(value) && (value->valuestring != NULL)))
+				if (!(cJSON_IsString(value) && (value->valuestring != NULL))) {
 					continue;
+				}
 
 				// all data available
 				p = (container_resource_elem_t*)malloc(sizeof(container_resource_elem_t));
@@ -755,12 +773,16 @@ static int cmparser_parser_get_fstype(const char *str)
 	static const char cdir_bc[] = "directry"; //backward compatibility - fix typo
 	int ret = 0;
 
-	if (strncmp(cfs, str, sizeof(cfs)) == 0)
+	if (strncmp(cfs, str, sizeof(cfs)) == 0) {
 		ret = FSMOUNT_TYPE_FILESYSTEM;
-	else if (strncmp(cdir, str, sizeof(cdir)) == 0)
+	}
+	else if (strncmp(cdir, str, sizeof(cdir)) == 0) {
 		ret = FSMOUNT_TYPE_DIRECTORY;
-	else if (strncmp(cdir, str, sizeof(cdir_bc)) == 0) //backward compatibility - fix typo
+	}
+	else if (strncmp(cdir, str, sizeof(cdir_bc)) == 0) {
+		//backward compatibility - fix typo
 		ret = FSMOUNT_TYPE_DIRECTORY;
+	}
 
 	return ret;
 }
@@ -795,29 +817,35 @@ static int cmparser_parse_fs(container_fsconfig_t *fc, const cJSON *fs)
 				type = cJSON_GetObjectItemCaseSensitive(elem, "type");
 				if (cJSON_IsString(type) && (type->valuestring != NULL)) {
 					typeval = cmparser_parser_get_fstype(type->valuestring);
-					if (typeval == 0)
+					if (typeval == 0) {
 						continue;
+					}
 					#ifdef _PRINTF_DEBUG_
 					(void) fprintf(stdout,"cmparser: fsconfig.fsmount.type = %d\n",typeval);
 					#endif
-				} else
+				} else {
 					continue;
+				}
 
 				from = cJSON_GetObjectItemCaseSensitive(elem, "from");
-				if (!(cJSON_IsString(from) && (from->valuestring != NULL)))
+				if (!(cJSON_IsString(from) && (from->valuestring != NULL))) {
 					continue;
+				}
 
 				to = cJSON_GetObjectItemCaseSensitive(elem, "to");
-				if (!(cJSON_IsString(to) && (to->valuestring != NULL)))
+				if (!(cJSON_IsString(to) && (to->valuestring != NULL))) {
 					continue;
+				}
 
 				fstype = cJSON_GetObjectItemCaseSensitive(elem, "fstype");
-				if (!(cJSON_IsString(fstype) && (fstype->valuestring != NULL)))
+				if (!(cJSON_IsString(fstype) && (fstype->valuestring != NULL))) {
 					continue;
+				}
 
 				option = cJSON_GetObjectItemCaseSensitive(elem, "option");
-				if (!(cJSON_IsString(option) && (option->valuestring != NULL)))
+				if (!(cJSON_IsString(option) && (option->valuestring != NULL))) {
 					continue;
+				}
 
 				// all data available
 				p = (container_fsmount_elem_t*)malloc(sizeof(container_fsmount_elem_t));
@@ -883,14 +911,18 @@ static int cmparser_parser_get_devtype(const char *str)
 	static const char iio[] = "iio";
 	int ret = 0;
 
-	if (strncmp(devn, str, sizeof(devn)) == 0)
+	if (strncmp(devn, str, sizeof(devn)) == 0) {
 		ret = DEVICE_TYPE_DEVNODE;
-	else if (strncmp(devd, str, sizeof(devd)) == 0)
+	}
+	else if (strncmp(devd, str, sizeof(devd)) == 0) {
 		ret = DEVICE_TYPE_DEVDIR;
-	else if (strncmp(gpio, str, sizeof(gpio)) == 0)
+	}
+	else if (strncmp(gpio, str, sizeof(gpio)) == 0) {
 		ret = DEVICE_TYPE_GPIO;
-	else if (strncmp(iio, str, sizeof(iio)) == 0)
+	}
+	else if (strncmp(iio, str, sizeof(iio)) == 0) {
 		ret = DEVICE_TYPE_IIO;
+	}
 
 	return ret;
 }
@@ -915,14 +947,18 @@ static int cmparser_parser_get_gpiodirection(const char *str)
 	static const char gpiohigh[] = "high";
 	int ret = DEVGPIO_DIRECTION_DC;
 
-	if (strncmp(gpioin, str, sizeof(gpioin)) == 0)
+	if (strncmp(gpioin, str, sizeof(gpioin)) == 0) {
 		ret = DEVGPIO_DIRECTION_IN;
-	else if (strncmp(gpioout, str, sizeof(gpioout)) == 0)
+	}
+	else if (strncmp(gpioout, str, sizeof(gpioout)) == 0) {
 		ret = DEVGPIO_DIRECTION_OUT;
-	else if (strncmp(gpiolow, str, sizeof(gpiolow)) == 0)
+	}
+	else if (strncmp(gpiolow, str, sizeof(gpiolow)) == 0) {
 		ret = DEVGPIO_DIRECTION_LOW;
-	else if (strncmp(gpiohigh, str, sizeof(gpiohigh)) == 0)
+	}
+	else if (strncmp(gpiohigh, str, sizeof(gpiohigh)) == 0) {
 		ret = DEVGPIO_DIRECTION_HIGH;
+	}
 
 	return ret;
 }
@@ -952,13 +988,15 @@ static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON
 				type = cJSON_GetObjectItemCaseSensitive(elem, "type");
 				if (cJSON_IsString(type) && (type->valuestring != NULL)) {
 					typeval = cmparser_parser_get_devtype(type->valuestring);
-					if (typeval == 0)
+					if (typeval == 0) {
 						continue;
+					}
 					#ifdef _PRINTF_DEBUG_
 					(void) fprintf(stdout,"cmparser: deviceconfig.static_device.x.type = %d\n",typeval);
 					#endif
-				} else
+				} else {
 					continue;
+				}
 
 				if (typeval == DEVICE_TYPE_DEVNODE || typeval == DEVICE_TYPE_DEVDIR) {
 					cJSON *from = NULL, *to = NULL;
@@ -966,16 +1004,19 @@ static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON
 					container_static_device_elem_t *p = NULL;
 
 					from = cJSON_GetObjectItemCaseSensitive(elem, "from");
-					if (!(cJSON_IsString(from) && (from->valuestring != NULL)))
+					if (!(cJSON_IsString(from) && (from->valuestring != NULL))) {
 						continue;
+					}
 
 					to = cJSON_GetObjectItemCaseSensitive(elem, "to");
-					if (!(cJSON_IsString(to) && (to->valuestring != NULL)))
+					if (!(cJSON_IsString(to) && (to->valuestring != NULL))) {
 						continue;
+					}
 
 					devnode = cJSON_GetObjectItemCaseSensitive(elem, "devnode");
-					if (!(cJSON_IsString(devnode) && (devnode->valuestring != NULL)))
+					if (!(cJSON_IsString(devnode) && (devnode->valuestring != NULL))) {
 						continue;
+					}
 
 					optional = cJSON_GetObjectItemCaseSensitive(elem, "optional");
 					wideallow = cJSON_GetObjectItemCaseSensitive(elem, "wideallow");
@@ -994,20 +1035,26 @@ static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON
 					p->to = strdup(to->valuestring);
 					p->devnode = strdup(devnode->valuestring);
 
-					if (cJSON_IsNumber(optional))
+					if (cJSON_IsNumber(optional)) {
 						p->optional = optional->valueint;
-					else
+					}
+					else {
 						p->optional = 0;	// default value
+					}
 
-					if (cJSON_IsNumber(wideallow))
+					if (cJSON_IsNumber(wideallow)) {
 						p->wideallow = wideallow->valueint;
-					else
+					}
+					else {
 						p->wideallow = 0;	// default value
+					}
 
-					if (cJSON_IsNumber(exclusive))
+					if (cJSON_IsNumber(exclusive)) {
 						p->exclusive = exclusive->valueint;
-					else
+					}
+					else {
 						p->exclusive = 0;	// default value
+					}
 
 					#ifdef _PRINTF_DEBUG_
 					(void) fprintf(stdout,"cmparser: static_device.from = %s, to = %s, devnode = %s, optional = %d, wideallow = %d, exclusive = %d\n",
@@ -1023,8 +1070,9 @@ static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON
 					container_static_gpio_elem_t *p = NULL;
 
 					port = cJSON_GetObjectItemCaseSensitive(elem, "port");
-					if (!cJSON_IsNumber(port) || (port->valueint < 0))
+					if (!cJSON_IsNumber(port) || (port->valueint < 0)) {
 						continue;
+					}
 
 					direction = cJSON_GetObjectItemCaseSensitive(elem, "direction");
 					if (cJSON_IsString(direction) && direction->valuestring != NULL) {
@@ -1034,17 +1082,20 @@ static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON
 					}
 
 					from = cJSON_GetObjectItemCaseSensitive(elem, "from");
-					if (!(cJSON_IsString(from) && (from->valuestring != NULL)))
+					if (!(cJSON_IsString(from) && (from->valuestring != NULL))) {
 						continue;
+					}
 
 					to = cJSON_GetObjectItemCaseSensitive(elem, "to");
-					if (!(cJSON_IsString(to) && (to->valuestring != NULL)))
+					if (!(cJSON_IsString(to) && (to->valuestring != NULL))) {
 						continue;
+					}
 
 					// all data available
 					p = (container_static_gpio_elem_t*)malloc(sizeof(container_static_gpio_elem_t));
-					if (p == NULL)
+					if (p == NULL) {
 						goto err_ret;
+					}
 
 					(void) memset(p, 0 , sizeof(container_static_gpio_elem_t));
 					dl_list_init(&p->list);
@@ -1102,8 +1153,9 @@ static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON
 
 					// all data available
 					p = (container_static_iio_elem_t*)malloc(sizeof(container_static_iio_elem_t));
-					if (p == NULL)
+					if (p == NULL) {
 						goto err_ret;
+					}
 
 					(void) memset(p, 0 , sizeof(container_static_iio_elem_t));
 					dl_list_init(&p->list);
@@ -1111,19 +1163,24 @@ static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON
 					p->type = typeval;
 					p->sysfrom = strdup(sysfrom->valuestring);
 					p->systo = strdup(systo->valuestring);
-					if (pdevfrom != NULL)
+					if (pdevfrom != NULL) {
 						p->devfrom = strdup(pdevfrom);
+					}
 
-					if (pdevto != NULL)
+					if (pdevto != NULL) {
 						p->devto = strdup(pdevto);
+					}
 
-					if (pdevnode != NULL)
+					if (pdevnode != NULL) {
 						p->devnode = strdup(pdevnode);
+					}
 
-					if (cJSON_IsNumber(optional))
+					if (cJSON_IsNumber(optional)) {
 						p->optional = optional->valueint;
-					else
+					}
+					else {
 						p->optional = 0;	// default value
+					}
 
 					#ifdef _PRINTF_DEBUG_
 					(void) fprintf(stdout,"cmparser: iio sysfrom = %s, systo = %s, devfrom = %s, devto = %s, devnode = %s, optional = %d\n",
@@ -1196,8 +1253,9 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 
 	// Got subsystem of device, mandatory.
 	subsystem = cJSON_GetObjectItemCaseSensitive(item, "subsystem");
-	if (!(cJSON_IsString(subsystem) && (subsystem->valuestring != NULL)))
+	if (!(cJSON_IsString(subsystem) && (subsystem->valuestring != NULL))) {
 		return -2;
+	}
 
 	#ifdef _PRINTF_DEBUG_
 	(void) fprintf(stdout,"cmparser: subsystem = %s\n", subsystem->valuestring);
@@ -1205,8 +1263,9 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 
 	// Memory allocation and initialize.
 	p = (dynamic_device_entry_items_t*)malloc(sizeof(dynamic_device_entry_items_t));
-	if (p == NULL)
+	if (p == NULL) {
 		goto err_ret;
+	}
 
 	(void) memset(p, 0 , sizeof(dynamic_device_entry_items_t));
 	p->subsystem = strdup(subsystem->valuestring);
@@ -1228,8 +1287,9 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 				if (cJSON_IsString(devtypestr) && (devtypestr->valuestring != NULL)) {
 					short_string_list_item_t *pli = NULL;
 					pli = (short_string_list_item_t*)malloc(sizeof(short_string_list_item_t));
-					if (pli == NULL)
+					if (pli == NULL) {
 						goto err_ret;
+					}
 
 					(void) memset(pli, 0, sizeof(short_string_list_item_t));
 					dl_list_init(&pli->list);
@@ -1285,16 +1345,19 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 					dynamic_device_entry_items_rule_extra_t *pre = NULL;
 
 					extra_checker = cJSON_GetObjectItemCaseSensitive(extra_elem, "checker");
-					if (!(cJSON_IsString(extra_checker) && (extra_checker->valuestring != NULL)))
+					if (!(cJSON_IsString(extra_checker) && (extra_checker->valuestring != NULL))) {
 						continue;
+					}
 
 					extra_value = cJSON_GetObjectItemCaseSensitive(extra_elem, "value");
-					if (!(cJSON_IsString(extra_value) && (extra_value->valuestring != NULL)))
+					if (!(cJSON_IsString(extra_value) && (extra_value->valuestring != NULL))) {
 						continue;
+					}
 
 					pre = (dynamic_device_entry_items_rule_extra_t*)malloc(sizeof(dynamic_device_entry_items_rule_extra_t));
-					if (pre == NULL)
+					if (pre == NULL) {
 						goto err_ret;
+					}
 
 					(void) memset(pre, 0, sizeof(dynamic_device_entry_items_rule_extra_t));
 					dl_list_init(&pre->list);
@@ -1323,22 +1386,25 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 		// Enable/disable uevent injection
 		injection = cJSON_GetObjectItemCaseSensitive(behavior, "injection");
 		if (cJSON_IsNumber(injection)) {
-			if (injection->valueint == 1)
+			if (injection->valueint == 1) {
 				p->behavior.injection = 1;
+			}
 		}
 
 		// Enable/disable device node injection
 		devnode = cJSON_GetObjectItemCaseSensitive(behavior, "devnode");
 		if (cJSON_IsNumber(devnode)) {
-			if (devnode->valueint == 1)
+			if (devnode->valueint == 1) {
 				p->behavior.devnode = 1;
+			}
 		}
 
 		// Enable/disable cgroupe allow/deny
 		allow = cJSON_GetObjectItemCaseSensitive(behavior, "allow");
 		if (cJSON_IsNumber(devnode)) {
-			if (devnode->valueint == 1)
+			if (devnode->valueint == 1) {
 				p->behavior.allow = 1;
+			}
 		}
 
 		// Gto permission of cgroupe allow/deny
@@ -1394,12 +1460,14 @@ static int cmparser_parse_dynamic_dev(container_dynamic_device_t *ddc, const cJS
 				container_dynamic_device_entry_t *p = NULL;
 
 				devpath = cJSON_GetObjectItemCaseSensitive(elem, "devpath");
-				if (!(cJSON_IsString(devpath) && (devpath->valuestring != NULL)))
+				if (!(cJSON_IsString(devpath) && (devpath->valuestring != NULL))) {
 					continue;
+				}
 
 				p = (container_dynamic_device_entry_t*)malloc(sizeof(container_dynamic_device_entry_t));
-				if (p == NULL)
+				if (p == NULL) {
 					goto err_ret;
+				}
 
 				(void) memset(p, 0 , sizeof(container_dynamic_device_entry_t));
 				p->devpath = strdup(devpath->valuestring);
@@ -1484,8 +1552,9 @@ static int cmparser_parser_get_netiftype(const char *str)
 	static const char veth[] = "veth";
 	int ret = 0;
 
-	if (strncmp(veth, str, sizeof(veth)) == 0)
+	if (strncmp(veth, str, sizeof(veth)) == 0) {
 		ret = STATICNETIF_VETH;
+	}
 
 	return ret;
 }
@@ -1576,8 +1645,9 @@ static int cmparser_parse_static_netif_veth_free(void *p)
 {
 	netif_elem_veth_t *pveth = NULL;
 
-	if (p == NULL)
+	if (p == NULL) {
 		return 0;
+	}
 
 	pveth = (netif_elem_veth_t*)p;
 	free(pveth->link);
@@ -1616,25 +1686,29 @@ static int cmparser_parse_static_netif(container_static_netif_t *snif, const cJS
 				int iftype = 0;
 
 				type = cJSON_GetObjectItemCaseSensitive(elem, "type");
-				if (!(cJSON_IsString(type) && (type->valuestring != NULL)))
+				if (!(cJSON_IsString(type) && (type->valuestring != NULL))) {
 					continue;
+				}
 
 				iftype = cmparser_parser_get_netiftype(type->valuestring);
 				if (iftype > 0) {
 					param = cJSON_GetObjectItemCaseSensitive(elem, "param");
-					if (!(cJSON_IsObject(param)))
+					if (!(cJSON_IsObject(param))) {
 						continue;
+					}
 
 					if (iftype == STATICNETIF_VETH) {
 						vp = cmparser_parse_static_netif_veth_create(param);
-						if (vp == NULL)
+						if (vp == NULL) {
 							continue;
+						}
 					}
 
 					// all data available
 					p = (container_static_netif_elem_t*)malloc(sizeof(container_static_netif_elem_t));
-					if (p == NULL)
+					if (p == NULL) {
 						goto err_ret;
+					}
 
 					p->type = iftype;
 					p->setting = vp;
@@ -1654,8 +1728,9 @@ err_ret:
 		while(dl_list_empty(&snif->static_netiflist) == 0) {
 			selem = dl_list_last(&snif->static_netiflist, container_static_netif_elem_t, list);
 			dl_list_del(&selem->list);
-			if (selem->type == STATICNETIF_VETH)
+			if (selem->type == STATICNETIF_VETH) {
 				cmparser_parse_static_netif_veth_free((void *)selem->setting);
+			}
 
 			free(selem);
 		}
@@ -1686,13 +1761,15 @@ static int cmparser_parse_dynamic_netif(container_dynamic_netif_t *dnif, const c
 				container_dynamic_netif_elem_t *p = NULL;
 
 				ifname = cJSON_GetObjectItemCaseSensitive(elem, "ifname");
-				if (!(cJSON_IsString(ifname) && (ifname->valuestring != NULL)))
+				if (!(cJSON_IsString(ifname) && (ifname->valuestring != NULL))) {
 					continue;
+				}
 
 				// all data available
 				p = (container_dynamic_netif_elem_t*)malloc(sizeof(container_dynamic_netif_elem_t));
-				if (p == NULL)
+				if (p == NULL) {
 					goto err_ret;
+				}
 
 				(void) memset(p, 0 , sizeof(container_dynamic_netif_elem_t));
 				dl_list_init(&p->list);
@@ -1781,8 +1858,9 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 	int result = -1;
 	int ret = -1;
 
-	if (cc == NULL || file == NULL)
+	if (cc == NULL || file == NULL) {
 		return -1;
+	}
 
 	jsonstring = cmparser_read_jsonstring(file);
 	if (jsonstring == NULL) {
@@ -1931,11 +2009,13 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 	return 0;
 
 err_ret:
-	if (json != NULL)
+	if (json != NULL) {
 		cJSON_Delete(json);
+	}
 
-	if (jsonstring != NULL)
+	if (jsonstring != NULL) {
 		cmparser_release_jsonstring(jsonstring);
+	}
 
 	cmparser_release_config(ccfg);
 
@@ -1950,8 +2030,9 @@ err_ret:
 void cmparser_release_config(container_config_t *cc)
 {
 
-	if (cc == NULL)
+	if (cc == NULL) {
 		return;
+	}
 
 	// static device config
 	{
@@ -2036,8 +2117,9 @@ void cmparser_release_config(container_config_t *cc)
 		while(dl_list_empty(&cc->netifconfig.static_netif.static_netiflist) == 0) {
 			selem = dl_list_last(&cc->netifconfig.static_netif.static_netiflist, container_static_netif_elem_t, list);
 			dl_list_del(&selem->list);
-			if (selem->type == STATICNETIF_VETH)
+			if (selem->type == STATICNETIF_VETH) {
 				cmparser_parse_static_netif_veth_free((void *)selem->setting);
+			}
 
 			free(selem);
 		}

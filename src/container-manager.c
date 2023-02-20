@@ -37,8 +37,9 @@ static int sigterm_notify(const struct signalfd_siginfo *si, void *userdata)
 
 	ret = cci->system_shutdown(cci);
 
-	if (ret < 0)
+	if (ret < 0) {
 		return -1; //exit event loop
+	}
 
 	return 0;
 }
@@ -65,8 +66,9 @@ int main(int argc, char *argv[])
 	container_control_interface_t *cci = NULL;
 
 	ret = sd_event_default(&event);
-	if (ret < 0)
+	if (ret < 0) {
 		goto finish;
+	}
 
 	ret = container_mngsm_setup(&cs, event, NULL);
 	if (ret < 0) {
@@ -94,22 +96,26 @@ int main(int argc, char *argv[])
 
 	// early device setup: setup all containers, for static device, gpio,
 	ret = devc_early_device_setup(cs);
-	if (ret < 0)
+	if (ret < 0) {
 		goto finish;
+	}
 
 	util_array[0].userdata = (void*)cci;
 	ret = signal_setup(event, util_array, 1);
-	if (ret < 0)
+	if (ret < 0) {
 		goto finish;
+	}
 
 	// Enable automatic service watchdog support
 	ret = sd_event_set_watchdog(event, 1);
-	if (ret < 0)
+	if (ret < 0) {
 		goto finish;
+	}
 
 	ret = container_mngsm_start(cs);
-	if (ret < 0)
+	if (ret < 0) {
 		goto finish;
+	}
 
 	(void) sd_notify(
 		1,

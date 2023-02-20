@@ -158,11 +158,13 @@ static int role_list_cleanup(containers_t* cs)
 {
     int ret = 0;
 
-	if (cs == NULL)
+	if (cs == NULL) {
 		return -1;
+	}
 
-	if (cs->cmcfg == NULL)
+	if (cs->cmcfg == NULL) {
 		return -1;
+	}
 
 	while(dl_list_empty(&cs->cmcfg->role_list) == 0) {
 		container_manager_role_config_t *cmrc = NULL;
@@ -203,10 +205,11 @@ static int compare_bootpri(const void *data1, const void *data2)
 	pri1 = cc1->baseconfig.bootpriority;
 	pri2 = cc2->baseconfig.bootpriority;
 
-	if (pri1 < pri2)
+	if (pri1 < pri2) {
 		ret = -1;
-	else if (pri1 > pri2)
+	} else if (pri1 > pri2) {
 		ret = 1;
+	}
 
 	return ret;
 }
@@ -241,8 +244,9 @@ containers_t *create_container_configs(const char *config_file)
 	}
 
 	ret = cmparser_manager_create_from_file(&cm, conffile);
-	if (ret < 0)
+	if (ret < 0) {
 		return NULL;
+	}
 
 	confdir = cm->configdir;
 
@@ -250,8 +254,9 @@ containers_t *create_container_configs(const char *config_file)
 	buflen = sizeof(buf) - 1;
 	(void) strncpy(buf, confdir, buflen);
 	slen = strlen(buf);
-	if (slen <= 0)
+	if (slen <= 0) {
 		return NULL;
+	}
 
 	if (buf[slen-1] != '/') {
 		buf[slen] = '/';
@@ -310,14 +315,16 @@ containers_t *create_container_configs(const char *config_file)
 
 	//Create containers_t data
 	cs = (containers_t*)malloc(sizeof(containers_t));
-	if (cs == NULL)
+	if (cs == NULL) {
 		goto err_ret;
+	}
 
 	(void) memset(cs, 0, sizeof(containers_t));
 
 	cs->containers = (container_config_t**)malloc(sizeof(container_config_t*)*num);
-	if (cs->containers == NULL)
+	if (cs->containers == NULL) {
 		goto err_ret;
+	}
 
 	(void) memset(cs->containers, 0, sizeof(container_config_t*)*num);
 
@@ -328,8 +335,9 @@ containers_t *create_container_configs(const char *config_file)
 
 	cs->cmcfg = cm;
 	ret = bind_container_to_role_list(cs);
-	if(ret < 0)
+	if(ret < 0) {
 		goto err_ret;
+	}
 
 	return cs;
 
@@ -340,13 +348,15 @@ err_ret:
 		cmparser_release_config(ca[i]);
 	}
 
-	if (cs !=NULL)
+	if (cs !=NULL) {
 		free(cs->containers);
+	}
 
 	free(cs);
 
-	if (cm != NULL)
+	if (cm != NULL) {
 		cmparser_manager_release_config(cm);
+	}
 
 	return NULL;
 }
@@ -362,8 +372,9 @@ int release_container_configs(containers_t *cs)
 {
 	int num = 0;
 
-	if (cs == NULL)
+	if (cs == NULL) {
 		return -1;
+	}
 
 	(void) role_list_cleanup(cs);
 

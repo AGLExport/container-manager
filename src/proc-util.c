@@ -62,8 +62,9 @@ static int procutil_get_cmdline(char **ppbuf, int *ppbuf_size)
 	char *pbuf = NULL;
 
 	fd = open("/proc/cmdline", (O_RDONLY | O_CLOEXEC));
-	if (fd < 0)
+	if (fd < 0) {
 		return -1;
+	}
 
 	// set initial buffer size and maximum buffer size.
 	buffer_size = COMMAND_LINE_SIZE * 2;
@@ -105,8 +106,9 @@ static int procutil_get_cmdline(char **ppbuf, int *ppbuf_size)
 error_ret:
 	free(pbuf);
 
-	if (fd != -1)
+	if (fd != -1) {
 		close(fd);
+	}
 
 	return result;
 }
@@ -134,8 +136,9 @@ static int procutil_create_argument_list(procutil_t *pu, int buf_size)
 			int len = 0;
 			int is_term = 0;
 
-			if (pbuf[counter] == '\n' || pbuf[counter] == '\0')
+			if (pbuf[counter] == '\n' || pbuf[counter] == '\0') {
 				is_term = 1;
+			}
 
 			// Got space
 			pbuf[counter] = '\0';
@@ -169,8 +172,9 @@ static int procutil_create_argument_list(procutil_t *pu, int buf_size)
 				#endif
 			}
 
-			if (is_term == 1)
+			if (is_term == 1) {
 				break;
+			}
 
 			pbuf_last = &pbuf[counter+1];
 		}
@@ -205,8 +209,9 @@ int procutil_create(procutil_t **ppu)
 		return -2;
 
 	pu = (procutil_t*)malloc(sizeof(procutil_t));
-	if (pu == NULL)
+	if (pu == NULL) {
 		return -1;
+	}
 
 	(void) memset(pu, 0, sizeof(procutil_t));
 	dl_list_init(&pu->argument_list);
@@ -219,8 +224,9 @@ int procutil_create(procutil_t **ppu)
 
 	pu->org_buf_ptr = pbuf;
 	ret = procutil_create_argument_list(pu, pbuf_size);
-	if (ret < 0)
+	if (ret < 0) {
 		goto error_ret;
+	}
 
 	(*ppu) = pu;
 
@@ -244,8 +250,9 @@ int procutil_cleanup(procutil_t *pu)
 {
 	procutl_cmdline_elem_t *pelem = NULL;
 
-	if (pu == NULL)
+	if (pu == NULL) {
 		return -1;
+	}
 
 	while(dl_list_empty(&pu->argument_list) == 0) {
 		pelem = dl_list_last(&pu->argument_list, procutl_cmdline_elem_t, list);
@@ -277,8 +284,9 @@ int procutil_get_cmdline_value_int64(procutil_t *pu, const char *key, int64_t *v
 	char *endptr = NULL;
 	int64_t v = 0;
 
-	if (pu == NULL || key == NULL || value == NULL)
+	if (pu == NULL || key == NULL || value == NULL) {
 		return -2;
+	}
 
 	dl_list_for_each(pelem, &pu->argument_list, procutl_cmdline_elem_t, list) {
 		if (pelem->var != NULL) {
@@ -328,8 +336,9 @@ int procutil_test_key_in_cmdline(procutil_t *pu, const char *key)
 	int result = -1;
 	procutl_cmdline_elem_t *pelem = NULL;
 
-	if (pu == NULL || key == NULL)
+	if (pu == NULL || key == NULL) {
 		return -2;
+	}
 
 	dl_list_for_each(pelem, &pu->argument_list, procutl_cmdline_elem_t, list) {
 		if (pelem->var != NULL) {

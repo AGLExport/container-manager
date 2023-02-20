@@ -80,14 +80,16 @@ static int sdutil_get_ifname(const struct nlmsghdr *nlh, char *ifname, int size)
 	struct nlattr *attr = NULL;
 	const char *pstr = NULL;
 
-	if (nlh == NULL || ifname == NULL)
+	if (nlh == NULL || ifname == NULL) {
 		return -2;
+	}
 
 	mnl_attr_for_each(attr, nlh, sizeof(*ifm)) {
 		// skip unsupported attribute in user-space
 		ret = mnl_attr_type_valid(attr, IFLA_MAX);
-		if (ret < 0)
+		if (ret < 0) {
 			continue;
+		}
 
 		type = mnl_attr_get_type(attr);
 
@@ -137,8 +139,9 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 
 	ifindex = ifm->ifi_index; //Get if index
 	ret = sdutil_get_ifname(nlh, ifname, sizeof(ifname)); //Get if name
-	if (ret < 0)
+	if (ret < 0) {
 		goto out; //no data
+	}
 
 	for (int i=0; net_if_blacklist[i] != NULL; i++) {
 		ret = strncmp(ifname, net_if_blacklist[i], strlen(net_if_blacklist[i]));
@@ -148,8 +151,9 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 	}
 
 	nfi_new = (network_interface_info_t*)malloc(sizeof(network_interface_info_t));
-	if (nfi_new == NULL)
+	if (nfi_new == NULL) {
 		goto out;
+	}
 
 	(void) memset(nfi_new, 0, sizeof(network_interface_info_t));
 	nfi_new->ifindex = ifindex;
@@ -291,8 +295,9 @@ static int netifmonitor_listing_existif(dynamic_device_manager_t *ddm)
 	portid = mnl_socket_get_portid(nl);
 
 	ret = mnl_socket_sendto(nl, nlh, nlh->nlmsg_len);
-	if (ret < -1)
+	if (ret < -1) {
 		goto errorret;
+	}
 
 	ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
 	while (ret > 0) {
@@ -302,8 +307,9 @@ static int netifmonitor_listing_existif(dynamic_device_manager_t *ddm)
 		ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
 	}
 
-	if (ret == -1)
+	if (ret == -1) {
 		goto errorret;
+	}
 
 	mnl_socket_close(nl);
 
@@ -314,8 +320,9 @@ static int netifmonitor_listing_existif(dynamic_device_manager_t *ddm)
 	return 0;
 
 errorret:
-	if (nl !=NULL)
+	if (nl !=NULL) {
 		mnl_socket_close(nl);
+	}
 
 	return -1;
 }
@@ -340,28 +347,33 @@ int netifmonitor_setup(dynamic_device_manager_t *ddm, container_control_interfac
 	int ret = -1;
 	int fd = -1;
 
-	if (ddm == NULL || cci == NULL || event == NULL)
+	if (ddm == NULL || cci == NULL || event == NULL) {
 		return -2;
+	}
 
 	netifmon = malloc(sizeof(struct s_netifmonitor));
-	if (netifmon == NULL)
+	if (netifmon == NULL) {
 		goto err_return;
+	}
 
 	(void) memset(netifmon,0,sizeof(struct s_netifmonitor));
 
 	nl = mnl_socket_open2(NETLINK_ROUTE, SOCK_CLOEXEC | SOCK_NONBLOCK);
-	if (nl == NULL)
+	if (nl == NULL) {
 		goto err_return;
+	}
 
 	ret = mnl_socket_bind(nl, RTMGRP_LINK, MNL_SOCKET_AUTOPID);
-	if (ret < -1)
+	if (ret < -1) {
 		goto err_return;
+	}
 
 	fd = mnl_socket_get_fd(nl);
 
 	ret = sd_event_add_io(event, &ifmonitor_source, fd, EPOLLIN, nml_event_handler, ddm);
-	if (ret < 0)
+	if (ret < 0) {
 		goto err_return;
+	}
 
 	netifmon->nl = nl;
 	netifmon->ifmonitor_source = ifmonitor_source;
@@ -371,17 +383,20 @@ int netifmonitor_setup(dynamic_device_manager_t *ddm, container_control_interfac
 	ddm->netifmon = (netifmonitor_t*)netifmon;
 
 	ret = netifmonitor_listing_existif(ddm);
-	if (ret < 0)
+	if (ret < 0) {
 		goto err_return;
+	}
 
 	return 0;
 
 err_return:
-	if (nl != NULL)
+	if (nl != NULL) {
 		mnl_socket_close(nl);
+	}
 
-	if (netifmon != NULL)
+	if (netifmon != NULL) {
 		free(netifmon);
+	}
 
 	return -1;
 }
@@ -400,8 +415,9 @@ int netifmonitor_cleanup(dynamic_device_manager_t *ddm)
 {
 	struct s_netifmonitor *netifmon = NULL;
 
-	if (ddm == NULL)
+	if (ddm == NULL) {
 		return -2;
+	}
 
 	{
 		network_interface_info_t *nfi = NULL, *nfi_n = NULL;
@@ -414,11 +430,13 @@ int netifmonitor_cleanup(dynamic_device_manager_t *ddm)
 
 	netifmon = (struct s_netifmonitor*)ddm->netifmon;
 
-	if (netifmon->ifmonitor_source != NULL)
+	if (netifmon->ifmonitor_source != NULL) {
 		(void)sd_event_source_disable_unref(netifmon->ifmonitor_source);
+	}
 
-	if (netifmon->nl != NULL)
+	if (netifmon->nl != NULL) {
 		mnl_socket_close(netifmon->nl);
+	}
 
 	free(netifmon);
 
@@ -436,8 +454,9 @@ int netifmonitor_cleanup(dynamic_device_manager_t *ddm)
  */
 static int network_interface_info_free(network_interface_info_t *nfi)
 {
-	if (nfi == NULL)
+	if (nfi == NULL) {
 		return -2;
+	}
 
 	free(nfi);
 
@@ -455,8 +474,9 @@ static int network_interface_info_free(network_interface_info_t *nfi)
  */
 int network_interface_info_get(network_interface_manager_t **netif, dynamic_device_manager_t *ddm)
 {
-	if (netif == NULL || ddm == NULL)
+	if (netif == NULL || ddm == NULL) {
 		return -1;
+	}
 
 	(*netif) = &ddm->netif;
 
