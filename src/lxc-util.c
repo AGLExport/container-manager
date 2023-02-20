@@ -965,7 +965,7 @@ static int lxcutil_add_remove_guest_node_child(pid_t target_pid, const char *pat
 	if (is_add != 1)
 		return 0;
 
-	strncpy(buf, path, sizeof(buf)-1);
+	(void) strncpy(buf, path, sizeof(buf)-1);
 
 	ret = mkdir_p(buf, 0755);
 	if (ret < 0)

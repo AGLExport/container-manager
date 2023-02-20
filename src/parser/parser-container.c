@@ -1233,7 +1233,7 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 
 					(void) memset(pli, 0, sizeof(short_string_list_item_t));
 					dl_list_init(&pli->list);
-					strncpy(pli->string, devtypestr->valuestring, sizeof(pli->string)-1);
+					(void) strncpy(pli->string, devtypestr->valuestring, sizeof(pli->string)-1);
 					dl_list_add_tail(&p->rule.devtype_list, &pli->list);
 
 					#ifdef _PRINTF_DEBUG_

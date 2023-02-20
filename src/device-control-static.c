@@ -334,7 +334,7 @@ static int devc_netbridge_setup(container_manager_config_t *cmc)
 		}
 
 		(void) memset(buf, 0, sizeof(buf));
-		strncpy(buf, elem->name, IFNAMSIZ);
+		(void) strncpy(buf, elem->name, IFNAMSIZ);
 
 		ret = ioctl(sock, SIOCBRADDBR, buf);
 		if (ret < 0 && errno != EEXIST) {

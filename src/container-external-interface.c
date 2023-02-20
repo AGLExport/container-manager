@@ -82,8 +82,8 @@ static int container_external_interface_get_guest_info(containers_t *cs, contain
 		return -2;
 
 	for (int i =0; i < cs->num_of_container; i++) {
-		strncpy(guests_info->guests[i].guest_name, cs->containers[i]->name, sizeof(guests_info->guests->guest_name));
-		strncpy(guests_info->guests[i].role_name, cs->containers[i]->role, sizeof(guests_info->guests->role_name));
+		(void) strncpy(guests_info->guests[i].guest_name, cs->containers[i]->name, sizeof(guests_info->guests->guest_name));
+		(void) strncpy(guests_info->guests[i].role_name, cs->containers[i]->role, sizeof(guests_info->guests->role_name));
 
 		guests_info->guests[i].status = container_external_interface_convert_status(cs->containers[i]->runtime_stat.status);
 

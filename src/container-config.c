@@ -248,7 +248,7 @@ containers_t *create_container_configs(const char *config_file)
 
 	(void) memset(buf,0,sizeof(buf));
 	buflen = sizeof(buf) - 1;
-	strncpy(buf, confdir, buflen);
+	(void) strncpy(buf, confdir, buflen);
 	slen = strlen(buf);
 	if (slen <= 0)
 		return NULL;
@@ -271,7 +271,7 @@ containers_t *create_container_configs(const char *config_file)
 
 					buf[slen] = '\0';
 					buf[(sizeof(buf) - 1)] = '\0';
-					strncpy(&buf[slen], dent->d_name, buflen);
+					(void) strncpy(&buf[slen], dent->d_name, buflen);
 
 					// parse container config.
 					ret = cmparser_create_from_file(&cc, buf);

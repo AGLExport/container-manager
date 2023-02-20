@@ -245,7 +245,7 @@ void cm_get_guest_lifecycle(int code, char *name)
 		goto error_return;
 	}
 
-	strncpy(packet.guest_name, name, sizeof(packet.guest_name)-1);
+	(void) strncpy(packet.guest_name, name, sizeof(packet.guest_name)-1);
 
 	sret = write(fd, &packet, sizeof(packet));
 	if (sret < sizeof(packet)) {
@@ -311,7 +311,7 @@ void cm_get_guest_change(int code, char *name)
 		goto error_return;
 	}
 
-	strncpy(packet.guest_name, name, sizeof(packet.guest_name)-1);
+	(void) strncpy(packet.guest_name, name, sizeof(packet.guest_name)-1);
 
 	sret = write(fd, &packet, sizeof(packet));
 	if (sret < sizeof(packet)) {
