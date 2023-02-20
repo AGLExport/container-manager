@@ -54,7 +54,7 @@ static void print_iflist(network_interface_manager_t *nfm)
 	network_interface_info_t *ifinfo = NULL;
 
 	dl_list_for_each(ifinfo, &nfm->nllist, network_interface_info_t, list) {
-		fprintf(stderr, "index: %d  name: %s\n", ifinfo->ifindex, ifinfo->ifname);
+		(void) fprintf(stdout, "index: %d  name: %s\n", ifinfo->ifindex, ifinfo->ifname);
 	}
 }
 #endif //#ifdef _PRINTF_DEBUG_
@@ -95,7 +95,7 @@ static int sdutil_get_ifname(const struct nlmsghdr *nlh, char *ifname, int size)
 			ret = mnl_attr_validate(attr, MNL_TYPE_STRING);
 			if (ret == 0) {
 				pstr = mnl_attr_get_str(attr);
-				strncpy(ifname, pstr, size-1);
+				(void) strncpy(ifname, pstr, size-1);
 				result = 0;
 			}
 			break;
@@ -129,7 +129,7 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 	int ifindex = 0;
 	char ifname[IFNAMSIZ+1];
 
-	memset(ifname, 0, sizeof(ifname));
+	(void) memset(ifname, 0, sizeof(ifname));
 
 	netif = &ddm->netif;
 	nfm = (struct s_netifmonitor*)ddm->netifmon;
@@ -151,9 +151,9 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 	if (nfi_new == NULL)
 		goto out;
 
-	memset(nfi_new, 0, sizeof(network_interface_info_t));
+	(void) memset(nfi_new, 0, sizeof(network_interface_info_t));
 	nfi_new->ifindex = ifindex;
-	memcpy(nfi_new->ifname, ifname, sizeof(nfi_new->ifname));
+	(void) memcpy(nfi_new->ifname, ifname, sizeof(nfi_new->ifname));
 	dl_list_init(&nfi_new->list);
 
 	if (nlh->nlmsg_type == RTM_NEWLINK) {
@@ -164,7 +164,7 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 			if (nfi->ifindex == nfi_new->ifindex) {
 				// existing device is found -> remove
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"netifmonitor-new: Found existing if \n exist = %s(%d)\n new = %s(%d)\n\n"
+				(void) fprintf(stdout,"netifmonitor-new: Found existing if \n exist = %s(%d)\n new = %s(%d)\n\n"
 						, nfi->ifname, nfi->ifindex, nfi_new->ifname, nfi_new->ifindex);
 				#endif
 				dl_list_del(&nfi->list);
@@ -185,7 +185,7 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 			if (nfi->ifindex == nfi_new->ifindex) {
 				// existing device is found -> remove
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"netifmonitor-del: Found existing if \n exist = %s(%d)\n new = %s(%d)\n\n"
+				(void) fprintf(stdout,"netifmonitor-del: Found existing if \n exist = %s(%d)\n new = %s(%d)\n\n"
 						, nfi->ifname, nfi->ifindex, nfi_new->ifname, nfi_new->ifindex);
 				#endif
 				dl_list_del(&nfi->list);
@@ -347,7 +347,7 @@ int netifmonitor_setup(dynamic_device_manager_t *ddm, container_control_interfac
 	if (netifmon == NULL)
 		goto err_return;
 
-	memset(netifmon,0,sizeof(struct s_netifmonitor));
+	(void) memset(netifmon,0,sizeof(struct s_netifmonitor));
 
 	nl = mnl_socket_open2(NETLINK_ROUTE, SOCK_CLOEXEC | SOCK_NONBLOCK);
 	if (nl == NULL)

@@ -151,8 +151,8 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 	if (pdev == NULL)
 		goto error_ret;
 
-	memset(&udi, 0, sizeof(udi));
-	memset(&lddr, 0, sizeof(lddr));
+	(void) memset(&udi, 0, sizeof(udi));
+	(void) memset(&lddr, 0, sizeof(lddr));
 
 	le = udev_device_get_properties_list_entry(pdev);
 	if (le == NULL)
@@ -161,7 +161,7 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 	ret = device_control_dynamic_udev_create_info(&udi, &lddr, le);
 	if (ret == 0) {
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr,"udi: action=%s devpath=%s devtype=%s subsystem=%s\n", udi.action, udi.devpath, udi.devtype, udi.subsystem);
+		(void) fprintf(stdout,"udi: action=%s devpath=%s devtype=%s subsystem=%s\n", udi.action, udi.devpath, udi.devtype, udi.subsystem);
 		#endif
 
 		cc = device_control_dynamic_udev_get_target_container(ddu->cs, &udi, pdev, &behavior);
@@ -191,7 +191,7 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 		uevent_injection_message_t uim;
 		pid_t target_pid = 0;
 
-		memset(uim.message, 0 , sizeof(uim.message));
+		(void) memset(uim.message, 0 , sizeof(uim.message));
 		uim.used = 0;
 
 		ret = device_control_dynamic_udev_create_injection_message(&uim, &udi, le);
@@ -265,7 +265,7 @@ static int device_control_dynamic_udev_create_injection_message(uevent_injection
 	buf = &uim->message[0];
 
 	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr,"INJECTION: ");
+	(void) fprintf(stdout,"INJECTION: ");
 	#endif
 
 	// add@/devices/pci0000:00/0000:00:08.1/0000:05:00.3/usb4/4-2/4-2:1.0/host3/target3:0:0/3:0:0:0/block/sdb/sdb1
@@ -303,7 +303,7 @@ static int device_control_dynamic_udev_create_injection_message(uevent_injection
 				return -1;
 
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"%s=%s ", elem_name, elem_value);
+			(void) fprintf(stdout,"%s=%s ", elem_name, elem_value);
 			#endif
 		}
 
@@ -313,7 +313,7 @@ static int device_control_dynamic_udev_create_injection_message(uevent_injection
 	uim->used = usage;
 
 	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr,"\n");
+	(void) fprintf(stdout,"\n");
 	#endif
 
 	return 0;
@@ -610,7 +610,7 @@ static int extra_checker_block_device(struct dl_list *extra_list,  struct udev_d
 	if (devnode != NULL) {
 		block_device_info_t bdi;
 
-		memset(&bdi, 0 , sizeof(bdi));
+		(void) memset(&bdi, 0 , sizeof(bdi));
 
 		ret = block_util_getfs(devnode, &bdi);
 		if (ret == 0) {
@@ -674,7 +674,7 @@ int device_control_dynamic_udev_setup(dynamic_device_manager_t *ddm, containers_
 	if (ddu == NULL)
 		goto err_return;
 
-	memset(ddu, 0, sizeof(struct s_dynamic_device_udev));
+	(void) memset(ddu, 0, sizeof(struct s_dynamic_device_udev));
 
 	pudev = udev_new();
 	if (pudev == NULL)

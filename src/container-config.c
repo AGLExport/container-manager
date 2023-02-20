@@ -58,13 +58,13 @@ static int bind_container_to_role_list(containers_t* cs)
 						container_manager_role_elem_t *pelem = NULL;
 
 						#ifdef _PRINTF_DEBUG_
-						fprintf(stdout,"bind_container_to_role: add %s to existing role %s\n", cc->name, cmrc->name);
+						(void) fprintf(stdout,"bind_container_to_role: add %s to existing role %s\n", cc->name, cmrc->name);
 						#endif
 
 						pelem = (container_manager_role_elem_t*)malloc(sizeof(container_manager_role_elem_t));
 						if (pelem != NULL) {
 
-							memset(pelem, 0 , sizeof(container_manager_role_elem_t));
+							(void) memset(pelem, 0 , sizeof(container_manager_role_elem_t));
 							dl_list_init(&pelem->list);
 							pelem->cc = cc;	//set guest info
 
@@ -93,20 +93,20 @@ static int bind_container_to_role_list(containers_t* cs)
 			if (cmrc != NULL) {
 				container_manager_role_elem_t *pelem = NULL;
 
-				memset(cmrc, 0 , sizeof(container_manager_role_config_t));
+				(void) memset(cmrc, 0 , sizeof(container_manager_role_config_t));
 				dl_list_init(&cmrc->list);
 				dl_list_init(&cmrc->container_list);
 
 				cmrc->name = strdup(role);
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stdout,"cmcfg: create new role %s\n", cmrc->name);
+				(void) fprintf(stdout,"cmcfg: create new role %s\n", cmrc->name);
 				#endif
 
 				// create terminator
 				pelem = (container_manager_role_elem_t*)malloc(sizeof(container_manager_role_elem_t));
 				if (pelem != NULL) {
 
-					memset(pelem, 0 , sizeof(container_manager_role_elem_t));
+					(void) memset(pelem, 0 , sizeof(container_manager_role_elem_t));
 					dl_list_init(&pelem->list);
 					pelem->cc = NULL;	//dummy guest info
 
@@ -122,7 +122,7 @@ static int bind_container_to_role_list(containers_t* cs)
 				pelem = (container_manager_role_elem_t*)malloc(sizeof(container_manager_role_elem_t));
 				if (pelem != NULL) {
 
-					memset(pelem, 0 , sizeof(container_manager_role_elem_t));
+					(void) memset(pelem, 0 , sizeof(container_manager_role_elem_t));
 					dl_list_init(&pelem->list);
 					pelem->cc = cc;	//set guest info
 
@@ -233,7 +233,7 @@ containers_t *create_container_configs(const char *config_file)
 	char buf[1024];
 	int slen = 0, buflen = 0;
 
-	memset(ca,0,sizeof(ca));
+	(void) memset(ca,0,sizeof(ca));
 
 	conffile = config_file;
 	if (conffile == NULL) {
@@ -246,9 +246,9 @@ containers_t *create_container_configs(const char *config_file)
 
 	confdir = cm->configdir;
 
-	memset(buf,0,sizeof(buf));
+	(void) memset(buf,0,sizeof(buf));
 	buflen = sizeof(buf) - 1;
-	strncpy(buf, confdir, buflen);
+	(void) strncpy(buf, confdir, buflen);
 	slen = strlen(buf);
 	if (slen <= 0)
 		return NULL;
@@ -271,13 +271,13 @@ containers_t *create_container_configs(const char *config_file)
 
 					buf[slen] = '\0';
 					buf[(sizeof(buf) - 1)] = '\0';
-					strncpy(&buf[slen], dent->d_name, buflen);
+					(void) strncpy(&buf[slen], dent->d_name, buflen);
 
 					// parse container config.
 					ret = cmparser_create_from_file(&cc, buf);
 					if (ret < 0) {
 						#ifdef _PRINTF_DEBUG_
-						fprintf(stderr, "[FAIL] cmparser_create_from_file %s ret = %d\n", buf, ret);
+						(void) fprintf(stdout, "[FAIL] cmparser_create_from_file %s ret = %d\n", buf, ret);
 						#endif
 						continue;
 					}
@@ -286,7 +286,7 @@ containers_t *create_container_configs(const char *config_file)
 					num = num + 1;
 					if (num >= GUEST_CONTAINER_LIMIT) {
 						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-						fprintf(stderr,"[CM CRITICAL ERROR] create_container_configs: Number of guest containers was over to limit.");
+						(void) fprintf(stderr,"[CM CRITICAL ERROR] create_container_configs: Number of guest containers was over to limit.");
 						#endif
 						break;
 					}
@@ -300,7 +300,7 @@ containers_t *create_container_configs(const char *config_file)
 
 	if (num <= 0) {
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		fprintf(stderr,"[CM CRITICAL ERROR] create_container_configs: Did not find guest container config at %s.\n", confdir);
+		(void) fprintf(stderr,"[CM CRITICAL ERROR] create_container_configs: Did not find guest container config at %s.\n", confdir);
 		#endif
 		goto err_ret;
 	}
@@ -313,13 +313,13 @@ containers_t *create_container_configs(const char *config_file)
 	if (cs == NULL)
 		goto err_ret;
 
-	memset(cs, 0, sizeof(containers_t));
+	(void) memset(cs, 0, sizeof(containers_t));
 
 	cs->containers = (container_config_t**)malloc(sizeof(container_config_t*)*num);
 	if (cs->containers == NULL)
 		goto err_ret;
 
-	memset(cs->containers, 0, sizeof(container_config_t*)*num);
+	(void) memset(cs->containers, 0, sizeof(container_config_t*)*num);
 
 	for(int i=0; i < num; i++) {
 		cs->containers[i] = ca[i];

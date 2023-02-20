@@ -56,7 +56,7 @@ int container_mngsm_interface_get(container_control_interface_t **pcci, containe
 		if (cci == NULL)
 			goto err_return;
 
-		memset(cci, 0, sizeof(struct s_container_control_interface));
+		(void) memset(cci, 0, sizeof(struct s_container_control_interface));
 
 		cci->mngsm = (void*)cs->cms;
 		cci->netif_updated = container_mngsm_netif_updated;
@@ -111,7 +111,7 @@ static int container_mngsm_netif_updated(struct s_container_control_interface *c
 
 	cm = (struct s_container_mngsm*)cci->mngsm;
 
-	memset(&command, 0, sizeof(command));
+	(void) memset(&command, 0, sizeof(command));
 
 	command.header.command = CONTAINER_MNGSM_COMMAND_NETIFUPDATED;
 
@@ -140,7 +140,7 @@ static int container_mngsm_system_shutdown(struct s_container_control_interface 
 
 	cm = (struct s_container_mngsm*)cci->mngsm;
 
-	memset(&command, 0, sizeof(command));
+	(void) memset(&command, 0, sizeof(command));
 
 	command.header.command = CONTAINER_MNGSM_COMMAND_SYSTEM_SHUTDOWN;
 

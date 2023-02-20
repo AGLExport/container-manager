@@ -85,11 +85,11 @@ int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_
 					cdne->ifindex = 0;
 					cdne->is_available = 0;
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr, "[fail] network if update add %s to %s\n", cdne->ifname, cc->name);
+					(void) fprintf(stdout, "[fail] network if update add %s to %s\n", cdne->ifname, cc->name);
 					#endif
 				} else {
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr, "network if update add %s to %s\n", cdne->ifname, cc->name);
+					(void) fprintf(stdout, "network if update add %s to %s\n", cdne->ifname, cc->name);
 					#endif
 					;
 				}
@@ -107,7 +107,7 @@ int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_
 
 			// Don't need memory free.
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr, "network if update removed %s from %s\n", cdne->ifname, cc->name);
+			(void) fprintf(stdout, "network if update removed %s from %s\n", cdne->ifname, cc->name);
 			#endif
 		}
 	}
@@ -134,7 +134,7 @@ int container_netif_remove_element(container_config_t *cc)
 
 		// Don't need memory free.
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr, "network if update removed %s from %s\n", cdne->ifname, cc->name);
+		(void) fprintf(stdout, "network if update removed %s from %s\n", cdne->ifname, cc->name);
 		#endif
 	}
 
@@ -194,7 +194,7 @@ int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
 	cc = cs->containers[container_num];
 
 	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr,"container_exited : %s\n", cc->name);
+	(void) fprintf(stdout,"container_exited : %s\n", cc->name);
 	#endif
 
 	if (cs->sys_state  == CM_SYSTEM_STATE_RUN) {
@@ -206,7 +206,7 @@ int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
 			cc->runtime_stat.status = CONTAINER_DEAD;
 
 			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			fprintf(stderr,"[CM CRITICAL ERROR] container %s was dead.\n", cc->name);
+			(void) fprintf(stderr,"[CM CRITICAL ERROR] container %s was dead.\n", cc->name);
 			#endif
 		} else if (cc->runtime_stat.status == CONTAINER_REBOOT) {
 			// Current status is reboot, guest status change to dead
@@ -273,7 +273,7 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 	int result = 0;
 
 	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr,"container_request_shutdown to %s (%d)\n", cc->name, sys_state);
+	(void) fprintf(stdout,"container_request_shutdown to %s (%d)\n", cc->name, sys_state);
 	#endif
 
 	if (sys_state == CM_SYSTEM_STATE_RUN) {
@@ -289,7 +289,7 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 				(void) container_terminate(cc);
 				cc->runtime_stat.status = CONTAINER_NOT_STARTED; // guest is force dead
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
+				(void) fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
 				#endif
 			} else {
 				int64_t timeout = 0;
@@ -337,7 +337,7 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 				(void) container_terminate(cc);
 				cc->runtime_stat.status = CONTAINER_EXIT; // guest is force exit
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
+				(void) fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
 				#endif
 			} else {
 				int64_t timeout = 0;
@@ -395,7 +395,7 @@ int container_request_reboot(container_config_t *cc, int sys_state)
 	int result = 0;
 
 	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr,"container_request_reboot to %s (%d)\n", cc->name, sys_state);
+	(void) fprintf(stdout,"container_request_reboot to %s (%d)\n", cc->name, sys_state);
 	#endif
 
 	if (sys_state == CM_SYSTEM_STATE_RUN) {
@@ -411,7 +411,7 @@ int container_request_reboot(container_config_t *cc, int sys_state)
 				(void) container_terminate(cc);
 				cc->runtime_stat.status = CONTAINER_DEAD; // guest is force dead
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				fprintf(stderr,"[CM CRITICAL ERROR] container_request_reboot fourcekill to %s.\n", cc->name);
+				(void) fprintf(stderr,"[CM CRITICAL ERROR] container_request_reboot fourcekill to %s.\n", cc->name);
 				#endif
 			} else {
 				int64_t timeout = 0;
@@ -459,7 +459,7 @@ int container_request_reboot(container_config_t *cc, int sys_state)
 				(void) container_terminate(cc);
 				cc->runtime_stat.status = CONTAINER_EXIT; // guest is force exit
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
+				(void) fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
 				#endif
 			} else {
 				int64_t timeout = 0;
@@ -570,14 +570,14 @@ int container_exec_internal_event(containers_t *cs)
 				ret = container_restart(cc);
 				if (ret == 0) {
 					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-					fprintf(stderr,"[CM CRITICAL ERROR] container %s relaunched.\n", cc->name);
+					(void) fprintf(stderr,"[CM CRITICAL ERROR] container %s relaunched.\n", cc->name);
 					#endif
 
 					ret = container_monitor_addguest(cs, cc);
 					if (ret < 0) {
 						// Can run guest without monitor, critical log only.
 						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-						fprintf(stderr,"[CM CRITICAL ERROR] Fail container_monitoring to %s ret = %d\n", cc->name, ret);
+						(void) fprintf(stderr,"[CM CRITICAL ERROR] Fail container_monitoring to %s ret = %d\n", cc->name, ret);
 						#endif
 					}
 
@@ -602,14 +602,14 @@ int container_exec_internal_event(containers_t *cs)
 					ret = container_start(active_cc);
 					if (ret == 0) {
 						#ifdef _PRINTF_DEBUG_
-						fprintf(stdout,"container_start: Container guest %s was launched. role = %s\n", active_cc->name, role);
+						(void) fprintf(stdout,"container_start: Container guest %s was launched. role = %s\n", active_cc->name, role);
 						#endif
 
 						ret = container_monitor_addguest(cs, active_cc);
 						if (ret < 0) {
 							// Can run guest with out monitor, critical log only.
 							#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-							fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_monitor_addguest ret = %d\n", ret);
+							(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_monitor_addguest ret = %d\n", ret);
 							#endif
 						}
 						// re-assign dynamic device
@@ -635,7 +635,7 @@ int container_exec_internal_event(containers_t *cs)
 						cc->runtime_stat.status = CONTAINER_NOT_STARTED; // Guest status change to not started. (For switching or stop)
 					}
 					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-					fprintf(stderr,"[CM CRITICAL ERROR] container %s was shutdown/reboot timeout, fourcekill.\n", cc->name);
+					(void) fprintf(stderr,"[CM CRITICAL ERROR] container %s was shutdown/reboot timeout, fourcekill.\n", cc->name);
 					#endif
 				}
 			}
@@ -669,7 +669,7 @@ int container_exec_internal_event(containers_t *cs)
 					(void) container_terminate(cc);
 					cc->runtime_stat.status = CONTAINER_EXIT; // guest is force dead
 					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-					fprintf(stderr,"[CM CRITICAL ERROR] container %s was shutdown timeout at sys shutdown, fourcekill.\n", cc->name);
+					(void) fprintf(stderr,"[CM CRITICAL ERROR] container %s was shutdown timeout at sys shutdown, fourcekill.\n", cc->name);
 					#endif
 				}
 			}
@@ -702,7 +702,7 @@ int container_restart(container_config_t *cc)
 		cc->runtime_stat.status = CONTAINER_DEAD;
 
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		fprintf(stderr,"[CM CRITICAL ERROR] container_restart: lxcutil_create_instance ret = %d\n", ret);
+		(void) fprintf(stderr,"[CM CRITICAL ERROR] container_restart: lxcutil_create_instance ret = %d\n", ret);
 		#endif
 		return -1;
 	}
@@ -738,20 +738,20 @@ int container_start(container_config_t *cc)
 
 	if (cc->runtime_stat.status == CONTAINER_DISABLE) {
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr, "container %s is disable launch\n", cc->name);
+		(void) fprintf(stdout, "container %s is disable launch\n", cc->name);
 		#endif
 		return -2;
 	}
 
 	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr, "container_start %s\n", cc->name);
+	(void) fprintf(stdout, "container_start %s\n", cc->name);
 	#endif
 
 	// run preprocess
 	ret = container_start_preprocess_base(&cc->baseconfig);
 	if (ret < 0) {
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_start_preprocess_base ret = %d\n", ret);
+		(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_start_preprocess_base ret = %d\n", ret);
 		#endif
 		return -1;
 	}
@@ -763,7 +763,7 @@ int container_start(container_config_t *cc)
 
 		if (ret == -2) {
 			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			fprintf(stderr,"[CM CRITICAL ERROR] container_start: lxc-start fail %s\n", cc->name);
+			(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start: lxc-start fail %s\n", cc->name);
 			#endif
 		}
 		return -1;
@@ -832,14 +832,14 @@ int container_start_by_role(containers_t *cs, char *role)
 		ret = container_start(cc);
 		if (ret == 0) {
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stdout,"container_start: Container guest %s was launched. role = %s\n", cc->name, role);
+			(void) fprintf(stdout,"container_start: Container guest %s was launched. role = %s\n", cc->name, role);
 			#endif
 
 			ret = container_monitor_addguest(cs, cc);
 			if (ret < 0) {
 				// Can run guest with out monitor, critical log only.
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_monitor_addguest ret = %d\n", ret);
+				(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_monitor_addguest ret = %d\n", ret);
 				#endif
 			}
 			result = 0;
@@ -940,12 +940,12 @@ static int container_start_mountdisk_failover(char **devs, const char *path, con
 			if (errno == EBUSY) {
 				// already mounted
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"container_start_preprocess_base: %s is already mounted.\n", path);
+				(void) fprintf(stdout,"container_start_preprocess_base: %s is already mounted.\n", path);
 				#endif
 				ret = umount2(path, MNT_DETACH);
 				if (ret < 0) {
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"container_start_preprocess_base: %s unmount fail.\n", path);
+					(void) fprintf(stdout,"container_start_preprocess_base: %s unmount fail.\n", path);
 					#endif
 					continue;
 				}
@@ -953,7 +953,7 @@ static int container_start_mountdisk_failover(char **devs, const char *path, con
 				ret = mount(dev, path, fstype, mntflag, option);
 				if (ret < 0) {
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"container_start_preprocess_base: %s re-mount fail.\n", path);
+					(void) fprintf(stdout,"container_start_preprocess_base: %s re-mount fail.\n", path);
 					#endif
 					continue;
 				}
@@ -967,7 +967,7 @@ static int container_start_mountdisk_failover(char **devs, const char *path, con
 			// success to mount
 			mntdisk = i;
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"container_start_mountdisk_failover: mounted %s to %s.\n", dev, path);
+			(void) fprintf(stdout,"container_start_mountdisk_failover: mounted %s to %s.\n", dev, path);
 			#endif
 			break;
 		}
@@ -1006,12 +1006,12 @@ static int container_start_mountdisk_ab(char **devs, const char *path, const cha
 		if (errno == EBUSY) {
 			// already mounted
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"container_start_mountdisk_ab: %s is already mounted.\n", path);
+			(void) fprintf(stdout,"container_start_mountdisk_ab: %s is already mounted.\n", path);
 			#endif
 			ret = umount2(path, MNT_DETACH);
 			if (ret < 0) {
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"container_start_mountdisk_ab: %s unmount fail.\n", path);
+				(void) fprintf(stdout,"container_start_mountdisk_ab: %s unmount fail.\n", path);
 				#endif
 				return -1;
 			}
@@ -1019,20 +1019,20 @@ static int container_start_mountdisk_ab(char **devs, const char *path, const cha
 			ret = mount(dev, path, fstype, mntflag, option);
 			if (ret < 0) {
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"container_start_mountdisk_ab: %s re-mount fail.\n", path);
+				(void) fprintf(stdout,"container_start_mountdisk_ab: %s re-mount fail.\n", path);
 				#endif
 				return -1;
 			}
 		} else {
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"container_start_mountdisk_ab: %s mount fail to %s (%d).\n", dev, path, errno);
+			(void) fprintf(stdout,"container_start_mountdisk_ab: %s mount fail to %s (%d).\n", dev, path, errno);
 			#endif
 			return -1;
 		}
 	}
 
 	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr,"container_start_mountdisk_ab(%d): %s mount to %s (%s)\n", side, dev, path, fstype);
+	(void) fprintf(stdout,"container_start_mountdisk_ab(%d): %s mount to %s (%s)\n", side, dev, path, fstype);
 	#endif
 
 	return 0;
@@ -1066,7 +1066,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 	if ( ret < 0) {
 		// root fs mount is mandatory.
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatory disk %s could not mount\n", bc->rootfs.blockdev[bc->abboot]);
+		(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatory disk %s could not mount\n", bc->rootfs.blockdev[bc->abboot]);
 		#endif
 		return -1;
 	}
@@ -1088,7 +1088,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 				if (ret < 0) {
 					// AB disk mount is mandatory function.
 					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-					fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatory disk %s could not mount\n", exdisk->blockdev[bc->abboot]);
+					(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatory disk %s could not mount\n", exdisk->blockdev[bc->abboot]);
 					#endif
 					return -1;
 				}
@@ -1097,7 +1097,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 				if (ret < 0) {
 					// Failover disk mount is optional function.
 					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-					fprintf(stderr,"[CM ERROR] container_start_preprocess_base: failover disk %s could not mount\n", exdisk->blockdev[0]);
+					(void) fprintf(stderr,"[CM ERROR] container_start_preprocess_base: failover disk %s could not mount\n", exdisk->blockdev[0]);
 					#endif
 					continue;
 				}
@@ -1153,14 +1153,14 @@ static int container_cleanup_unmountdisk(const char *path, int64_t timeout_at, i
 	}
 
 	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr,"container_cleanup_unmountdisk: retry = %d for unmount at %s.\n", retry_count, path);
+	(void) fprintf(stdout,"container_cleanup_unmountdisk: retry = %d for unmount at %s.\n", retry_count, path);
 	#endif
 
 	if (umount_complete == 0) {
 		// In case of unmount time out -> lazy unmount
 		(void) umount2(path, MNT_DETACH);
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr,"container_cleanup_unmountdisk: lazy unmount at %s.\n", path);
+		(void) fprintf(stdout,"container_cleanup_unmountdisk: lazy unmount at %s.\n", path);
 		#endif
 	}
 

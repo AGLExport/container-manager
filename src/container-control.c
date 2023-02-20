@@ -49,7 +49,7 @@ static int container_mngsm_state_machine(containers_t *cs, const uint8_t *buf)
 
 	#ifdef _PRINTF_DEBUG_
 	if (command != CONTAINER_MNGSM_COMMAND_TIMER_TICK)
-		fprintf(stderr,"container_mngsm_state_machine: command %x\n", command);
+		(void) fprintf(stdout,"container_mngsm_state_machine: command %x\n", command);
 	#endif
 
 	switch(command) {
@@ -109,7 +109,7 @@ static int container_mngsm_commsocket_handler(sd_event_source *event, int fd, ui
 		sd_event_source_disable_unref(event);
 	} else if ((revents & EPOLLIN) != 0) {
 		// Event receive
-		memset(buf, 0, sizeof(buf));
+		(void) memset(buf, 0, sizeof(buf));
 
 		rret = read(fd, buf, sizeof(buf));
 		if (rret > 0) {
@@ -272,7 +272,7 @@ static int container_mngsm_timer_handler(sd_event_source *es, uint64_t usec, voi
 	cs = (containers_t*)userdata;
 	cm = cs->cms;
 
-	memset(&command, 0, sizeof(command));
+	(void) memset(&command, 0, sizeof(command));
 
 	command.header.command = CONTAINER_MNGSM_COMMAND_TIMER_TICK;
 
@@ -467,12 +467,12 @@ int container_mngsm_start(containers_t *cs)
 			if (ret < 0) {
 				if (ret == -2) {
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"container start: no active guest in role : %s.\n", cmrc->name);
+					(void) fprintf(stdout,"container start: no active guest in role : %s.\n", cmrc->name);
 					#endif
 					; //Critical log was out in sub function.
 				} else {
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"container start: fail to start active guest in role : %s.\n", cmrc->name);
+					(void) fprintf(stdout,"container start: fail to start active guest in role : %s.\n", cmrc->name);
 					#endif
 					; //Critical log was out in sub function.
 				}
@@ -543,7 +543,7 @@ int container_mngsm_setup(containers_t **pcs, sd_event *event, const char *confi
 	if (cs->cms == NULL)
 		goto err_return;
 
-	memset(cs->cms, 0, sizeof(struct s_container_mngsm));
+	(void) memset(cs->cms, 0, sizeof(struct s_container_mngsm));
 	cs->cms->secondary_fd = -1;
 
 	ret = container_mngsm_do_system(cs);
@@ -604,7 +604,7 @@ int container_mngsm_exit(containers_t *cs)
 	if (ret < 0) {
 		// Force process exit
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		fprintf(stderr,"[CM CRITICAL ERROR] container_mngsm_exit was fail.\n");
+		(void) fprintf(stderr,"[CM CRITICAL ERROR] container_mngsm_exit was fail.\n");
 		#endif
 		_exit(0);
 	}

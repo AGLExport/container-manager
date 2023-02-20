@@ -121,7 +121,7 @@ static int devc_static_devnode_scan(container_static_device_t *sdevc)
 			develem->is_valid = 0;
 
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stdout,"devc: device file %s detect major = %d, minor = %d\n", develem->devnode, develem->major, develem->minor);
+		(void) fprintf(stdout,"devc: device file %s detect major = %d, minor = %d\n", develem->devnode, develem->major, develem->minor);
 		#endif
 	}
 
@@ -186,7 +186,7 @@ static int devc_gpionode_scan(container_static_device_t *sdevc)
 				continue; //May not cause this error.
 
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stdout,"devc: gpio node %s will export\n", buf);
+			(void) fprintf(stdout,"devc: gpio node %s will export\n", buf);
 			#endif
 			ret = once_write(gpio_export_node, buf, slen);
 			if (ret == 0) {
@@ -212,13 +212,13 @@ static int devc_gpionode_scan(container_static_device_t *sdevc)
 		ret = once_write(buf, gpio_direction_table[gpioelem->portdirection], strlen(gpio_direction_table[gpioelem->portdirection]));
 		if (ret != 0) {
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stdout,"devc: gpio node %s direction set %s is fail\n", gpioelem->from,  gpio_direction_table[gpioelem->portdirection]);
+			(void) fprintf(stdout,"devc: gpio node %s direction set %s is fail\n", gpioelem->from,  gpio_direction_table[gpioelem->portdirection]);
 			#endif
 			continue; //Skip port setup, may not cause this error.
 		}
 		gpioelem->is_valid = 1;
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stdout,"devc: gpio node %s is valid = %d\n", gpioelem->from, gpioelem->is_valid);
+		(void) fprintf(stdout,"devc: gpio node %s is valid = %d\n", gpioelem->from, gpioelem->is_valid);
 		#endif
 	}
 
@@ -292,7 +292,7 @@ static int devc_iionode_scan(container_static_device_t *sdevc)
 		}
 
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stdout,"devc: iio node %s / %s is valid = %d\n", iioelem->sysfrom, iioelem->devfrom, iioelem->is_valid);
+		(void) fprintf(stdout,"devc: iio node %s / %s is valid = %d\n", iioelem->sysfrom, iioelem->devfrom, iioelem->is_valid);
 		#endif
 	}
 
@@ -333,8 +333,8 @@ static int devc_netbridge_setup(container_manager_config_t *cmc)
 			continue;
 		}
 
-		memset(buf, 0, sizeof(buf));
-		strncpy(buf, elem->name, IFNAMSIZ);
+		(void) memset(buf, 0, sizeof(buf));
+		(void) strncpy(buf, elem->name, IFNAMSIZ);
 
 		ret = ioctl(sock, SIOCBRADDBR, buf);
 		if (ret < 0 && errno != EEXIST) {

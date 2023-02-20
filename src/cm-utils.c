@@ -113,13 +113,13 @@ int mkdir_p(const char *dir, mode_t mode)
 	int len = 0;
 	char path[PATH_MAX];
 
-	memset(path, 0, sizeof(path));
+	(void) memset(path, 0, sizeof(path));
 
 	len = strnlen(dir, PATH_MAX-1);
 
 	for(int i=1; i < len; i++) {
 		if (path[i] == '/') {
-			strncpy(path, dir, (i-1));
+			(void) strncpy(path, dir, (i-1));
 			ret = mkdir(path, mode);
 			if(ret < 0 && errno != EEXIST) {
 				result = -1;

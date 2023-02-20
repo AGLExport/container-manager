@@ -82,8 +82,8 @@ static int container_external_interface_get_guest_info(containers_t *cs, contain
 		return -2;
 
 	for (int i =0; i < cs->num_of_container; i++) {
-		strncpy(guests_info->guests[i].guest_name, cs->containers[i]->name, sizeof(guests_info->guests->guest_name));
-		strncpy(guests_info->guests[i].role_name, cs->containers[i]->role, sizeof(guests_info->guests->role_name));
+		(void) strncpy(guests_info->guests[i].guest_name, cs->containers[i]->name, sizeof(guests_info->guests->guest_name));
+		(void) strncpy(guests_info->guests[i].role_name, cs->containers[i]->role, sizeof(guests_info->guests->role_name));
 
 		guests_info->guests[i].status = container_external_interface_convert_status(cs->containers[i]->runtime_stat.status);
 
@@ -111,7 +111,7 @@ static int container_external_interface_command_get(cm_external_interface_t *pex
 	int ret = -1;
 	ssize_t sret = -1;
 
-	memset(&guests_info, 0 , sizeof(guests_info));
+	(void) memset(&guests_info, 0 , sizeof(guests_info));
 
 	if(size >= sizeof(container_extif_command_get_t)) {
 		guests_info.header.command = CONTAINER_EXTIF_COMMAND_RESPONSE_GETGUESTS;
@@ -190,7 +190,7 @@ static int container_external_interface_reboot_guest(containers_t *cs, char *nam
 		if (role == 0) {
 			if (strncmp(cc->name, name, strlen(cc->name)) == 0) {
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"container_external_interface_reboot_guest: reboot to %s, command req %s\n", cc->name, name);
+				(void) fprintf(stdout,"container_external_interface_reboot_guest: reboot to %s, command req %s\n", cc->name, name);
 				#endif
 				ret = container_request_reboot(cc, cs->sys_state);
 				if (ret == 0)
@@ -200,7 +200,7 @@ static int container_external_interface_reboot_guest(containers_t *cs, char *nam
 			if (cc->runtime_stat.status == CONTAINER_STARTED) {
 				if (strncmp(cc->role, name, strlen(cc->role)) == 0) {
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"container_external_interface_reboot_guest: reboot to %s, command req %s\n", cc->name, name);
+					(void) fprintf(stdout,"container_external_interface_reboot_guest: reboot to %s, command req %s\n", cc->name, name);
 					#endif
 					ret = container_request_reboot(cc, cs->sys_state);
 					if (ret == 0)
@@ -237,7 +237,7 @@ static int container_external_interface_shutdown_guest(containers_t *cs, char *n
 		if (role == 0) {
 			if (strncmp(cc->name, name, strlen(cc->name)) == 0) {
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"container_external_interface_shutdown_guest: shutdown to %s, command req %s\n", cc->name, name);
+				(void) fprintf(stdout,"container_external_interface_shutdown_guest: shutdown to %s, command req %s\n", cc->name, name);
 				#endif
 				ret = container_request_shutdown(cc, cs->sys_state);
 				if (ret == 0)
@@ -247,7 +247,7 @@ static int container_external_interface_shutdown_guest(containers_t *cs, char *n
 			if (cc->runtime_stat.status == CONTAINER_STARTED) {
 				if (strncmp(cc->role, name, strlen(cc->role)) == 0) {
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"container_external_interface_shutdown_guest: shutdown to %s, command req %s\n", cc->name, name);
+					(void) fprintf(stdout,"container_external_interface_shutdown_guest: shutdown to %s, command req %s\n", cc->name, name);
 					#endif
 					ret = container_request_shutdown(cc, cs->sys_state);
 					if (ret == 0)
@@ -278,7 +278,7 @@ static int container_external_interface_command_lifecycle(cm_external_interface_
 	ssize_t sret = -1;
 	int ret = -1;
 
-	memset(&response, 0 , sizeof(response));
+	(void) memset(&response, 0 , sizeof(response));
 
 	if(size >= sizeof(container_extif_command_lifecycle_t)) {
 		if (pcom_life->subcommand == CONTAINER_EXTIF_SUBCOMMAND_FORCEREBOOT_GUEST) {
@@ -340,7 +340,7 @@ static int container_external_interface_command_change(cm_external_interface_t *
 	ssize_t sret = -1;
 	int ret = -1;
 
-	memset(&response, 0 , sizeof(response));
+	(void) memset(&response, 0 , sizeof(response));
 	response.header.command = CONTAINER_EXTIF_COMMAND_RESPONSE_CHANGE;
 	response.response = CONTAINER_EXTIF_CHANGE_RESPONSE_ERROR;
 
@@ -517,7 +517,7 @@ static int container_external_interface_incoming_handler(sd_event_source *event,
 		if(pextif->interface_session_evsource != NULL) {
 			// external interface is one session only
 			#ifdef _PRINTF_DEBUG_
-			fprintf(stderr,"container_external_interface_incoming_handler: double session\n");
+			(void) fprintf(stdout,"container_external_interface_incoming_handler: double session\n");
 			#endif
 			goto error_return;
 		}
@@ -583,7 +583,7 @@ int container_external_interface_setup(containers_t *cs, sd_event *event)
 		goto err_return;
 	}
 
-	memset(pextif, 0, sizeof(*pextif));
+	(void) memset(pextif, 0, sizeof(*pextif));
 
 	pextif->parent_eventloop = event;
 
@@ -594,9 +594,9 @@ int container_external_interface_setup(containers_t *cs, sd_event *event)
 		goto err_return;
 	}
 
-	memset(&name, 0, sizeof(name));
+	(void) memset(&name, 0, sizeof(name));
 	name.sun_family = AF_UNIX;
-	memcpy(name.sun_path, CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME, sizeof(CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME));
+	(void) memcpy(name.sun_path, CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME, sizeof(CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME));
 
 	ret = bind(fd, (const struct sockaddr *) &name, sizeof(CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME) + sizeof(sa_family_t));
 	if (ret < 0) {
