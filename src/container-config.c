@@ -58,7 +58,7 @@ static int bind_container_to_role_list(containers_t* cs)
 						container_manager_role_elem_t *pelem = NULL;
 
 						#ifdef _PRINTF_DEBUG_
-						fprintf(stdout,"bind_container_to_role: add %s to existing role %s\n", cc->name, cmrc->name);
+						(void) fprintf(stdout,"bind_container_to_role: add %s to existing role %s\n", cc->name, cmrc->name);
 						#endif
 
 						pelem = (container_manager_role_elem_t*)malloc(sizeof(container_manager_role_elem_t));
@@ -99,7 +99,7 @@ static int bind_container_to_role_list(containers_t* cs)
 
 				cmrc->name = strdup(role);
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stdout,"cmcfg: create new role %s\n", cmrc->name);
+				(void) fprintf(stdout,"cmcfg: create new role %s\n", cmrc->name);
 				#endif
 
 				// create terminator
@@ -277,7 +277,7 @@ containers_t *create_container_configs(const char *config_file)
 					ret = cmparser_create_from_file(&cc, buf);
 					if (ret < 0) {
 						#ifdef _PRINTF_DEBUG_
-						fprintf(stderr, "[FAIL] cmparser_create_from_file %s ret = %d\n", buf, ret);
+						(void) fprintf(stdout, "[FAIL] cmparser_create_from_file %s ret = %d\n", buf, ret);
 						#endif
 						continue;
 					}
@@ -286,7 +286,7 @@ containers_t *create_container_configs(const char *config_file)
 					num = num + 1;
 					if (num >= GUEST_CONTAINER_LIMIT) {
 						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-						fprintf(stderr,"[CM CRITICAL ERROR] create_container_configs: Number of guest containers was over to limit.");
+						(void) fprintf(stderr,"[CM CRITICAL ERROR] create_container_configs: Number of guest containers was over to limit.");
 						#endif
 						break;
 					}
@@ -300,7 +300,7 @@ containers_t *create_container_configs(const char *config_file)
 
 	if (num <= 0) {
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		fprintf(stderr,"[CM CRITICAL ERROR] create_container_configs: Did not find guest container config at %s.\n", confdir);
+		(void) fprintf(stderr,"[CM CRITICAL ERROR] create_container_configs: Did not find guest container config at %s.\n", confdir);
 		#endif
 		goto err_ret;
 	}

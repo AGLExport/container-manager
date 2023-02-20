@@ -49,7 +49,7 @@ static int container_mngsm_state_machine(containers_t *cs, const uint8_t *buf)
 
 	#ifdef _PRINTF_DEBUG_
 	if (command != CONTAINER_MNGSM_COMMAND_TIMER_TICK)
-		fprintf(stderr,"container_mngsm_state_machine: command %x\n", command);
+		(void) fprintf(stdout,"container_mngsm_state_machine: command %x\n", command);
 	#endif
 
 	switch(command) {
@@ -467,12 +467,12 @@ int container_mngsm_start(containers_t *cs)
 			if (ret < 0) {
 				if (ret == -2) {
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"container start: no active guest in role : %s.\n", cmrc->name);
+					(void) fprintf(stdout,"container start: no active guest in role : %s.\n", cmrc->name);
 					#endif
 					; //Critical log was out in sub function.
 				} else {
 					#ifdef _PRINTF_DEBUG_
-					fprintf(stderr,"container start: fail to start active guest in role : %s.\n", cmrc->name);
+					(void) fprintf(stdout,"container start: fail to start active guest in role : %s.\n", cmrc->name);
 					#endif
 					; //Critical log was out in sub function.
 				}
@@ -604,7 +604,7 @@ int container_mngsm_exit(containers_t *cs)
 	if (ret < 0) {
 		// Force process exit
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		fprintf(stderr,"[CM CRITICAL ERROR] container_mngsm_exit was fail.\n");
+		(void) fprintf(stderr,"[CM CRITICAL ERROR] container_mngsm_exit was fail.\n");
 		#endif
 		_exit(0);
 	}

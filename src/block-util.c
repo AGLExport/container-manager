@@ -69,7 +69,7 @@ int block_util_getfs(const char *devpath, block_device_info_t *bdi)
 	blkid_free_probe(blk);
 
 	#ifdef _PRINTF_DEBUG_
-	fprintf(stderr, "%s : type = %s, label = %s\n", devpath, bdi->type, bdi->volume_label);
+	(void) fprintf(stdout, "%s : type = %s, label = %s\n", devpath, bdi->type, bdi->volume_label);
 	#endif
 
 	return 0;

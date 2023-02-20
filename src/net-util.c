@@ -54,7 +54,7 @@ static void print_iflist(network_interface_manager_t *nfm)
 	network_interface_info_t *ifinfo = NULL;
 
 	dl_list_for_each(ifinfo, &nfm->nllist, network_interface_info_t, list) {
-		fprintf(stderr, "index: %d  name: %s\n", ifinfo->ifindex, ifinfo->ifname);
+		(void) fprintf(stdout, "index: %d  name: %s\n", ifinfo->ifindex, ifinfo->ifname);
 	}
 }
 #endif //#ifdef _PRINTF_DEBUG_
@@ -164,7 +164,7 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 			if (nfi->ifindex == nfi_new->ifindex) {
 				// existing device is found -> remove
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"netifmonitor-new: Found existing if \n exist = %s(%d)\n new = %s(%d)\n\n"
+				(void) fprintf(stdout,"netifmonitor-new: Found existing if \n exist = %s(%d)\n new = %s(%d)\n\n"
 						, nfi->ifname, nfi->ifindex, nfi_new->ifname, nfi_new->ifindex);
 				#endif
 				dl_list_del(&nfi->list);
@@ -185,7 +185,7 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 			if (nfi->ifindex == nfi_new->ifindex) {
 				// existing device is found -> remove
 				#ifdef _PRINTF_DEBUG_
-				fprintf(stderr,"netifmonitor-del: Found existing if \n exist = %s(%d)\n new = %s(%d)\n\n"
+				(void) fprintf(stdout,"netifmonitor-del: Found existing if \n exist = %s(%d)\n new = %s(%d)\n\n"
 						, nfi->ifname, nfi->ifindex, nfi_new->ifname, nfi_new->ifindex);
 				#endif
 				dl_list_del(&nfi->list);

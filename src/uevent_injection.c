@@ -147,7 +147,7 @@ int uevent_injection_to_pid(pid_t target_pid, uevent_injection_message_t *uim)
 	net_ns_fd = open_namespace_fd(target_pid, "net");
 	if (net_ns_fd < 0) {
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr, "open_namespace_fd fail pid = %d\n", target_pid);
+		(void) fprintf(stdout, "open_namespace_fd fail pid = %d\n", target_pid);
 		#endif
 		result = -2;
 		goto err_return;
@@ -171,7 +171,7 @@ int uevent_injection_to_pid(pid_t target_pid, uevent_injection_message_t *uim)
 	ret = wait_child_pid(child_pid);
 	if (ret < 0) {
 		#ifdef _PRINTF_DEBUG_
-		fprintf(stderr, "uevent_injection_child was fail\n");
+		(void) fprintf(stdout, "uevent_injection_child was fail\n");
 		#endif
 		result = -4;
 		goto err_return;
