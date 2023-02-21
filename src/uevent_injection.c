@@ -89,6 +89,7 @@ static int uevent_injection_child(int net_ns_fd, const char *message, int messag
 	// event injection
 	ret = setns(net_ns_fd, CLONE_NEWNET);
 	close(net_ns_fd);
+	net_ns_fd = -1;
 	if (ret < 0) {
 		result = -1;
 		goto err_return;
