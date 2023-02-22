@@ -198,8 +198,8 @@ static int role_list_cleanup(containers_t* cs)
 static int compare_bootpri(const void *data1, const void *data2)
 {
     int ret = 0;
-	const container_config_t *cc1 = *(container_config_t**)data1;
-	const container_config_t *cc2 = *(container_config_t**)data2;
+	const container_config_t *cc1 = *(const container_config_t**)data1;
+	const container_config_t *cc2 = *(const container_config_t**)data2;
 	int pri1 = 0, pri2 = 0;
 
 	pri1 = cc1->baseconfig.bootpriority;
