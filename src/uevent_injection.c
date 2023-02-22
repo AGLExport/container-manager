@@ -74,6 +74,7 @@ static int uevent_injection_child(int net_ns_fd, const char *message, int messag
 	struct nlmsghdr *nlh = NULL;
 	char buf[MNL_SOCKET_BUFFER_SIZE];
 	char *pevmessage = NULL;
+	int ns_fd = net_ns_fd;
 
 	// create injection message
 	(void) memset(buf, 0 , sizeof(buf));
@@ -87,9 +88,9 @@ static int uevent_injection_child(int net_ns_fd, const char *message, int messag
 	(void) memcpy(pevmessage, message, messagesize);
 
 	// event injection
-	ret = setns(net_ns_fd, CLONE_NEWNET);
-	close(net_ns_fd);
-	net_ns_fd = -1;
+	ret = setns(ns_fd, CLONE_NEWNET);
+	close(ns_fd);
+	ns_fd = -1;
 	if (ret < 0) {
 		result = -1;
 		goto err_return;
@@ -121,8 +122,8 @@ err_return:
 		mnl_socket_close(nl);
 	}
 
-	if (net_ns_fd >= 0) {
-		close(net_ns_fd);
+	if (ns_fd >= 0) {
+		close(ns_fd);
 	}
 
 	return result;
