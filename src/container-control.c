@@ -244,7 +244,7 @@ int container_mngsm_update_timertick(containers_t *cs)
 	}
 
 	// timer tick update.
-	timerval = timerval + 50 * 1000;	// 50ms interval
+	timerval = timerval + (50u * 1000u);	// 50ms interval
 	ret = sd_event_source_set_time(cm->timer_source, timerval);
 	if (ret < 0) {
 		return -1;

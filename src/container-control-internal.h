@@ -38,7 +38,7 @@ struct s_container_mngsm {
  * @def	CONTAINER_MNGSM_COMMAND_BUFSIZEMAX
  * @brief	Buffer size definition for container manager internal event communication.
  */
-#define CONTAINER_MNGSM_COMMAND_BUFSIZEMAX (8*1024)
+#define CONTAINER_MNGSM_COMMAND_BUFSIZEMAX (8u*1024u)
 
 /**
  * @typedef	container_mngsm_command_header_t
