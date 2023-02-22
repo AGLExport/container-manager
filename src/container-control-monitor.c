@@ -143,8 +143,9 @@ int container_monitor_addguest(containers_t *cs, container_config_t *cc)
 	return 0;
 
 err_return:
-	if (pidfd_source != NULL)
+	if (pidfd_source != NULL) {
 		(void)sd_event_source_disable_unref(pidfd_source);
+	}
 
 	return -1;
 }

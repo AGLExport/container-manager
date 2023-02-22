@@ -83,8 +83,9 @@ static int cm_socket_setup(void)
 	return fd;
 
 err_return:
-	if (fd != -1)
+	if (fd != -1) {
 		close(fd);
+	}
 
 	return -1;
 }
@@ -103,8 +104,9 @@ static int cm_socket_wait_response(int fd, int timeout)
 	do {
 		ret = poll(poll_fds, 1, timeout);
 		if (ret < 0) {
-			if (errno == EINTR)
+			if (errno == EINTR) {
 				continue;
+			}
 
 			result = -1;
 			goto return_function;
@@ -199,8 +201,9 @@ void cm_get_guest_list(int json)
 	}
 
 error_return:
-	if (fd != -1)
+	if (fd != -1) {
 		close(fd);
+	}
 
 	return;
 }
@@ -281,8 +284,9 @@ void cm_get_guest_lifecycle(int code, char *name)
 	}
 
 error_return:
-	if (fd != -1)
+	if (fd != -1) {
 		close(fd);
+	}
 
 	return;
 }
@@ -345,8 +349,9 @@ void cm_get_guest_change(int code, char *name)
 	}
 
 error_return:
-	if (fd != -1)
+	if (fd != -1) {
 		close(fd);
+	}
 
 	return;
 }
@@ -361,10 +366,12 @@ int main(int argc, char *argv[])
 			usage();
 			break;
 		} else if (ret == 10 || ret == 11) {
-			if (ret == 11)
+			if (ret == 11) {
 				cm_get_guest_list(1);
-			else
+			}
+			else {
 				cm_get_guest_list(0);
+			}
 			break;
 		} else if (ret >= 20 && ret <= 25) {
 			cm_get_guest_lifecycle(ret, optarg);
