@@ -55,7 +55,7 @@ int block_util_getfs(const char *devpath, block_device_info_t *bdi)
 
 	// fs type
 	ret = blkid_probe_lookup_value(blk, "TYPE", &data, &sz);
-	if (ret == 0 && sz <= 31) {
+	if (ret == 0 && sz <= 31u) {
 		// have a vol label
 		(void) memcpy(bdi->type, data, sz);
 		bdi->type[sz] = '\0';
@@ -65,7 +65,7 @@ int block_util_getfs(const char *devpath, block_device_info_t *bdi)
 
 	// volume label
 	ret = blkid_probe_lookup_value(blk, "LABEL", &data, &sz);
-	if (ret == 0 && sz <= 16) {
+	if (ret == 0 && sz <= 16u) {
 		// have a vol label
 		(void) memcpy(bdi->volume_label, data, sz);
 		bdi->volume_label[sz] = '\0';
