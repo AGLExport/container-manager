@@ -110,6 +110,9 @@ static int cmparser_parser_get_diskmountmode(const char *str)
 	}
 	else if (strncmp(read_write, str, sizeof(read_write)) == 0) {
 		ret = DISKMOUNT_TYPE_RW;
+	} else {
+		// unknow str, select RO.
+		ret = DISKMOUNT_TYPE_RO;
 	}
 
 	return ret;
@@ -134,6 +137,9 @@ static int cmparser_parser_get_diskmountfailop(const char *str)
 	}
 	else if (strncmp(ab, str, sizeof(ab)) == 0) {
 		ret = DISKREDUNDANCY_TYPE_AB;
+	} else {
+		// unknow str, select FAILOVER.
+		ret = DISKREDUNDANCY_TYPE_FAILOVER;
 	}
 
 	return ret;
@@ -654,16 +660,16 @@ static int cmparser_parser_get_resourcetype(const char *str)
 	static const char ccgroup[] = "cgroup";
 	static const char cprlimit[] = "prlimit";
 	static const char csysctl[] = "sysctl";
-	int ret = 0;
+	int ret = RESOURCE_TYPE_UNKNOWN;
 
 	if (strncmp(ccgroup, str, sizeof(ccgroup)) == 0) {
 		ret = RESOURCE_TYPE_CGROUP;
-	}
-	else if (strncmp(cprlimit, str, sizeof(cprlimit)) == 0) {
+	} else if (strncmp(cprlimit, str, sizeof(cprlimit)) == 0) {
 		ret = RESOURCE_TYPE_PRLIMIT;
-	}
-	else if (strncmp(csysctl, str, sizeof(csysctl)) == 0) {
+	} else if (strncmp(csysctl, str, sizeof(csysctl)) == 0) {
 		ret = RESOURCE_TYPE_SYSCTL;
+	} else {
+		ret = RESOURCE_TYPE_UNKNOWN;
 	}
 
 	return ret;
@@ -909,19 +915,19 @@ static int cmparser_parser_get_devtype(const char *str)
 	static const char devd[] = "devdir";
 	static const char gpio[] = "gpio";
 	static const char iio[] = "iio";
-	int ret = 0;
+	int ret = DEVICE_TYPE_UNKNOWN;
 
 	if (strncmp(devn, str, sizeof(devn)) == 0) {
 		ret = DEVICE_TYPE_DEVNODE;
-	}
-	else if (strncmp(devd, str, sizeof(devd)) == 0) {
+	} else if (strncmp(devd, str, sizeof(devd)) == 0) {
 		ret = DEVICE_TYPE_DEVDIR;
-	}
-	else if (strncmp(gpio, str, sizeof(gpio)) == 0) {
+	} else if (strncmp(gpio, str, sizeof(gpio)) == 0) {
 		ret = DEVICE_TYPE_GPIO;
-	}
-	else if (strncmp(iio, str, sizeof(iio)) == 0) {
+	} else if (strncmp(iio, str, sizeof(iio)) == 0) {
 		ret = DEVICE_TYPE_IIO;
+	} else {
+		// unknown str
+		ret = DEVICE_TYPE_UNKNOWN;
 	}
 
 	return ret;
@@ -949,15 +955,15 @@ static int cmparser_parser_get_gpiodirection(const char *str)
 
 	if (strncmp(gpioin, str, sizeof(gpioin)) == 0) {
 		ret = DEVGPIO_DIRECTION_IN;
-	}
-	else if (strncmp(gpioout, str, sizeof(gpioout)) == 0) {
+	} else if (strncmp(gpioout, str, sizeof(gpioout)) == 0) {
 		ret = DEVGPIO_DIRECTION_OUT;
-	}
-	else if (strncmp(gpiolow, str, sizeof(gpiolow)) == 0) {
+	} else if (strncmp(gpiolow, str, sizeof(gpiolow)) == 0) {
 		ret = DEVGPIO_DIRECTION_LOW;
-	}
-	else if (strncmp(gpiohigh, str, sizeof(gpiohigh)) == 0) {
+	} else if (strncmp(gpiohigh, str, sizeof(gpiohigh)) == 0) {
 		ret = DEVGPIO_DIRECTION_HIGH;
+	} else {
+		// unknown str, Don't care
+		ret = DEVGPIO_DIRECTION_DC;
 	}
 
 	return ret;
@@ -1024,8 +1030,9 @@ static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON
 
 					// all data available
 					p = (container_static_device_elem_t*)malloc(sizeof(container_static_device_elem_t));
-					if (p == NULL)
+					if (p == NULL) {
 						goto err_ret;
+					}
 
 					(void) memset(p, 0 , sizeof(container_static_device_elem_t));
 					dl_list_init(&p->list);
@@ -1293,7 +1300,7 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 
 					(void) memset(pli, 0, sizeof(short_string_list_item_t));
 					dl_list_init(&pli->list);
-					(void) strncpy(pli->string, devtypestr->valuestring, sizeof(pli->string)-1);
+					(void) strncpy(pli->string, devtypestr->valuestring, sizeof(pli->string)-1u);
 					dl_list_add_tail(&p->rule.devtype_list, &pli->list);
 
 					#ifdef _PRINTF_DEBUG_
@@ -1730,7 +1737,7 @@ err_ret:
 			selem = dl_list_last(&snif->static_netiflist, container_static_netif_elem_t, list);
 			dl_list_del(&selem->list);
 			if (selem->type == STATICNETIF_VETH) {
-				cmparser_parse_static_netif_veth_free((void *)selem->setting);
+				(void) cmparser_parse_static_netif_veth_free((void *)selem->setting);
 			}
 
 			free(selem);

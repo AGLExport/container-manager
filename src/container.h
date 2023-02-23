@@ -154,6 +154,11 @@ typedef struct s_container_baseconfig container_baseconfig_t;	/**< typedef for s
  * @brief	Resource type is sysctl.  It use at s_container_resource_elem.type.
  */
 #define RESOURCE_TYPE_SYSCTL	(3)
+/**
+ * @def	RESOURCE_TYPE_UNKNOWN
+ * @brief	Resource type is not set.
+ */
+#define RESOURCE_TYPE_UNKNOWN	(0)
 
 /**
  * @struct	s_container_resource_elem
@@ -250,6 +255,11 @@ typedef struct s_container_fsconfig container_fsconfig_t;	/**< typedef for struc
  * @brief	Device type for iio device, sysfs and device node.  It use in static device setting.
  */
 #define DEVICE_TYPE_IIO		(4)
+/**
+ * @def	DEVICE_TYPE_UNKNOWN
+ * @brief	Device type for unknown.
+ */
+#define DEVICE_TYPE_UNKNOWN	(0)
 
 /**
  * @def	DEVNODE_TYPE_CHR
