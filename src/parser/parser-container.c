@@ -776,18 +776,15 @@ static int cmparser_parser_get_fstype(const char *str)
 {
 	static const char cfs[] = "filesystem";
 	static const char cdir[] = "directory";
-	static const char cdir_bc[] = "directry"; //backward compatibility - fix typo
 	int ret = 0;
 
 	if (strncmp(cfs, str, sizeof(cfs)) == 0) {
 		ret = FSMOUNT_TYPE_FILESYSTEM;
-	}
-	else if (strncmp(cdir, str, sizeof(cdir)) == 0) {
+	} else if (strncmp(cdir, str, sizeof(cdir)) == 0) {
 		ret = FSMOUNT_TYPE_DIRECTORY;
-	}
-	else if (strncmp(cdir, str, sizeof(cdir_bc)) == 0) {
-		//backward compatibility - fix typo
-		ret = FSMOUNT_TYPE_DIRECTORY;
+	} else {
+		//Unknown str, set NON - error
+		ret = 0;
 	}
 
 	return ret;
@@ -2126,7 +2123,7 @@ void cmparser_release_config(container_config_t *cc)
 			selem = dl_list_last(&cc->netifconfig.static_netif.static_netiflist, container_static_netif_elem_t, list);
 			dl_list_del(&selem->list);
 			if (selem->type == STATICNETIF_VETH) {
-				cmparser_parse_static_netif_veth_free((void *)selem->setting);
+				(void) cmparser_parse_static_netif_veth_free((void *)selem->setting);
 			}
 
 			free(selem);
