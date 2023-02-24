@@ -598,6 +598,7 @@ int container_mngsm_setup(containers_t **pcs, sd_event *event, const char *confi
 err_return:
 
 	if (cs->cms != NULL) {
+		(void)container_external_interface_cleanup(cs);
 		(void)container_mngsm_internal_timer_cleanup(cs);
 		(void)container_mngsm_commsocket_cleanup(cs);
 		(void)container_mngsm_cleanup_system(cs);
