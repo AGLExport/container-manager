@@ -60,6 +60,7 @@ int devc_device_manager_setup(containers_t *cs, container_control_interface_t *c
 	return 0;
 
 err_ret:
+	(void) devc_device_manager_cleanup(cs);
 
 	return result;
 }

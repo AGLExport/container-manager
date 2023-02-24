@@ -1711,7 +1711,7 @@ static int cmparser_parse_static_netif(container_static_netif_t *snif, const cJS
 					// all data available
 					p = (container_static_netif_elem_t*)malloc(sizeof(container_static_netif_elem_t));
 					if (p == NULL) {
-						free(vp);
+						(void) cmparser_parse_static_netif_veth_free(vp);
 						goto err_ret;
 					}
 

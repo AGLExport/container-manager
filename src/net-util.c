@@ -203,7 +203,8 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 		(void)cci->netif_updated(cci);
 
 	} else {
-		; //no update
+		// No operation. need to free alloced memory
+		network_interface_info_free(nfi_new);
 	}
 
 out:
@@ -384,6 +385,7 @@ int netifmonitor_setup(dynamic_device_manager_t *ddm, container_control_interfac
 
 	ret = netifmonitor_listing_existif(ddm);
 	if (ret < 0) {
+		ddm->netifmon = NULL;
 		goto err_return;
 	}
 
