@@ -171,14 +171,17 @@ static int container_mngsm_commsocket_setup(containers_t *cs, sd_event *event)
 	return 0;
 
 err_return:
-	if (socket_source != NULL)
-		(void)sd_event_source_disable_unref(socket_source);
+	if (socket_source != NULL) {
+		(void) sd_event_source_disable_unref(socket_source);
+	}
 
-	if (pairfd[1] != -1)
-		close(pairfd[1]);
+	if (pairfd[1] != -1) {
+		(void) close(pairfd[1]);
+	}
 
-	if (pairfd[0] != -1)
-		close(pairfd[0]);
+	if (pairfd[0] != -1) {
+		(void) close(pairfd[0]);
+	}
 
 	return -1;
 }
@@ -195,18 +198,22 @@ static int container_mngsm_commsocket_cleanup(containers_t *cs)
 {
 	struct s_container_mngsm *cms = NULL;
 
-	if (cs == NULL)
+	if (cs == NULL) {
 		return -2;
+	}
 
 	cms = (struct s_container_mngsm*)cs->cms;
 
-	if (cms == NULL)
+	if (cms == NULL) {
 		return -2;
+	}
 
-	if (cms->socket_source != NULL)
+	if (cms->socket_source != NULL) {
 		(void)sd_event_source_disable_unref(cms->socket_source);
-	if (cms->secondary_fd != -1)
+	}
+	if (cms->secondary_fd != -1) {
 		close(cms->secondary_fd);
+	}
 
 	return 0;
 }
@@ -237,7 +244,7 @@ int container_mngsm_update_timertick(containers_t *cs)
 	}
 
 	// timer tick update.
-	timerval = timerval + 50 * 1000;	// 50ms interval
+	timerval = timerval + (50u * 1000u);	// 50ms interval
 	ret = sd_event_source_set_time(cm->timer_source, timerval);
 	if (ret < 0) {
 		return -1;
@@ -277,8 +284,9 @@ static int container_mngsm_timer_handler(sd_event_source *es, uint64_t usec, voi
 	command.header.command = CONTAINER_MNGSM_COMMAND_TIMER_TICK;
 
 	ret = write(cm->secondary_fd, &command, sizeof(command));
-	if (ret != sizeof(command))
+	if (ret != sizeof(command)) {
 		goto error_ret;
+	}
 
 	return 0;
 
@@ -330,8 +338,9 @@ static int container_mngsm_internal_timer_setup(containers_t *cs, sd_event *even
 	return 0;
 
 err_return:
-	if (timer_source != NULL)
+	if (timer_source != NULL) {
 		(void)sd_event_source_disable_unref(timer_source);
+	}
 
 	return -1;
 }
@@ -348,15 +357,18 @@ static int container_mngsm_internal_timer_cleanup(containers_t *cs)
 {
 	struct s_container_mngsm *cms = NULL;
 
-	if (cs == NULL)
+	if (cs == NULL) {
 		return -2;
+	}
 
 	cms = (struct s_container_mngsm*)cs->cms;
-	if (cms == NULL)
+	if (cms == NULL) {
 		return -2;
+	}
 
-	if (cms->timer_source != NULL)
+	if (cms->timer_source != NULL) {
 		(void)sd_event_source_disable_unref(cms->timer_source);
+	}
 
 	return 0;
 }
@@ -373,8 +385,9 @@ static int container_mngsm_internal_timer_cleanup(containers_t *cs)
 int container_mngsm_regist_device_manager(containers_t *cs, dynamic_device_manager_t *ddm)
 {
 
-	if (cs == NULL || ddm == NULL)
+	if (cs == NULL || ddm == NULL) {
 		return -2;
+	}
 
 	cs->ddm = ddm;
 
@@ -399,15 +412,19 @@ static int container_mngsm_do_system(containers_t *cs)
 	cms = (struct s_container_mngsm*)cs->cms;
 
 	ret = procutil_create(&pu);
-	if (ret < 0)
+	if (ret < 0) {
 		return -1;
+	}
 
 	ret = procutil_get_cmdline_value_int64(pu, abboot_cmdline_key, &value);
-	if (ret < 0)
+	if (ret < 0) {
 		value = 0;	//default is 0
+	}
 
-	if (value != 1)	// An ab boot value is only 0 or 1. When value is out of range, value set default value 0.
+	if (value != 1)	{
+		// An ab boot value is only 0 or 1. When value is out of range, value set default value 0.
 		value = 0;
+	}
 
 	// set ab boot side to all guest.
 	{
@@ -418,10 +435,11 @@ static int container_mngsm_do_system(containers_t *cs)
 
 		for(int i=0;i < num;i++) {
 			cc = cs->containers[i];
-			if (value != 1)
+			if (value != 1) {
 				cc->baseconfig.abboot = 0;	// An ab boot value is only 0 or 1. When value is out of range, value set default value 0.
-			else
+			} else {
 				cc->baseconfig.abboot = 1;
+			}
 		}
 	}
 
@@ -439,8 +457,9 @@ static int container_mngsm_do_system(containers_t *cs)
  */
 static int container_mngsm_cleanup_system(containers_t *cs)
 {
-	if (cs == NULL)
+	if (cs == NULL) {
 		return -1;
+	}
 
 	(void) procutil_cleanup(cs->cms->prutl);
 
@@ -532,35 +551,42 @@ int container_mngsm_setup(containers_t **pcs, sd_event *event, const char *confi
 	containers_t *cs = NULL;
 	int ret = -1;
 
-	if (pcs == NULL || event == NULL)
+	if (pcs == NULL || event == NULL) {
 		return -2;
+	}
 
 	cs = create_container_configs(config_file);
-	if (cs == NULL)
+	if (cs == NULL) {
 		return -1;
+	}
 
 	cs->cms = (struct s_container_mngsm*)malloc(sizeof(struct s_container_mngsm));
-	if (cs->cms == NULL)
+	if (cs->cms == NULL) {
 		goto err_return;
+	}
 
 	(void) memset(cs->cms, 0, sizeof(struct s_container_mngsm));
 	cs->cms->secondary_fd = -1;
 
 	ret = container_mngsm_do_system(cs);
-	if (ret < 0)
+	if (ret < 0) {
 		goto err_return;
+	}
 
 	ret = container_mngsm_commsocket_setup(cs, event);
-	if (ret < 0)
+	if (ret < 0) {
 		goto err_return;
+	}
 
 	ret = container_mngsm_internal_timer_setup(cs, event);
-	if (ret < 0)
+	if (ret < 0) {
 		goto err_return;
+	}
 
 	ret = container_external_interface_setup(cs, event);
-	if (ret < 0)
+	if (ret < 0) {
 		goto err_return;
+	}
 
 	cs->sys_state = CM_SYSTEM_STATE_RUN;
 	cs->event = event;
@@ -572,14 +598,16 @@ int container_mngsm_setup(containers_t **pcs, sd_event *event, const char *confi
 err_return:
 
 	if (cs->cms != NULL) {
+		(void)container_external_interface_cleanup(cs);
 		(void)container_mngsm_internal_timer_cleanup(cs);
 		(void)container_mngsm_commsocket_cleanup(cs);
 		(void)container_mngsm_cleanup_system(cs);
 		free(cs->cms);
 	}
 
-	if (cs != NULL)
+	if (cs != NULL) {
 		(void)release_container_configs(cs);
+	}
 
 	return -1;
 }
@@ -597,8 +625,9 @@ int container_mngsm_exit(containers_t *cs)
 {
 	int ret = -1;
 
-	if (cs == NULL)
+	if (cs == NULL) {
 		return -2;
+	}
 
 	ret = sd_event_exit(cs->event, 0);
 	if (ret < 0) {
@@ -625,8 +654,9 @@ int container_mngsm_exit(containers_t *cs)
 int container_mngsm_cleanup(containers_t *cs)
 {
 
-	if (cs == NULL)
+	if (cs == NULL) {
 		return -2;
+	}
 
 	container_mngsm_interface_free(cs);
 

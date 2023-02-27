@@ -48,13 +48,15 @@ int container_mngsm_interface_get(container_control_interface_t **pcci, containe
 {
 	struct s_container_control_interface *cci = NULL;
 
-	if (pcci == NULL || cs == NULL)
+	if (pcci == NULL || cs == NULL) {
 		return -2;
+	}
 
 	if (cs->cci == NULL) {
 		cci = (struct s_container_control_interface*)malloc(sizeof(struct s_container_control_interface));
-		if (cci == NULL)
+		if (cci == NULL) {
 			goto err_return;
+		}
 
 		(void) memset(cci, 0, sizeof(struct s_container_control_interface));
 
@@ -84,8 +86,9 @@ err_return:
  */
 int container_mngsm_interface_free(containers_t *cs)
 {
-	if (cs == NULL)
+	if (cs == NULL) {
 		return -2;
+	}
 
 	free(cs->cci);
 	cs->cci = NULL;
@@ -106,8 +109,9 @@ static int container_mngsm_netif_updated(struct s_container_control_interface *c
 	container_mngsm_notification_t command;
 	ssize_t ret = -1;
 
-	if (cci == NULL)
+	if (cci == NULL) {
 		return -1;
+	}
 
 	cm = (struct s_container_mngsm*)cci->mngsm;
 
@@ -116,8 +120,9 @@ static int container_mngsm_netif_updated(struct s_container_control_interface *c
 	command.header.command = CONTAINER_MNGSM_COMMAND_NETIFUPDATED;
 
 	ret = write(cm->secondary_fd, &command, sizeof(command));
-	if (ret != sizeof(command))
+	if (ret != (ssize_t)sizeof(command)) {
 		return -1;
+	}
 
 	return 0;
 }
@@ -135,8 +140,9 @@ static int container_mngsm_system_shutdown(struct s_container_control_interface 
 	container_mngsm_notification_t command;
 	ssize_t ret = -1;
 
-	if (cci == NULL)
+	if (cci == NULL) {
 		return -1;
+	}
 
 	cm = (struct s_container_mngsm*)cci->mngsm;
 
@@ -145,8 +151,9 @@ static int container_mngsm_system_shutdown(struct s_container_control_interface 
 	command.header.command = CONTAINER_MNGSM_COMMAND_SYSTEM_SHUTDOWN;
 
 	ret = write(cm->secondary_fd, &command, sizeof(command));
-	if (ret != sizeof(command))
+	if (ret != (ssize_t)sizeof(command)) {
 		return -1;
+	}
 
 	return 0;
 }

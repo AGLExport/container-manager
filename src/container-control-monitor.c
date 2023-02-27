@@ -40,8 +40,9 @@ static int container_monitor_state_change(containers_t *cs, int status, int num)
 	container_mngsm_guest_status_exit_t command;
 	ssize_t ret = -1;
 
-	if (cs == NULL)
+	if (cs == NULL) {
 		return -1;
+	}
 
 	cm = (struct s_container_mngsm*)cs->cms;
 
@@ -51,8 +52,9 @@ static int container_monitor_state_change(containers_t *cs, int status, int num)
 	command.data.container_number = num;
 
 	ret = write(cm->secondary_fd, &command, sizeof(command));
-	if (ret != sizeof(command))
+	if (ret != sizeof(command)) {
 		return -1;
+	}
 
 	return 0;
 }
@@ -117,15 +119,18 @@ int container_monitor_addguest(containers_t *cs, container_config_t *cc)
 	int ret = -1;
 	int pidfd = -1;
 
-	if (cs == NULL || cc == NULL)
+	if (cs == NULL || cc == NULL) {
 		return -1;
+	}
 
-	if (cc->runtime_stat.lxc == NULL)
+	if (cc->runtime_stat.lxc == NULL) {
 		return -1;
+	}
 
 	pidfd = cc->runtime_stat.lxc->init_pidfd(cc->runtime_stat.lxc);
-	if (pidfd < 0)
+	if (pidfd < 0) {
 		return -2;
+	}
 
 	ret = sd_event_add_io(cs->event, &pidfd_source, pidfd, (EPOLLIN | EPOLLHUP | EPOLLERR), container_monitor_pidfd_handler, cs);
 	if (ret < 0) {
@@ -138,8 +143,9 @@ int container_monitor_addguest(containers_t *cs, container_config_t *cc)
 	return 0;
 
 err_return:
-	if (pidfd_source != NULL)
+	if (pidfd_source != NULL) {
 		(void)sd_event_source_disable_unref(pidfd_source);
+	}
 
 	return -1;
 }
@@ -155,8 +161,9 @@ err_return:
  */
 int container_monitor_removeguest(containers_t *cs, container_config_t *cc)
 {
-	if (cs == NULL || cc == NULL)
+	if (cs == NULL || cc == NULL) {
 		return -1;
+	}
 
 	// No task in this case.
 

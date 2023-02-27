@@ -69,8 +69,9 @@ int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_
 	// check new netif
 	dl_list_for_each(nii, &netif->nllist, network_interface_info_t, list) {
 
-		if (nii->ifindex <= 0)
+		if (nii->ifindex <= 0) {
 			continue;
+		}
 
 		dl_list_for_each(cdne, &cdn->dynamic_netiflist, container_dynamic_netif_elem_t, list) {
 			if (cdne->ifindex == 0 && strncmp(nii->ifname, cdne->ifname, sizeof(nii->ifname)) == 0) {
@@ -91,11 +92,15 @@ int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_
 					#ifdef _PRINTF_DEBUG_
 					(void) fprintf(stdout, "network if update add %s to %s\n", cdne->ifname, cc->name);
 					#endif
+					// nop
 					;
 				}
 			} else if (cdne->ifindex == nii->ifindex) {
 				// existing netif
 				cdne->is_available = 1;
+			} else {
+				// nop
+				;
 			}
 		}
 	}
@@ -160,8 +165,9 @@ int container_netif_updated(containers_t *cs)
 	for(int i=0;i < num;i++) {
 		cc = cs->containers[i];
 		ret = container_netif_update_guest(cc, cs->ddm);
-		if (ret < 0)
+		if (ret < 0) {
 			goto err_ret;
+		}
 	}
 
 	return 0;
@@ -296,8 +302,9 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 
 				// Set timeout
 				timeout = get_current_time_ms();
-				if (timeout < 0)
+				if (timeout < 0) {
 					timeout = 0;
+				}
 				timeout = timeout + cc->baseconfig.lifecycle.timeout;
 				cc->runtime_stat.timeout = timeout;
 
@@ -344,8 +351,9 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 
 				// Set timeout
 				timeout = get_current_time_ms();
-				if (timeout < 0)
+				if (timeout < 0) {
 					timeout = 0;
+				}
 				timeout = timeout + cc->baseconfig.lifecycle.timeout;
 				cc->runtime_stat.timeout = timeout;
 
@@ -418,8 +426,9 @@ int container_request_reboot(container_config_t *cc, int sys_state)
 
 				// Set timeout
 				timeout = get_current_time_ms();
-				if (timeout < 0)
+				if (timeout < 0) {
 					timeout = 0;
+				}
 				timeout = timeout + cc->baseconfig.lifecycle.timeout;
 				cc->runtime_stat.timeout = timeout;
 
@@ -466,8 +475,9 @@ int container_request_reboot(container_config_t *cc, int sys_state)
 
 				// Set timeout
 				timeout = get_current_time_ms();
-				if (timeout < 0)
+				if (timeout < 0) {
 					timeout = 0;
+				}
 				timeout = timeout + cc->baseconfig.lifecycle.timeout;
 				cc->runtime_stat.timeout = timeout;
 
@@ -531,8 +541,9 @@ int container_manager_shutdown(containers_t *cs)
 		}
 	}
 
-	if (fail_count > 0)
+	if (fail_count > 0) {
 		return -1;
+	}
 
 	return 0;
 }
@@ -617,6 +628,9 @@ int container_exec_internal_event(containers_t *cs)
 						(void) container_all_dynamic_device_update_notification(cs);
 					}
 				}
+			} else {
+				// nop
+				;
 			}
 		}
 
@@ -791,8 +805,9 @@ static int container_get_active_guest_by_role(containers_t *cs, char *role, cont
 		if (cmrc->name != NULL) {
 			container_manager_role_elem_t *pelem = NULL;
 
-			if (strcmp(cmrc->name, role) != 0)
+			if (strcmp(cmrc->name, role) != 0) {
 				continue;
+			}
 
 			pelem = dl_list_first(&cmrc->container_list, container_manager_role_elem_t, list) ;
 			if (pelem != NULL) {
@@ -996,8 +1011,10 @@ static int container_start_mountdisk_ab(char **devs, const char *path, const cha
 	int ret = 1;
 	const char * dev = NULL;
 
-	if (side < 0 || side >= 2)	//side is 0 or 1 only
+	if (side < 0 || side >= 2) {
+		//side is 0 or 1 only
 		return -3;
+	}
 
 	dev = devs[side];
 
@@ -1182,8 +1199,9 @@ static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t
 	int64_t timeout_time = 0;
 	int retry_max = 0;
 
-	if (timeout < 0)
+	if (timeout < 0) {
 		timeout = 0;
+	}
 
 	timeout_time = get_current_time_ms() + timeout;
 	retry_max = (timeout / 50) + 1;

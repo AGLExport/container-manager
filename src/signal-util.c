@@ -97,8 +97,9 @@ int signal_setup(sd_event *event, signal_util_t *util_array, int array_num)
 	sigset_t ss;
 	int ret = -1;
 
-	if (event == NULL || util_array == NULL || array_num < 1)
+	if (event == NULL || util_array == NULL || array_num < 1) {
 		return -2;
+	}
 
 	// If the correct arguments are given, sigemptyset and sigaddset function will never fail.
 	(void) sigemptyset(&ss);
@@ -113,8 +114,9 @@ int signal_setup(sd_event *event, signal_util_t *util_array, int array_num)
 
 	// Block signals
 	ret = pthread_sigmask(SIG_BLOCK, &ss, NULL);
-	if (ret < 0)
+	if (ret < 0) {
 		goto err_return;
+	}
 
 	for(int i=0; i < array_num; i++) {
 		int signalnum = util_array[i].signal;

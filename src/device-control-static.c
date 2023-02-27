@@ -52,17 +52,20 @@ int devc_early_device_setup(containers_t *cs)
 
 		// run static device scan
 		ret = devc_static_devnode_scan(&cc->deviceconfig.static_device);
-		if (ret < 0)
+		if (ret < 0) {
 			goto err_ret;
+		}
 
 		// run gpio export
 		ret = devc_gpionode_scan(&cc->deviceconfig.static_device);
-		if (ret < 0)
+		if (ret < 0) {
 			goto err_ret;
+		}
 
 		ret = devc_iionode_scan(&cc->deviceconfig.static_device);
-		if (ret < 0)
+		if (ret < 0) {
 			goto err_ret;
+		}
 	}
 
 	return 0;
@@ -105,10 +108,11 @@ static int devc_static_devnode_scan(container_static_device_t *sdevc)
 		}
 
 		// Check device node type
-		if(S_ISCHR(sb.st_mode))
+		if(S_ISCHR(sb.st_mode)) {
 			develem->devtype = DEVNODE_TYPE_CHR;
-		else if (S_ISBLK(sb.st_mode))
+		} else if (S_ISBLK(sb.st_mode)) {
 			develem->devtype = DEVNODE_TYPE_BLK;
+		}
 
 		if (develem->devtype != 0) {
 			// Set major and minor num
@@ -117,8 +121,9 @@ static int devc_static_devnode_scan(container_static_device_t *sdevc)
 
 			// Set valid flag
 			develem->is_valid = 1;
-		} else
+		} else {
 			develem->is_valid = 0;
+		}
 
 		#ifdef _PRINTF_DEBUG_
 		(void) fprintf(stdout,"devc: device file %s detect major = %d, minor = %d\n", develem->devnode, develem->major, develem->minor);
@@ -182,8 +187,9 @@ static int devc_gpionode_scan(container_static_device_t *sdevc)
 			buflen = sizeof(buf) - 1;
 
 			slen = snprintf(buf, buflen, "%d", gpioelem->port);
-			if (!(slen < buflen))
+			if (!(slen < buflen)) {
 				continue; //May not cause this error.
+			}
 
 			#ifdef _PRINTF_DEBUG_
 			(void) fprintf(stdout,"devc: gpio node %s will export\n", buf);
@@ -206,8 +212,9 @@ static int devc_gpionode_scan(container_static_device_t *sdevc)
 		buflen = sizeof(buf) - 1;
 
 		slen = snprintf(buf, buflen, "%s/direction", gpioelem->from);
-		if (!(slen < buflen))
+		if (!(slen < buflen)) {
 			continue; //Skip port setup, may not cause this error.
+		}
 
 		ret = once_write(buf, gpio_direction_table[gpioelem->portdirection], strlen(gpio_direction_table[gpioelem->portdirection]));
 		if (ret != 0) {
@@ -321,8 +328,9 @@ static int devc_netbridge_setup(container_manager_config_t *cmc)
 	container_manager_bridge_config_t *elem = NULL;
 
 	sock = socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
-	if (sock < 0)
+	if (sock < 0) {
 		return -2;
+	}
 
 	// static device node
 	dl_list_for_each(elem, &cmc->bridgelist, container_manager_bridge_config_t, list) {
@@ -334,7 +342,7 @@ static int devc_netbridge_setup(container_manager_config_t *cmc)
 		}
 
 		(void) memset(buf, 0, sizeof(buf));
-		strncpy(buf, elem->name, IFNAMSIZ);
+		(void) strncpy(buf, elem->name, IFNAMSIZ);
 
 		ret = ioctl(sock, SIOCBRADDBR, buf);
 		if (ret < 0 && errno != EEXIST) {

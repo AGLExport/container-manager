@@ -158,11 +158,13 @@ static int role_list_cleanup(containers_t* cs)
 {
     int ret = 0;
 
-	if (cs == NULL)
+	if (cs == NULL) {
 		return -1;
+	}
 
-	if (cs->cmcfg == NULL)
+	if (cs->cmcfg == NULL) {
 		return -1;
+	}
 
 	while(dl_list_empty(&cs->cmcfg->role_list) == 0) {
 		container_manager_role_config_t *cmrc = NULL;
@@ -196,17 +198,20 @@ static int role_list_cleanup(containers_t* cs)
 static int compare_bootpri(const void *data1, const void *data2)
 {
     int ret = 0;
-	const container_config_t *cc1 = *(container_config_t**)data1;
-	const container_config_t *cc2 = *(container_config_t**)data2;
+	const container_config_t *cc1 = *(const container_config_t**)data1;
+	const container_config_t *cc2 = *(const container_config_t**)data2;
 	int pri1 = 0, pri2 = 0;
 
 	pri1 = cc1->baseconfig.bootpriority;
 	pri2 = cc2->baseconfig.bootpriority;
 
-	if (pri1 < pri2)
+	if (pri1 < pri2) {
 		ret = -1;
-	else if (pri1 > pri2)
+	} else if (pri1 > pri2) {
 		ret = 1;
+	} else {
+		ret = 0;
+	}
 
 	return ret;
 }
@@ -231,7 +236,7 @@ containers_t *create_container_configs(const char *config_file)
 	const char *confdir = NULL;
 	const char *conffile = NULL;
 	char buf[1024];
-	int slen = 0, buflen = 0;
+	size_t slen = 0, buflen = 0;
 
 	(void) memset(ca,0,sizeof(ca));
 
@@ -241,19 +246,21 @@ containers_t *create_container_configs(const char *config_file)
 	}
 
 	ret = cmparser_manager_create_from_file(&cm, conffile);
-	if (ret < 0)
+	if (ret < 0) {
 		return NULL;
+	}
 
 	confdir = cm->configdir;
 
 	(void) memset(buf,0,sizeof(buf));
-	buflen = sizeof(buf) - 1;
-	strncpy(buf, confdir, buflen);
+	buflen = sizeof(buf) - 1u;
+	(void) strncpy(buf, confdir, buflen);
 	slen = strlen(buf);
-	if (slen <= 0)
+	if (slen <= 0u) {
 		return NULL;
+	}
 
-	if (buf[slen-1] != '/') {
+	if (buf[slen-1u] != '/') {
 		buf[slen] = '/';
 		slen++;
 	}
@@ -270,8 +277,8 @@ containers_t *create_container_configs(const char *config_file)
 				if (strstr(dent->d_name, ".json") != NULL) {
 
 					buf[slen] = '\0';
-					buf[(sizeof(buf) - 1)] = '\0';
-					strncpy(&buf[slen], dent->d_name, buflen);
+					buf[(sizeof(buf) - 1u)] = '\0';
+					(void) strncpy(&buf[slen], dent->d_name, buflen);
 
 					// parse container config.
 					ret = cmparser_create_from_file(&cc, buf);
@@ -310,16 +317,18 @@ containers_t *create_container_configs(const char *config_file)
 
 	//Create containers_t data
 	cs = (containers_t*)malloc(sizeof(containers_t));
-	if (cs == NULL)
+	if (cs == NULL) {
 		goto err_ret;
+	}
 
 	(void) memset(cs, 0, sizeof(containers_t));
 
-	cs->containers = (container_config_t**)malloc(sizeof(container_config_t*)*num);
-	if (cs->containers == NULL)
+	cs->containers = (container_config_t**)malloc(sizeof(container_config_t*) * (size_t)num);
+	if (cs->containers == NULL) {
 		goto err_ret;
+	}
 
-	(void) memset(cs->containers, 0, sizeof(container_config_t*)*num);
+	(void) memset(cs->containers, 0, sizeof(container_config_t*) * (size_t)num);
 
 	for(int i=0; i < num; i++) {
 		cs->containers[i] = ca[i];
@@ -328,8 +337,9 @@ containers_t *create_container_configs(const char *config_file)
 
 	cs->cmcfg = cm;
 	ret = bind_container_to_role_list(cs);
-	if(ret < 0)
+	if(ret < 0) {
 		goto err_ret;
+	}
 
 	return cs;
 
@@ -340,13 +350,15 @@ err_ret:
 		cmparser_release_config(ca[i]);
 	}
 
-	if (cs !=NULL)
+	if (cs !=NULL) {
 		free(cs->containers);
+	}
 
 	free(cs);
 
-	if (cm != NULL)
+	if (cm != NULL) {
 		cmparser_manager_release_config(cm);
+	}
 
 	return NULL;
 }
@@ -362,8 +374,9 @@ int release_container_configs(containers_t *cs)
 {
 	int num = 0;
 
-	if (cs == NULL)
+	if (cs == NULL) {
 		return -1;
+	}
 
 	(void) role_list_cleanup(cs);
 

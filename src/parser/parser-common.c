@@ -34,36 +34,43 @@ char *cmparser_read_jsonstring(const char *file)
 	struct stat sb;
 
 	fd = open(file, O_RDONLY);
-	if (fd < 0)
+	if (fd < 0) {
 		goto err_ret;
+	}
 
 	(void) memset(&sb, 0, sizeof(sb));
 	ret = fstat(fd, &sb);
-	if (ret < 0)
+	if (ret < 0) {
 		goto err_ret;
+	}
 
-	if ((sb.st_mode & S_IFMT) != S_IFREG)
+	if ((sb.st_mode & S_IFMT) != S_IFREG) {
 		goto err_ret;
+	}
 
 	strbuf = (char*)malloc(sb.st_size + 1);
-	if (strbuf == NULL)
+	if (strbuf == NULL) {
 		goto err_ret;
+	}
 
 	(void) memset(strbuf, 0, sb.st_size + 1);
 	rsize = read(fd, strbuf, (sb.st_size));
-	if (rsize < 0)
+	if (rsize < 0) {
 		goto err_ret;
+	}
 
 	close(fd);
 
 	return strbuf;
 
 err_ret:
-	if (strbuf != NULL)
+	if (strbuf != NULL) {
 		free(strbuf);
+	}
 
-	if(fd >= 0)
+	if(fd >= 0) {
 		close(fd);
+	}
 
 	return NULL;
 }
@@ -74,6 +81,7 @@ err_ret:
  */
 void cmparser_release_jsonstring(char *jsonstring)
 {
-	if (jsonstring != NULL)
+	if (jsonstring != NULL) {
 		free(jsonstring);
+	}
 }

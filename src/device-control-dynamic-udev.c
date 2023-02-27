@@ -85,6 +85,7 @@ static container_config_t *device_control_dynamic_udev_get_target_container(cont
 static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uevent_device_info_t *udi, struct udev_device *pdev
 													, dynamic_device_entry_items_behavior_t **behavior);
 static int device_control_dynamic_udev_create_injection_message(uevent_injection_message_t *uim, uevent_device_info_t *udi, struct udev_list_entry *le);
+static int device_control_dynamic_udev_get_uevent_action_code(const char *actionstr);
 
 static int extra_checker_block_device(struct dl_list *extra_list,  struct udev_device *pdev, int action);
 
@@ -148,15 +149,17 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 
 	ddu = (struct s_dynamic_device_udev*)ddm->ddu;
 	pdev = udev_monitor_receive_device(ddu->pudev_monitor);
-	if (pdev == NULL)
+	if (pdev == NULL) {
 		goto error_ret;
+	}
 
 	(void) memset(&udi, 0, sizeof(udi));
 	(void) memset(&lddr, 0, sizeof(lddr));
 
 	le = udev_device_get_properties_list_entry(pdev);
-	if (le == NULL)
+	if (le == NULL) {
 		goto bypass_ret;	// No data.
+	}
 
 	ret = device_control_dynamic_udev_create_info(&udi, &lddr, le);
 	if (ret == 0) {
@@ -165,18 +168,21 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 		#endif
 
 		cc = device_control_dynamic_udev_get_target_container(ddu->cs, &udi, pdev, &behavior);
-		if (cc == NULL)
+		if (cc == NULL) {
 			goto bypass_ret;	// Not match rule
+		}
 	} else {
 		goto bypass_ret;	// Not match rule
 	}
 
 	if (behavior->devnode == 1 || behavior->allow == 1) {
-		if (behavior->devnode == 1)
+		if (behavior->devnode == 1) {
 			lddr.is_create_node = 1;
+		}
 
-		if (behavior->allow == 1)
+		if (behavior->allow == 1) {
 			lddr.is_allow_device = 1;
+		}
 
 		lddr.permission = behavior->permission;
 
@@ -214,8 +220,9 @@ bypass_ret:
 	return 0;
 
 error_ret:
-	if (pdev != NULL)
+	if (pdev != NULL) {
 		udev_device_unref(pdev);
+	}
 
 	return -1;
 }
@@ -270,13 +277,15 @@ static int device_control_dynamic_udev_create_injection_message(uevent_injection
 
 	// add@/devices/pci0000:00/0000:00:08.1/0000:05:00.3/usb4/4-2/4-2:1.0/host3/target3:0:0/3:0:0:0/block/sdb/sdb1
 	ret = snprintf(&buf[usage], remain, "%s@%s", udi->action, udi->devpath);
-	if ((!(ret < remain)) || ret < 0)
+	if ((!(ret < remain)) || ret < 0) {
 		return -1;
+	}
 
 	usage = usage + ret + 1 /*NULL term*/;
 	remain = sizeof(uim->message) - 1 - usage;
-	if (remain < 0)
+	if (remain < 0) {
 		return -1;
+	}
 
 	// create body.
 	while (le != NULL) {
@@ -294,13 +303,15 @@ static int device_control_dynamic_udev_create_injection_message(uevent_injection
 			}
 
 			ret = snprintf(&buf[usage], remain, "%s=%s", elem_name, elem_value);
-			if ((!(ret < remain)) || ret < 0)
+			if ((!(ret < remain)) || ret < 0) {
 				return -1;
+			}
 
 			usage = usage + ret + 1 /*NULL term*/;
 			remain = sizeof(uim->message) - 1 - usage;
-			if (remain < 0)
+			if (remain < 0) {
 				return -1;
+			}
 
 			#ifdef _PRINTF_DEBUG_
 			(void) fprintf(stdout,"%s=%s ", elem_name, elem_value);
@@ -347,11 +358,7 @@ static int device_control_dynamic_udev_create_info(uevent_device_info_t *udi, lx
 			udi->action = elem_value;
 
 			// set to lxcutil dynamic device request
-			if (strcmp(elem_value, "add") == 0) {
-				lddr->operation = DCD_UEVENT_ACTION_ADD;
-			} else if (strcmp(elem_value, "remove") == 0) {
-				lddr->operation = DCD_UEVENT_ACTION_REMOVE;
-			}
+			lddr->operation = device_control_dynamic_udev_get_uevent_action_code(elem_value);
 		} else if (strcmp(elem_name, "DEVPATH") == 0) {
 			// set to uevent device info
 			udi->devpath = elem_value;
@@ -429,8 +436,9 @@ static container_config_t *device_control_dynamic_udev_get_target_container(cont
 	for(int i=0;i < num;i++) {
 		cc = cs->containers[i];
 		ret = device_control_dynamic_udev_rule_judgment(cc, udi, pdev, behavior);
-		if (ret == 1)
+		if (ret == 1) {
 			return cc;
+		}
 	}
 
 	return NULL;
@@ -446,37 +454,92 @@ static container_config_t *device_control_dynamic_udev_get_target_container(cont
  * @retval	0	An action of actionstr does not match handling rule.
  * @retval	<0	Internal error (Not use).
  */
-static int device_control_dynamic_udev_test_action(const char *actionstr, uevent_action_t *action)
+static int device_control_dynamic_udev_get_uevent_action_code(const char *actionstr)
 {
 	int ret = DCD_UEVENT_ACTION_NON;
 
-	if (actionstr == NULL || action == NULL)
+	if (actionstr == NULL) {
 		return ret;
+	}
 
 	if (strcmp("add", actionstr) == 0) {
-		if (action->add == 1)
-			ret = DCD_UEVENT_ACTION_ADD;
+		ret = DCD_UEVENT_ACTION_ADD;
 	} else if (strcmp("remove", actionstr) == 0) {
-		if (action->remove == 1)
-			ret = DCD_UEVENT_ACTION_REMOVE;
+		ret = DCD_UEVENT_ACTION_REMOVE;
 	} else if (strcmp("change", actionstr) == 0) {
-		if (action->change == 1)
-			ret = DCD_UEVENT_ACTION_CHANGE;
+		ret = DCD_UEVENT_ACTION_CHANGE;
 	} else if (strcmp("move", actionstr) == 0) {
-		if (action->move == 1)
-			ret = DCD_UEVENT_ACTION_MOVE;
+		ret = DCD_UEVENT_ACTION_MOVE;
 	} else if (strcmp("online", actionstr) == 0) {
-		if (action->online == 1)
-			ret = DCD_UEVENT_ACTION_ONLINE;
+		ret = DCD_UEVENT_ACTION_ONLINE;
 	} else if (strcmp("offline", actionstr) == 0) {
-		if (action->offline == 1)
-			ret = DCD_UEVENT_ACTION_OFFLINE;
+		ret = DCD_UEVENT_ACTION_OFFLINE;
 	} else if (strcmp("bind", actionstr) == 0) {
-		if (action->bind == 1)
-			ret = DCD_UEVENT_ACTION_BIND;
+		ret = DCD_UEVENT_ACTION_BIND;
 	} else if (strcmp("unbind", actionstr) == 0) {
-		if (action->unbind == 1)
+		ret = DCD_UEVENT_ACTION_UNBIND;
+	} else {
+		ret = DCD_UEVENT_ACTION_NON;
+	}
+
+	return ret;
+}
+/**
+ * Sub function for uevent monitor.
+ * Test uevent to match handling rule.
+ *
+ * @param [in]	actionstr	The string of uevent action.
+ * @param [in]	action		Pointer to uevent_action_t.
+ * @return int
+ * @retval	0<	Target uevent code to match handling rule.
+ * @retval	0	An action of actionstr does not match handling rule.
+ * @retval	<0	Internal error (Not use).
+ */
+static int device_control_dynamic_udev_test_action(const char *actionstr, uevent_action_t *action)
+{
+	int ret = DCD_UEVENT_ACTION_NON;
+	int action_code = DCD_UEVENT_ACTION_NON;
+
+	if (actionstr == NULL || action == NULL) {
+		return ret;
+	}
+
+	action_code = device_control_dynamic_udev_get_uevent_action_code(actionstr);
+
+	if (action_code == DCD_UEVENT_ACTION_ADD) {
+		if (action->add == 1) {
+			ret = DCD_UEVENT_ACTION_ADD;
+		}
+	} else if (action_code == DCD_UEVENT_ACTION_REMOVE) {
+		if (action->remove == 1) {
+			ret = DCD_UEVENT_ACTION_REMOVE;
+		}
+	} else if (action_code == DCD_UEVENT_ACTION_CHANGE) {
+		if (action->change == 1) {
+			ret = DCD_UEVENT_ACTION_CHANGE;
+		}
+	} else if (action_code == DCD_UEVENT_ACTION_MOVE) {
+		if (action->move == 1) {
+			ret = DCD_UEVENT_ACTION_MOVE;
+		}
+	} else if (action_code == DCD_UEVENT_ACTION_ONLINE) {
+		if (action->online == 1) {
+			ret = DCD_UEVENT_ACTION_ONLINE;
+		}
+	} else if (action_code == DCD_UEVENT_ACTION_OFFLINE) {
+		if (action->offline == 1) {
+			ret = DCD_UEVENT_ACTION_OFFLINE;
+		}
+	} else if (action_code == DCD_UEVENT_ACTION_BIND) {
+		if (action->bind == 1) {
+			ret = DCD_UEVENT_ACTION_BIND;
+		}
+	} else if (action_code == DCD_UEVENT_ACTION_UNBIND) {
+		if (action->unbind == 1) {
 			ret = DCD_UEVENT_ACTION_UNBIND;
+		}
+	} else {
+		ret = DCD_UEVENT_ACTION_NON;
 	}
 
 	return ret;
@@ -511,8 +574,9 @@ static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uev
 	cdd = &cc->deviceconfig.dynamic_device;
 
 	dl_list_for_each(cdde, &cdd->dynamic_devlist, container_dynamic_device_entry_t, list) {
-		if (cdde->devpath == NULL)
+		if (cdde->devpath == NULL) {
 			continue;	// No data.
+		}
 
 		result = 0;
 
@@ -523,8 +587,9 @@ static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uev
 			dynamic_device_entry_items_t *ddei = NULL;
 
 			dl_list_for_each(ddei, &cdde->items, dynamic_device_entry_items_t, list) {
-				if (ddei->subsystem == NULL)
+				if (ddei->subsystem == NULL) {
 					continue;	// No data.
+				}
 
 				if (strcmp(ddei->subsystem, udi->subsystem) == 0) {
 					// Match subsystem
@@ -533,8 +598,9 @@ static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uev
 					// ddei = "hidraw"  udi = "hid" this case shall judge "not match".
 
 					action_code = device_control_dynamic_udev_test_action(udi->action, &ddei->rule.action);
-					if (action_code == 0)
+					if (action_code == 0) {
 						continue;	//Not match
+					}
 
 					// empty or not
 					if (!dl_list_empty(&ddei->rule.devtype_list)) {
@@ -553,8 +619,9 @@ static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uev
 					// Have a extra rule?
 					if (dl_list_empty(&ddei->rule.extra_list) == 0) {
 						ret = udi->checker_func(&ddei->rule.extra_list, pdev, action_code);
-						if (ret != 1)
+						if (ret != 1) {
 							result = 0;
+						}
 					}
 				}
 
@@ -588,8 +655,9 @@ static int extra_checker_block_device(struct dl_list *extra_list,  struct udev_d
 	const char *devnode = NULL;
 
 	// Block device is only to check in add event case.
-	if (action != DCD_UEVENT_ACTION_ADD)
+	if (action != DCD_UEVENT_ACTION_ADD) {
 		return 1;
+	}
 
 	// Analyze udev properties list.
 	le = udev_device_get_properties_list_entry(pdev);
@@ -622,8 +690,9 @@ static int extra_checker_block_device(struct dl_list *extra_list,  struct udev_d
 			}
 
 			dl_list_for_each(pre, extra_list, dynamic_device_entry_items_rule_extra_t, list) {
-				if (pre->checker == NULL || pre->value == NULL)
+				if (pre->checker == NULL || pre->value == NULL) {
 					continue;
+				}
 
 				if (strcmp(pre->checker, "exclude-fs") == 0) {
 					result = 1;
@@ -667,34 +736,41 @@ int device_control_dynamic_udev_setup(dynamic_device_manager_t *ddm, containers_
 	int fd = -1;
 	int ret = -1;
 
-	if (cs == NULL || cs->ddm == NULL || event == NULL)
+	if (cs == NULL || cs->ddm == NULL || event == NULL) {
 		return -2;
+	}
 
 	ddu = malloc(sizeof(struct s_dynamic_device_udev));
-	if (ddu == NULL)
+	if (ddu == NULL) {
 		goto err_return;
+	}
 
 	(void) memset(ddu, 0, sizeof(struct s_dynamic_device_udev));
 
 	pudev = udev_new();
-	if (pudev == NULL)
+	if (pudev == NULL) {
 		goto err_return;
+	}
 
 	pudev_monitor = udev_monitor_new_from_netlink(pudev,"kernel");
-	if (pudev_monitor == NULL)
+	if (pudev_monitor == NULL) {
 		goto err_return;
+	}
 
 	ret = udev_monitor_enable_receiving(pudev_monitor);
-	if (ret < 0)
+	if (ret < 0) {
 		goto err_return;
+	}
 
 	fd = udev_monitor_get_fd(pudev_monitor);
-	if (fd < 0)
+	if (fd < 0) {
 		goto err_return;
+	}
 
 	ret = sd_event_add_io(event, &libudev_source, fd, EPOLLIN, udev_event_handler, ddm);
-	if (ret < 0)
+	if (ret < 0) {
 		goto err_return;
+	}
 
 	ddu->pudev = pudev;
 	ddu->pudev_monitor = pudev_monitor;
@@ -706,14 +782,17 @@ int device_control_dynamic_udev_setup(dynamic_device_manager_t *ddm, containers_
 	return 0;
 
 err_return:
-	if (pudev_monitor != NULL)
+	if (pudev_monitor != NULL) {
 		udev_monitor_unref(pudev_monitor);
+	}
 
-	if (pudev != NULL)
+	if (pudev != NULL) {
 		udev_unref(pudev);
+	}
 
-	if (ddu != NULL)
+	if (ddu != NULL) {
 		free(ddu);
+	}
 
 	ddm->ddu = NULL;
 
@@ -735,14 +814,17 @@ int device_control_dynamic_udev_cleanup(dynamic_device_manager_t *ddm)
 
 	ddu = (struct s_dynamic_device_udev*)ddm->ddu;
 
-	if (ddu->libudev_source != NULL)
+	if (ddu->libudev_source != NULL) {
 		(void)sd_event_source_disable_unref(ddu->libudev_source);
+	}
 
-	if (ddu->pudev_monitor != NULL)
+	if (ddu->pudev_monitor != NULL) {
 		udev_monitor_unref(ddu->pudev_monitor);
+	}
 
-	if (ddu->pudev != NULL)
+	if (ddu->pudev != NULL) {
 		udev_unref(ddu->pudev);
+	}
 
 	free(ddu);
 

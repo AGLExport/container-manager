@@ -41,9 +41,10 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 	(void) memset(buf,0,sizeof(buf));
 
 	// rootfs
-	slen = snprintf(buf, (sizeof(buf)-1), "dir:%s", bc->rootfs.path);
-	if (slen >= (sizeof(buf)-1))
+	slen = snprintf(buf, (sizeof(buf)-1u), "dir:%s", bc->rootfs.path);
+	if (slen >= (sizeof(buf)-1u)) {
 		goto err_ret;
+	}
 
 	bret = plxc->set_config_item(plxc, "lxc.rootfs.path", buf);
 	if (bret == false) {
@@ -60,7 +61,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 
 		dl_list_for_each(exdisk, &bc->extradisk_list, container_baseconfig_extradisk_t, list) {
 			(void) memset(buf, 0, sizeof(buf));
-			buflen = sizeof(buf) -1;
+			buflen = sizeof(buf) -1u;
 
 			if (exdisk->mode == DISKMOUNT_TYPE_RW) {
 				slen = snprintf(buf, buflen, "%s %s none bind,rw,create=dir", exdisk->from, exdisk->to);
@@ -215,16 +216,18 @@ static int lxcutil_set_config_resource(struct lxc_container *plxc, container_res
 	(void) memset(buf,0,sizeof(buf));
 
 	dl_list_for_each(melem, &rsc->resource.resourcelist, container_resource_elem_t, list) {
-		buflen = sizeof(buf) - 1;
+		buflen = sizeof(buf) - 1u;
 		buf[0] = '\0';
 
 		if (melem->type == RESOURCE_TYPE_CGROUP) {
-			if (melem->object == NULL || melem->value == NULL)
+			if (melem->object == NULL || melem->value == NULL) {
 				continue;	//drop data
+			}
 
 			slen = snprintf(buf, buflen, "lxc.cgroup.%s", melem->object);
-			if (slen >= buflen)
+			if (slen >= buflen) {
 				continue;	// buffer over -> drop data
+			}
 
 			bret = plxc->set_config_item(plxc, buf, melem->value);
 			if (bret == false) {
@@ -235,12 +238,14 @@ static int lxcutil_set_config_resource(struct lxc_container *plxc, container_res
 				goto err_ret;
 			}
 		} else 	if (melem->type == RESOURCE_TYPE_PRLIMIT) {
-			if (melem->object == NULL || melem->value == NULL)
+			if (melem->object == NULL || melem->value == NULL) {
 				continue;	//drop data
+			}
 
 			slen = snprintf(buf, buflen, "lxc.prlimit.%s", melem->object);
-			if (slen >= buflen)
+			if (slen >= buflen) {
 				continue;	// buffer over -> drop data
+			}
 
 			bret = plxc->set_config_item(plxc, buf, melem->value);
 			if (bret == false) {
@@ -251,12 +256,14 @@ static int lxcutil_set_config_resource(struct lxc_container *plxc, container_res
 				goto err_ret;
 			}
 		} else if (melem->type == RESOURCE_TYPE_SYSCTL) {
-			if (melem->object == NULL || melem->value == NULL)
+			if (melem->object == NULL || melem->value == NULL) {
 				continue;	//drop data
+			}
 
 			slen = snprintf(buf, buflen, "lxc.sysctl.%s", melem->object);
-			if (slen >= buflen)
+			if (slen >= buflen) {
 				continue;	// buffer over -> drop data
+			}
 
 			bret = plxc->set_config_item(plxc, buf, melem->value);
 			if (bret == false) {
@@ -308,15 +315,17 @@ static int lxcutil_set_config_fs(struct lxc_container *plxc, container_fsconfig_
 	}
 
 	dl_list_for_each(melem, &fsc->fsmount.mountlist, container_fsmount_elem_t, list) {
-		buflen = sizeof(buf) - 1;
+		buflen = sizeof(buf) - 1u;
 		(void) memset(buf,0,sizeof(buf));
 		if (melem->type == FSMOUNT_TYPE_FILESYSTEM) {
-			if (melem->from == NULL || melem->to == NULL || melem->fstype == NULL || melem->option == NULL)
+			if (melem->from == NULL || melem->to == NULL || melem->fstype == NULL || melem->option == NULL) {
 				continue;	//drop data
+			}
 
 			slen = snprintf(buf, buflen, "%s %s %s %s", melem->from, melem->to, melem->fstype, melem->option);
-			if (slen >= buflen)
+			if (slen >= buflen) {
 				continue;	// buffer over -> drop data
+			}
 
 			bret = plxc->set_config_item(plxc, "lxc.mount.entry", buf);
 			if (bret == false) {
@@ -327,12 +336,14 @@ static int lxcutil_set_config_fs(struct lxc_container *plxc, container_fsconfig_
 				goto err_ret;
 			}
 		} else if (melem->type == FSMOUNT_TYPE_DIRECTORY) {
-			if (melem->from == NULL || melem->to == NULL || melem->fstype == NULL || melem->option == NULL)
+			if (melem->from == NULL || melem->to == NULL || melem->fstype == NULL || melem->option == NULL) {
 				continue;	//drop data
+			}
 
 			slen = snprintf(buf, buflen, "%s %s %s %s", melem->from, melem->to, melem->fstype, melem->option);
-			if (slen >= buflen)
+			if (slen >= buflen) {
 				continue;	// buffer over -> drop data
+			}
 
 			bret = plxc->set_config_item(plxc, "lxc.mount.entry", buf);
 			if (bret == false) {
@@ -381,7 +392,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 	dl_list_for_each(develem, &devc->static_device.static_devlist, container_static_device_elem_t, list) {
 		//device bind mount
 		slen = 0;
-		buflen = sizeof(buf) - slen - 1;
+		buflen = sizeof(buf) - slen - 1u;
 		(void) memset(buf,0,sizeof(buf));
 
 		if (develem->from == NULL || develem->to == NULL
@@ -390,26 +401,28 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 			goto err_ret;
 		}
 
-		if (develem->is_valid == 0)
+		if (develem->is_valid == 0) {
 			continue;	//drop data
+		}
 
 		slen = snprintf(buf, buflen, "%s %s none bind,rw", develem->from, develem->to);
-		if (slen >= buflen)
+		if (slen >= buflen) {
 			continue;	// buffer over -> drop data
+		}
 
-		buflen = sizeof(buf) - slen - 1;
+		buflen = sizeof(buf) - slen - 1u;
 		if (develem->optional == 1) {
 			(void)strncpy(&buf[slen], ",optional", buflen);
-			slen = slen + sizeof(",optional") - 1;
+			slen = slen + sizeof(",optional") - 1u;
 		}
 
 		buflen = sizeof(buf) - slen - 1;
 		if (develem->type == DEVICE_TYPE_DEVNODE) {
 			(void)strncpy(&buf[slen], ",create=file", buflen);
-			slen = slen + sizeof(",create=file") - 1;
+			slen = slen + sizeof(",create=file") - 1u;
 		} if (develem->type == DEVICE_TYPE_DEVDIR) {
 			(void)strncpy(&buf[slen], ",create=dir", buflen);
-			slen = slen + sizeof(",create=dir") - 1;
+			slen = slen + sizeof(",create=dir") - 1u;
 		}
 
 		bret = plxc->set_config_item(plxc, "lxc.mount.entry", buf);
@@ -422,23 +435,27 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 		}
 
 		// device allow
-		buflen = sizeof(buf) - 1;
+		buflen = sizeof(buf) - 1u;
 		(void) memset(buf,0,sizeof(buf));
 
-		if (develem->devtype == DEVNODE_TYPE_BLK)
+		if (develem->devtype == DEVNODE_TYPE_BLK) {
 			pdevtype = sdevtype[1];
-		else
+		}
+		else {
 			pdevtype = sdevtype[0];	//Not block = char
+		}
 
 		if (develem->wideallow == 1) {
 			// allow all minor
 			slen = snprintf(buf, buflen, "%s %d:* rw", pdevtype, develem->major); // static node is block to mknod
-			if (slen >= buflen)
+			if (slen >= buflen) {
 				continue;	// buffer over -> drop data
+			}
 		} else {
 			slen = snprintf(buf, buflen, "%s %d:%d rw", pdevtype, develem->major, develem->minor); // static node is block to mknod
-			if (slen >= buflen)
+			if (slen >= buflen) {
 				continue;	// buffer over -> drop data
+			}
 		}
 
 		bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", buf);
@@ -448,7 +465,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 	dl_list_for_each(gpioelem, &devc->static_device.static_gpiolist, container_static_gpio_elem_t, list) {
 		//device bind mount
 		slen = 0;
-		buflen = sizeof(buf) - slen - 1;
+		buflen = sizeof(buf) - slen - 1u;
 		(void) memset(buf,0,sizeof(buf));
 
 		if (gpioelem->from == NULL || gpioelem->to == NULL || develem->is_valid == 0) {
@@ -458,17 +475,18 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 		}
 
 		slen = snprintf(buf, buflen, "%s %s none bind", gpioelem->from, gpioelem->to);
-		if (slen >= buflen)
+		if (slen >= buflen) {
 			continue;	// buffer over -> drop data
+		}
 
-		buflen = sizeof(buf) - slen - 1;
+		buflen = sizeof(buf) - slen - 1u;
 		if (devgpio_direction_isvalid(gpioelem->portdirection) == 1) {
 			// in = read only = not need bind mount
 			// out, low, high = need to rw bind mount to set gpio value
 			// not set = shall set direction in guest = rw mount
 			if (gpioelem->portdirection != DEVGPIO_DIRECTION_IN) {
 				(void)strncpy(&buf[slen], ",rw", buflen);
-				slen = slen + sizeof(",rw") - 1;
+				slen = slen + sizeof(",rw") - 1u;
 
 				bret = plxc->set_config_item(plxc, "lxc.mount.entry", buf);
 				if (bret == false) {
@@ -490,7 +508,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 	dl_list_for_each(iioelem, &devc->static_device.static_iiolist, container_static_iio_elem_t, list) {
 		//device bind mount
 		slen = 0;
-		buflen = sizeof(buf) - slen - 1;
+		buflen = sizeof(buf) - slen - 1u;
 		buf[0] = '\0';
 
 		if (iioelem->sysfrom == NULL || iioelem->systo == NULL ) {
@@ -517,8 +535,9 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 		}
 
 		slen = snprintf(buf, buflen, "%s %s none bind,rw", iioelem->sysfrom, iioelem->systo);
-		if (slen >= buflen)
+		if (slen >= buflen) {
 			continue;	// buffer over -> drop data
+		}
 
 		bret = plxc->set_config_item(plxc, "lxc.mount.entry", buf);
 		if (bret == false) {
@@ -533,23 +552,24 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 		if (iioelem->devfrom != NULL && iioelem->devto != NULL && iioelem->devnode != NULL) {
 			// dev node part required.
 			slen = 0;
-			buflen = sizeof(buf) - slen - 1;
+			buflen = sizeof(buf) - slen - 1u;
 			buf[0] = '\0';
 
 			if (iioelem->is_dev_valid == 1) {
 				slen = snprintf(buf, buflen, "%s %s none bind,rw", iioelem->devfrom, iioelem->devto);
-				if (slen >= buflen)
+				if (slen >= buflen) {
 					continue;	// buffer over -> drop data
-
-				buflen = sizeof(buf) - slen - 1;
-				if (iioelem->optional == 1) {
-					(void)strncpy(&buf[slen], ",optional", buflen);
-					slen = slen + sizeof(",optional") - 1;
 				}
 
-				buflen = sizeof(buf) - slen - 1;
+				buflen = sizeof(buf) - slen - 1u;
+				if (iioelem->optional == 1) {
+					(void)strncpy(&buf[slen], ",optional", buflen);
+					slen = slen + sizeof(",optional") - 1u;
+				}
+
+				buflen = sizeof(buf) - slen - 1u;
 				(void)strncpy(&buf[slen], ",create=file", buflen);
-				slen = slen + sizeof(",create=file") - 1;
+				slen = slen + sizeof(",create=file") - 1u;
 
 				bret = plxc->set_config_item(plxc, "lxc.mount.entry", buf);
 				if (bret == false) {
@@ -561,12 +581,13 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 				}
 
 				// device allow
-				buflen = sizeof(buf) - 1;
+				buflen = sizeof(buf) - 1u;
 				buf[0] = '\0';
 
 				slen = snprintf(buf, buflen, "c %d:%d rw", iioelem->major, iioelem->minor); // static node is block to mknod
-				if (slen >= buflen)
+				if (slen >= buflen) {
 					continue;	// buffer over -> drop data
+				}
 
 				bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", buf);
 				if (bret == false) {
@@ -816,10 +837,11 @@ int lxcutil_create_instance(container_config_t *cc)
 	{
 		char buf[1024];
 
-		snprintf(buf, sizeof(buf)-1, "/tmp/dbgcfg-%s.txt", cc->name);
+		snprintf(buf, sizeof(buf)-1u, "/tmp/dbgcfg-%s.txt", cc->name);
 		bret = plxc->save_config(cc->runtime_stat.lxc, buf);
-		if (bret == false)
+		if (bret == false) {
 			(void) fprintf(stdout,"lxcutil: save_config fail.\n");
+		}
 
 	}
 	#endif
@@ -827,8 +849,9 @@ int lxcutil_create_instance(container_config_t *cc)
 	return 0;
 
 err_ret:
-	if (plxc != NULL)
+	if (plxc != NULL) {
 		(void)lxc_container_put(plxc);
+	}
 
 	return result;
 }
@@ -852,8 +875,9 @@ int lxcutil_container_shutdown(container_config_t *cc)
 		#endif
 	}
 
-	if (bret == true)
+	if (bret == true) {
 		result = 0;
+	}
 
 	return result;
 }
@@ -893,8 +917,9 @@ int lxcutil_container_forcekill(container_config_t *cc)
 int lxcutil_release_instance(container_config_t *cc)
 {
 
-	if (cc->runtime_stat.lxc != NULL)
+	if (cc->runtime_stat.lxc != NULL) {
 		(void)lxc_container_put(cc->runtime_stat.lxc);
+	}
 
 	cc->runtime_stat.lxc = NULL;
 	cc->runtime_stat.pid = -1;
@@ -916,8 +941,9 @@ pid_t lxcutil_get_init_pid(container_config_t *cc)
 	if (cc->runtime_stat.lxc != NULL) {
 		if (cc->runtime_stat.pid <= 0) {
 			target_pid = cc->runtime_stat.lxc->init_pid(cc->runtime_stat.lxc);
-			if (target_pid > 0)
+			if (target_pid > 0) {
 				cc->runtime_stat.pid = target_pid;
+			}
 		} else {
 			target_pid = cc->runtime_stat.pid;
 		}
@@ -947,7 +973,7 @@ static int lxcutil_add_remove_guest_node_child(pid_t target_pid, const char *pat
 	(void) memset(buf, 0 , sizeof(buf));
 
 	ret = snprintf(buf, sizeof(buf), "/proc/%d/root", target_pid);
-	if (!(ret < sizeof(buf)-1)) {
+	if (!(ret < sizeof(buf)-1u)) {
 		return -1;
 	}
 
@@ -962,19 +988,22 @@ static int lxcutil_add_remove_guest_node_child(pid_t target_pid, const char *pat
 	}
 
 	(void) unlink(path);
-	if (is_add != 1)
+	if (is_add != 1) {
 		return 0;
+	}
 
-	strncpy(buf, path, sizeof(buf)-1);
+	(void) strncpy(buf, path, sizeof(buf)-1u);
 
 	ret = mkdir_p(buf, 0755);
-	if (ret < 0)
+	if (ret < 0) {
 		return -1;
+	}
 
 	/* create the device node */
 	ret = mknod(path, devmode, devnum);
-	if (ret < 0 && errno != EEXIST)
+	if (ret < 0 && errno != EEXIST) {
 		return -1;
+	}
 
 	return 0;
 }
@@ -999,9 +1028,10 @@ static int lxcutil_add_remove_guest_node(pid_t target_pid, const char *path, int
 	mode_t devmode = 0;;
 
 	if (is_add == 1) {
-		ret = stat(path, &sb);
-		if (ret < 0)
+		ret = lstat(path, &sb);
+		if (ret < 0) {
 			return -1;
+		}
 
 		devmode = sb.st_mode;
 	}
@@ -1021,8 +1051,9 @@ static int lxcutil_add_remove_guest_node(pid_t target_pid, const char *path, int
 	}
 
 	ret = wait_child_pid(child_pid);
-	if (ret < 0)
+	if (ret < 0) {
 		return -2;
+	}
 
 	return 0;
 }
@@ -1054,8 +1085,9 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 		goto err_ret;
 	}
 
-	if (lddr->dev_major < 0 || lddr->dev_minor < 0)
+	if (lddr->dev_major < 0 || lddr->dev_minor < 0) {
 		return 0;	// No need to allow/deny device by cgroup
+	}
 
 	// Device allow/deny setting by cgroup.
 	if (lddr->is_allow_device == 1) {
@@ -1063,38 +1095,45 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 		const char perm_default[] = "rw";
 		char buf[1024];
 
-		permission = lddr->permission;
-		if (permission == NULL)
-			permission = perm_default;
+		// device allow/deny only to operate add/remove operation.
+		if (lddr->operation == DCD_UEVENT_ACTION_ADD || lddr->operation == DCD_UEVENT_ACTION_REMOVE) {
+			permission = lddr->permission;
+			if (permission == NULL) {
+				permission = perm_default;
+			}
 
-		if (lddr->devtype == DEVNODE_TYPE_BLK) {
-			ret = snprintf(buf, sizeof(buf), "b %d:%d %s", lddr->dev_major, lddr->dev_minor, permission);
-		} else {
-			ret = snprintf(buf, sizeof(buf), "c %d:%d %s", lddr->dev_major, lddr->dev_minor, permission);
-		}
+			if (lddr->devtype == DEVNODE_TYPE_BLK) {
+				ret = snprintf(buf, sizeof(buf), "b %d:%d %s", lddr->dev_major, lddr->dev_minor, permission);
+			} else {
+				ret = snprintf(buf, sizeof(buf), "c %d:%d %s", lddr->dev_major, lddr->dev_minor, permission);
+			}
 
-		if (!(ret < (sizeof(buf)-1))) {
-			result = -1;
-			goto err_ret;
-		}
+			if (!(ret < (sizeof(buf)-1u))) {
+				result = -1;
+				goto err_ret;
+			}
 
-		if (lddr->operation == DCD_UEVENT_ACTION_ADD) {
-			bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.allow", buf);
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout, "lxc set_cgroup_item: %s = %s\n", "devices.allow", buf);
-			#endif
-		} else if (lddr->operation == DCD_UEVENT_ACTION_REMOVE) {
-			bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.deny", buf);
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout, "lxc set_cgroup_item: %s = %s\n", "devices.deny", buf);
-			#endif
-		}
-		if (bret == false) {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout, "lxcutil_dynamic_device_operation: fail set_cgroup_item %s\n", buf);
-			#endif
-			result = -2;
-			goto err_ret;
+			if (lddr->operation == DCD_UEVENT_ACTION_ADD) {
+				bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.allow", buf);
+				#ifdef _PRINTF_DEBUG_
+				(void) fprintf(stdout, "lxc set_cgroup_item: %s = %s\n", "devices.allow", buf);
+				#endif
+			} else if (lddr->operation == DCD_UEVENT_ACTION_REMOVE) {
+				bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.deny", buf);
+				#ifdef _PRINTF_DEBUG_
+				(void) fprintf(stdout, "lxc set_cgroup_item: %s = %s\n", "devices.deny", buf);
+				#endif
+			} else {
+				// May not use this path
+				bret = false;
+			}
+			if (bret == false) {
+				#ifdef _PRINTF_DEBUG_
+				(void) fprintf(stdout, "lxcutil_dynamic_device_operation: fail set_cgroup_item %s\n", buf);
+				#endif
+				result = -2;
+				goto err_ret;
+			}
 		}
 	}
 
@@ -1104,20 +1143,26 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 		ret = -1;
 		pid_t target_pid = 0;
 
-		target_pid = lxcutil_get_init_pid(cc);
+		// device node only to operate add/remove operation.
+		if (lddr->operation == DCD_UEVENT_ACTION_ADD || lddr->operation == DCD_UEVENT_ACTION_REMOVE) {
+			target_pid = lxcutil_get_init_pid(cc);
 
-		devnum = makedev(lddr->dev_major, lddr->dev_minor);
-		if (lddr->operation == DCD_UEVENT_ACTION_ADD) {
-			ret = lxcutil_add_remove_guest_node(target_pid, lddr->devnode, 1, devnum);
-		} else if (lddr->operation == DCD_UEVENT_ACTION_REMOVE) {
-			ret = lxcutil_add_remove_guest_node(target_pid, lddr->devnode, 0, devnum);
-		}
-		if (ret < 0) {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout, "lxcutil_dynamic_device_operation: fail lxcutil_add_remove_guest_node (%d) %s\n", ret, lddr->devnode);
-			#endif
-			result = -1;
-			goto err_ret;
+			devnum = makedev(lddr->dev_major, lddr->dev_minor);
+			if (lddr->operation == DCD_UEVENT_ACTION_ADD) {
+				ret = lxcutil_add_remove_guest_node(target_pid, lddr->devnode, 1, devnum);
+			} else if (lddr->operation == DCD_UEVENT_ACTION_REMOVE) {
+				ret = lxcutil_add_remove_guest_node(target_pid, lddr->devnode, 0, devnum);
+			} else {
+				// May not use this path
+				bret = false;
+			}
+			if (ret < 0) {
+				#ifdef _PRINTF_DEBUG_
+				(void) fprintf(stdout, "lxcutil_dynamic_device_operation: fail lxcutil_add_remove_guest_node (%d) %s\n", ret, lddr->devnode);
+				#endif
+				result = -1;
+				goto err_ret;
+			}
 		}
 	}
 
@@ -1149,8 +1194,9 @@ int lxcutil_dynamic_networkif_add_to_guest(container_config_t *cc, container_dyn
 		#endif
 	}
 
-	if (bret == true)
+	if (bret == true) {
 		result = 0;
+	}
 
 	return result;
 }

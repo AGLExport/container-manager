@@ -39,24 +39,28 @@ int devc_device_manager_setup(containers_t *cs, container_control_interface_t *c
 	dynamic_device_manager_t *ddm = NULL;
 
 	ddm = (dynamic_device_manager_t*)malloc(sizeof(dynamic_device_manager_t));
-	if (ddm == NULL)
+	if (ddm == NULL) {
 		return -1;
+	}
 
 	(void) memset(ddm, 0, sizeof(dynamic_device_manager_t));
 
 	cs->ddm = ddm;
 
 	ret = device_control_dynamic_udev_setup(ddm, cs, event);
-	if (ret < 0)
+	if (ret < 0) {
 		goto err_ret;
+	}
 
 	ret = netifmonitor_setup(ddm, cci, event);
-	if (ret < 0)
+	if (ret < 0) {
 		goto err_ret;
+	}
 
 	return 0;
 
 err_ret:
+	(void) devc_device_manager_cleanup(cs);
 
 	return result;
 }

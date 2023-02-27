@@ -29,42 +29,49 @@ int block_util_getfs(const char *devpath, block_device_info_t *bdi)
 	const char *data;
 	size_t sz;
 
-	if (devpath == NULL || bdi == NULL)
+	if (devpath == NULL || bdi == NULL) {
 		return -1;
+	}
 
 	blk = blkid_new_probe_from_filename(devpath);
-	if (blk == NULL)
+	if (blk == NULL) {
 		return -1;
+	}
 
 	ret = blkid_probe_enable_superblocks(blk, 1);
-	if (ret < 0)
+	if (ret < 0) {
 		goto error_ret;
+	}
 
 	ret = blkid_probe_set_superblocks_flags(blk, BLKID_SUBLKS_LABEL | BLKID_SUBLKS_TYPE);
-	if (ret < 0)
+	if (ret < 0) {
 		goto error_ret;
+	}
 
 	ret = blkid_do_safeprobe(blk);
-	if (ret < 0)
+	if (ret < 0) {
 		goto error_ret;
+	}
 
 	// fs type
 	ret = blkid_probe_lookup_value(blk, "TYPE", &data, &sz);
-	if (ret == 0 && sz <= 31) {
+	if (ret == 0 && sz <= 31u) {
 		// have a vol label
 		(void) memcpy(bdi->type, data, sz);
 		bdi->type[sz] = '\0';
-	} else
+	} else {
 		bdi->type[0] = '\0';
+	}
 
 	// volume label
 	ret = blkid_probe_lookup_value(blk, "LABEL", &data, &sz);
-	if (ret == 0 && sz <= 16) {
+	if (ret == 0 && sz <= 16u) {
 		// have a vol label
 		(void) memcpy(bdi->volume_label, data, sz);
 		bdi->volume_label[sz] = '\0';
-	} else
+	} else {
 		bdi->volume_label[0] = '\0';
+	}
 
 	blkid_free_probe(blk);
 
@@ -75,8 +82,9 @@ int block_util_getfs(const char *devpath, block_device_info_t *bdi)
 	return 0;
 
 error_ret:
-	if (blk != NULL)
+	if (blk != NULL) {
 		blkid_free_probe(blk);
+	}
 
 	return -1;
 }

@@ -78,12 +78,13 @@ static int container_external_interface_get_guest_info(containers_t *cs, contain
 {
 	int num_of_guest = 0;
 
-	if (cs == NULL || guests_info == NULL)
+	if (cs == NULL || guests_info == NULL) {
 		return -2;
+	}
 
 	for (int i =0; i < cs->num_of_container; i++) {
-		strncpy(guests_info->guests[i].guest_name, cs->containers[i]->name, sizeof(guests_info->guests->guest_name));
-		strncpy(guests_info->guests[i].role_name, cs->containers[i]->role, sizeof(guests_info->guests->role_name));
+		(void) strncpy(guests_info->guests[i].guest_name, cs->containers[i]->name, sizeof(guests_info->guests->guest_name));
+		(void) strncpy(guests_info->guests[i].role_name, cs->containers[i]->role, sizeof(guests_info->guests->role_name));
 
 		guests_info->guests[i].status = container_external_interface_convert_status(cs->containers[i]->runtime_stat.status);
 
@@ -142,8 +143,9 @@ static int container_external_interface_force_reboot_guest(containers_t *cs, cha
 {
 	int command_accept = -1;
 
-	if (cs == NULL || name == NULL)
+	if (cs == NULL || name == NULL) {
 		return -2;
+	}
 
 	for (int i =0; i < cs->num_of_container; i++) {
 		container_config_t *cc = cs->containers[i];
@@ -181,8 +183,9 @@ static int container_external_interface_reboot_guest(containers_t *cs, char *nam
 	int ret = -1;
 	int command_accept = -1;
 
-	if (cs == NULL || name == NULL)
+	if (cs == NULL || name == NULL) {
 		return -2;
+	}
 
 	for (int i =0; i < cs->num_of_container; i++) {
 		container_config_t *cc = cs->containers[i];
@@ -193,8 +196,9 @@ static int container_external_interface_reboot_guest(containers_t *cs, char *nam
 				(void) fprintf(stdout,"container_external_interface_reboot_guest: reboot to %s, command req %s\n", cc->name, name);
 				#endif
 				ret = container_request_reboot(cc, cs->sys_state);
-				if (ret == 0)
+				if (ret == 0) {
 					command_accept = 0;
+				}
 			}
 		} else {
 			if (cc->runtime_stat.status == CONTAINER_STARTED) {
@@ -203,8 +207,9 @@ static int container_external_interface_reboot_guest(containers_t *cs, char *nam
 					(void) fprintf(stdout,"container_external_interface_reboot_guest: reboot to %s, command req %s\n", cc->name, name);
 					#endif
 					ret = container_request_reboot(cc, cs->sys_state);
-					if (ret == 0)
+					if (ret == 0) {
 						command_accept = 0;
+					}
 				}
 			}
 		}
@@ -228,8 +233,9 @@ static int container_external_interface_shutdown_guest(containers_t *cs, char *n
 	int ret = -1;
 	int command_accept = -1;
 
-	if (cs == NULL || name == NULL)
+	if (cs == NULL || name == NULL) {
 		return -2;
+	}
 
 	for (int i =0; i < cs->num_of_container; i++) {
 		container_config_t *cc = cs->containers[i];
@@ -240,8 +246,9 @@ static int container_external_interface_shutdown_guest(containers_t *cs, char *n
 				(void) fprintf(stdout,"container_external_interface_shutdown_guest: shutdown to %s, command req %s\n", cc->name, name);
 				#endif
 				ret = container_request_shutdown(cc, cs->sys_state);
-				if (ret == 0)
+				if (ret == 0) {
 					command_accept = 0;
+				}
 			}
 		} else {
 			if (cc->runtime_stat.status == CONTAINER_STARTED) {
@@ -250,8 +257,9 @@ static int container_external_interface_shutdown_guest(containers_t *cs, char *n
 					(void) fprintf(stdout,"container_external_interface_shutdown_guest: shutdown to %s, command req %s\n", cc->name, name);
 					#endif
 					ret = container_request_shutdown(cc, cs->sys_state);
-					if (ret == 0)
+					if (ret == 0) {
 						command_accept = 0;
+					}
 				}
 			}
 		}
@@ -417,8 +425,9 @@ static int container_external_interface_exec(cm_external_interface_t *pextif, in
 	container_extif_command_header_t *pheader = NULL;
 	int ret = 0;
 
-	if (buf == NULL || size < sizeof(container_extif_command_header_t))
+	if (buf == NULL || size < sizeof(container_extif_command_header_t)) {
 		return -1;
+	}
 
 	pheader = (container_extif_command_header_t*)buf;
 
@@ -508,11 +517,13 @@ static int container_external_interface_incoming_handler(sd_event_source *event,
 			sessionfd = accept4(fd, NULL, NULL, SOCK_NONBLOCK | SOCK_CLOEXEC);
 		} while ((sessionfd < 0) && (errno == EINTR));
 
-		if (sessionfd < 0)
+		if (sessionfd < 0) {
 			goto error_return;
+		}
 
-		if (pextif == NULL)
+		if (pextif == NULL) {
 			goto error_return;
+		}
 
 		if(pextif->interface_session_evsource != NULL) {
 			// external interface is one session only
@@ -524,8 +535,9 @@ static int container_external_interface_incoming_handler(sd_event_source *event,
 
 		ret = sd_event_add_io(pextif->parent_eventloop, &pextif->interface_session_evsource, sessionfd,
 								(EPOLLIN | EPOLLHUP | EPOLLERR), container_external_interface_sessions_handler, pextif);
-		if (ret < 0)
+		if (ret < 0) {
 			goto error_return_b;
+		}
 
 		// Set automatically fd close at delete object.
 		ret = sd_event_source_set_io_fd_own(pextif->interface_session_evsource, 1);
@@ -534,8 +546,9 @@ static int container_external_interface_incoming_handler(sd_event_source *event,
 		}
 		// After this, shall not close sessionfd by close.
 		sessionfd = -1;
-	} else
+	} else {
 		goto error_return;
+	}
 
 	return 0;
 
@@ -546,8 +559,9 @@ error_return_b:
 	}
 
 error_return:
-	if (sessionfd >= 0)
-		close(sessionfd);
+	if (sessionfd >= 0) {
+		(void) close(sessionfd);
+	}
 
 	return 0;
 }
@@ -570,12 +584,14 @@ int container_external_interface_setup(containers_t *cs, sd_event *event)
 	int fd = -1;
 	int ret = -1;
 
-	if (cs == NULL || event == NULL)
+	if (cs == NULL || event == NULL) {
 		return -2;
+	}
 
 	cms = cs->cms;
-	if (cms == NULL)
+	if (cms == NULL) {
 		return -2;
+	}
 
 	pextif = (cm_external_interface_t*) malloc(sizeof(cm_external_interface_t));
 	if (pextif == NULL) {
@@ -637,8 +653,9 @@ int container_external_interface_setup(containers_t *cs, sd_event *event)
 err_return:
 	socket_source = sd_event_source_disable_unref(socket_source);
 	free(pextif);
-	if (fd != -1)
-		close(fd);
+	if (fd != -1) {
+		(void) close(fd);
+	}
 
 	return ret;
 }
@@ -656,16 +673,19 @@ int container_external_interface_cleanup(containers_t *cs)
 	container_mngsm_t *cms = NULL;
 	cm_external_interface_t *pextif = NULL;
 
-	if (cs == NULL)
+	if (cs == NULL) {
 		return -2;
+	}
 
 	cms = (container_mngsm_t*)cs->cms;
-	if (cms == NULL)
+	if (cms == NULL) {
 		return -2;
+	}
 
 	pextif = cms->cm_ext_if;
-	if (pextif == NULL)
+	if (pextif == NULL) {
 		return -2;
+	}
 
 	if (pextif->interface_session_evsource != NULL) {
 		(void) sd_event_source_disable_unref(pextif->interface_session_evsource);
