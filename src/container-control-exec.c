@@ -92,11 +92,15 @@ int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_
 					#ifdef _PRINTF_DEBUG_
 					(void) fprintf(stdout, "network if update add %s to %s\n", cdne->ifname, cc->name);
 					#endif
+					// nop
 					;
 				}
 			} else if (cdne->ifindex == nii->ifindex) {
 				// existing netif
 				cdne->is_available = 1;
+			} else {
+				// nop
+				;
 			}
 		}
 	}
@@ -537,8 +541,9 @@ int container_manager_shutdown(containers_t *cs)
 		}
 	}
 
-	if (fail_count > 0)
+	if (fail_count > 0) {
 		return -1;
+	}
 
 	return 0;
 }
@@ -623,6 +628,9 @@ int container_exec_internal_event(containers_t *cs)
 						(void) container_all_dynamic_device_update_notification(cs);
 					}
 				}
+			} else {
+				// nop
+				;
 			}
 		}
 
