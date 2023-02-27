@@ -120,8 +120,8 @@ int mkdir_p(const char *dir, mode_t mode)
 	len = strnlen(dir, PATH_MAX-1);
 
 	for(int i=1; i < len; i++) {
-		if (path[i] == '/') {
-			(void) strncpy(path, dir, (i-1));
+		if (dir[i] == '/') {
+			(void) strncpy(path, dir, i);
 			ret = mkdir(path, mode);
 			if(ret < 0 && errno != EEXIST) {
 				result = -1;
