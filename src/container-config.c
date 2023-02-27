@@ -209,6 +209,8 @@ static int compare_bootpri(const void *data1, const void *data2)
 		ret = -1;
 	} else if (pri1 > pri2) {
 		ret = 1;
+	} else {
+		ret = 0;
 	}
 
 	return ret;
@@ -234,7 +236,7 @@ containers_t *create_container_configs(const char *config_file)
 	const char *confdir = NULL;
 	const char *conffile = NULL;
 	char buf[1024];
-	int slen = 0, buflen = 0;
+	size_t slen = 0, buflen = 0;
 
 	(void) memset(ca,0,sizeof(ca));
 
@@ -251,14 +253,14 @@ containers_t *create_container_configs(const char *config_file)
 	confdir = cm->configdir;
 
 	(void) memset(buf,0,sizeof(buf));
-	buflen = sizeof(buf) - 1;
+	buflen = sizeof(buf) - 1u;
 	(void) strncpy(buf, confdir, buflen);
 	slen = strlen(buf);
-	if (slen <= 0) {
+	if (slen <= 0u) {
 		return NULL;
 	}
 
-	if (buf[slen-1] != '/') {
+	if (buf[slen-1u] != '/') {
 		buf[slen] = '/';
 		slen++;
 	}
@@ -275,7 +277,7 @@ containers_t *create_container_configs(const char *config_file)
 				if (strstr(dent->d_name, ".json") != NULL) {
 
 					buf[slen] = '\0';
-					buf[(sizeof(buf) - 1)] = '\0';
+					buf[(sizeof(buf) - 1u)] = '\0';
 					(void) strncpy(&buf[slen], dent->d_name, buflen);
 
 					// parse container config.
@@ -321,12 +323,12 @@ containers_t *create_container_configs(const char *config_file)
 
 	(void) memset(cs, 0, sizeof(containers_t));
 
-	cs->containers = (container_config_t**)malloc(sizeof(container_config_t*)*num);
+	cs->containers = (container_config_t**)malloc(sizeof(container_config_t*) * (size_t)num);
 	if (cs->containers == NULL) {
 		goto err_ret;
 	}
 
-	(void) memset(cs->containers, 0, sizeof(container_config_t*)*num);
+	(void) memset(cs->containers, 0, sizeof(container_config_t*) * (size_t)num);
 
 	for(int i=0; i < num; i++) {
 		cs->containers[i] = ca[i];

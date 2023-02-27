@@ -120,7 +120,7 @@ static int container_mngsm_netif_updated(struct s_container_control_interface *c
 	command.header.command = CONTAINER_MNGSM_COMMAND_NETIFUPDATED;
 
 	ret = write(cm->secondary_fd, &command, sizeof(command));
-	if (ret != sizeof(command)) {
+	if (ret != (ssize_t)sizeof(command)) {
 		return -1;
 	}
 
@@ -151,7 +151,7 @@ static int container_mngsm_system_shutdown(struct s_container_control_interface 
 	command.header.command = CONTAINER_MNGSM_COMMAND_SYSTEM_SHUTDOWN;
 
 	ret = write(cm->secondary_fd, &command, sizeof(command));
-	if (ret != sizeof(command)) {
+	if (ret != (ssize_t)sizeof(command)) {
 		return -1;
 	}
 
