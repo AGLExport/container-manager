@@ -1028,7 +1028,7 @@ static int lxcutil_add_remove_guest_node(pid_t target_pid, const char *path, int
 	mode_t devmode = 0;;
 
 	if (is_add == 1) {
-		ret = stat(path, &sb);
+		ret = lstat(path, &sb);
 		if (ret < 0) {
 			return -1;
 		}
@@ -1095,39 +1095,45 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 		const char perm_default[] = "rw";
 		char buf[1024];
 
-		permission = lddr->permission;
-		if (permission == NULL) {
-			permission = perm_default;
-		}
+		// device allow/deny only to operate add/remove operation.
+		if (lddr->operation == DCD_UEVENT_ACTION_ADD || lddr->operation == DCD_UEVENT_ACTION_REMOVE) {
+			permission = lddr->permission;
+			if (permission == NULL) {
+				permission = perm_default;
+			}
 
-		if (lddr->devtype == DEVNODE_TYPE_BLK) {
-			ret = snprintf(buf, sizeof(buf), "b %d:%d %s", lddr->dev_major, lddr->dev_minor, permission);
-		} else {
-			ret = snprintf(buf, sizeof(buf), "c %d:%d %s", lddr->dev_major, lddr->dev_minor, permission);
-		}
+			if (lddr->devtype == DEVNODE_TYPE_BLK) {
+				ret = snprintf(buf, sizeof(buf), "b %d:%d %s", lddr->dev_major, lddr->dev_minor, permission);
+			} else {
+				ret = snprintf(buf, sizeof(buf), "c %d:%d %s", lddr->dev_major, lddr->dev_minor, permission);
+			}
 
-		if (!(ret < (sizeof(buf)-1u))) {
-			result = -1;
-			goto err_ret;
-		}
+			if (!(ret < (sizeof(buf)-1u))) {
+				result = -1;
+				goto err_ret;
+			}
 
-		if (lddr->operation == DCD_UEVENT_ACTION_ADD) {
-			bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.allow", buf);
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout, "lxc set_cgroup_item: %s = %s\n", "devices.allow", buf);
-			#endif
-		} else if (lddr->operation == DCD_UEVENT_ACTION_REMOVE) {
-			bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.deny", buf);
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout, "lxc set_cgroup_item: %s = %s\n", "devices.deny", buf);
-			#endif
-		}
-		if (bret == false) {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout, "lxcutil_dynamic_device_operation: fail set_cgroup_item %s\n", buf);
-			#endif
-			result = -2;
-			goto err_ret;
+			if (lddr->operation == DCD_UEVENT_ACTION_ADD) {
+				bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.allow", buf);
+				#ifdef _PRINTF_DEBUG_
+				(void) fprintf(stdout, "lxc set_cgroup_item: %s = %s\n", "devices.allow", buf);
+				#endif
+			} else if (lddr->operation == DCD_UEVENT_ACTION_REMOVE) {
+				bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.deny", buf);
+				#ifdef _PRINTF_DEBUG_
+				(void) fprintf(stdout, "lxc set_cgroup_item: %s = %s\n", "devices.deny", buf);
+				#endif
+			} else {
+				// May not use this path
+				bret = false;
+			}
+			if (bret == false) {
+				#ifdef _PRINTF_DEBUG_
+				(void) fprintf(stdout, "lxcutil_dynamic_device_operation: fail set_cgroup_item %s\n", buf);
+				#endif
+				result = -2;
+				goto err_ret;
+			}
 		}
 	}
 
@@ -1137,20 +1143,26 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 		ret = -1;
 		pid_t target_pid = 0;
 
-		target_pid = lxcutil_get_init_pid(cc);
+		// device node only to operate add/remove operation.
+		if (lddr->operation == DCD_UEVENT_ACTION_ADD || lddr->operation == DCD_UEVENT_ACTION_REMOVE) {
+			target_pid = lxcutil_get_init_pid(cc);
 
-		devnum = makedev(lddr->dev_major, lddr->dev_minor);
-		if (lddr->operation == DCD_UEVENT_ACTION_ADD) {
-			ret = lxcutil_add_remove_guest_node(target_pid, lddr->devnode, 1, devnum);
-		} else if (lddr->operation == DCD_UEVENT_ACTION_REMOVE) {
-			ret = lxcutil_add_remove_guest_node(target_pid, lddr->devnode, 0, devnum);
-		}
-		if (ret < 0) {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout, "lxcutil_dynamic_device_operation: fail lxcutil_add_remove_guest_node (%d) %s\n", ret, lddr->devnode);
-			#endif
-			result = -1;
-			goto err_ret;
+			devnum = makedev(lddr->dev_major, lddr->dev_minor);
+			if (lddr->operation == DCD_UEVENT_ACTION_ADD) {
+				ret = lxcutil_add_remove_guest_node(target_pid, lddr->devnode, 1, devnum);
+			} else if (lddr->operation == DCD_UEVENT_ACTION_REMOVE) {
+				ret = lxcutil_add_remove_guest_node(target_pid, lddr->devnode, 0, devnum);
+			} else {
+				// May not use this path
+				bret = false;
+			}
+			if (ret < 0) {
+				#ifdef _PRINTF_DEBUG_
+				(void) fprintf(stdout, "lxcutil_dynamic_device_operation: fail lxcutil_add_remove_guest_node (%d) %s\n", ret, lddr->devnode);
+				#endif
+				result = -1;
+				goto err_ret;
+			}
 		}
 	}
 
