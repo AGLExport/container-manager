@@ -85,6 +85,7 @@ static container_config_t *device_control_dynamic_udev_get_target_container(cont
 static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uevent_device_info_t *udi, struct udev_device *pdev
 													, dynamic_device_entry_items_behavior_t **behavior);
 static int device_control_dynamic_udev_create_injection_message(uevent_injection_message_t *uim, uevent_device_info_t *udi, struct udev_list_entry *le);
+static int device_control_dynamic_udev_get_uevent_action_code(const char *actionstr);
 
 static int extra_checker_block_device(struct dl_list *extra_list,  struct udev_device *pdev, int action);
 
@@ -357,11 +358,7 @@ static int device_control_dynamic_udev_create_info(uevent_device_info_t *udi, lx
 			udi->action = elem_value;
 
 			// set to lxcutil dynamic device request
-			if (strcmp(elem_value, "add") == 0) {
-				lddr->operation = DCD_UEVENT_ACTION_ADD;
-			} else if (strcmp(elem_value, "remove") == 0) {
-				lddr->operation = DCD_UEVENT_ACTION_REMOVE;
-			}
+			lddr->operation = device_control_dynamic_udev_get_uevent_action_code(elem_value);
 		} else if (strcmp(elem_name, "DEVPATH") == 0) {
 			// set to uevent device info
 			udi->devpath = elem_value;
@@ -457,46 +454,92 @@ static container_config_t *device_control_dynamic_udev_get_target_container(cont
  * @retval	0	An action of actionstr does not match handling rule.
  * @retval	<0	Internal error (Not use).
  */
+static int device_control_dynamic_udev_get_uevent_action_code(const char *actionstr)
+{
+	int ret = DCD_UEVENT_ACTION_NON;
+
+	if (actionstr == NULL) {
+		return ret;
+	}
+
+	if (strcmp("add", actionstr) == 0) {
+		ret = DCD_UEVENT_ACTION_ADD;
+	} else if (strcmp("remove", actionstr) == 0) {
+		ret = DCD_UEVENT_ACTION_REMOVE;
+	} else if (strcmp("change", actionstr) == 0) {
+		ret = DCD_UEVENT_ACTION_CHANGE;
+	} else if (strcmp("move", actionstr) == 0) {
+		ret = DCD_UEVENT_ACTION_MOVE;
+	} else if (strcmp("online", actionstr) == 0) {
+		ret = DCD_UEVENT_ACTION_ONLINE;
+	} else if (strcmp("offline", actionstr) == 0) {
+		ret = DCD_UEVENT_ACTION_OFFLINE;
+	} else if (strcmp("bind", actionstr) == 0) {
+		ret = DCD_UEVENT_ACTION_BIND;
+	} else if (strcmp("unbind", actionstr) == 0) {
+		ret = DCD_UEVENT_ACTION_UNBIND;
+	} else {
+		ret = DCD_UEVENT_ACTION_NON;
+	}
+
+	return ret;
+}
+/**
+ * Sub function for uevent monitor.
+ * Test uevent to match handling rule.
+ *
+ * @param [in]	actionstr	The string of uevent action.
+ * @param [in]	action		Pointer to uevent_action_t.
+ * @return int
+ * @retval	0<	Target uevent code to match handling rule.
+ * @retval	0	An action of actionstr does not match handling rule.
+ * @retval	<0	Internal error (Not use).
+ */
 static int device_control_dynamic_udev_test_action(const char *actionstr, uevent_action_t *action)
 {
 	int ret = DCD_UEVENT_ACTION_NON;
+	int action_code = DCD_UEVENT_ACTION_NON;
 
 	if (actionstr == NULL || action == NULL) {
 		return ret;
 	}
 
-	if (strcmp("add", actionstr) == 0) {
+	action_code = device_control_dynamic_udev_get_uevent_action_code(actionstr);
+
+	if (action_code == DCD_UEVENT_ACTION_ADD) {
 		if (action->add == 1) {
 			ret = DCD_UEVENT_ACTION_ADD;
 		}
-	} else if (strcmp("remove", actionstr) == 0) {
+	} else if (action_code == DCD_UEVENT_ACTION_REMOVE) {
 		if (action->remove == 1) {
 			ret = DCD_UEVENT_ACTION_REMOVE;
 		}
-	} else if (strcmp("change", actionstr) == 0) {
+	} else if (action_code == DCD_UEVENT_ACTION_CHANGE) {
 		if (action->change == 1) {
 			ret = DCD_UEVENT_ACTION_CHANGE;
 		}
-	} else if (strcmp("move", actionstr) == 0) {
+	} else if (action_code == DCD_UEVENT_ACTION_MOVE) {
 		if (action->move == 1) {
 			ret = DCD_UEVENT_ACTION_MOVE;
 		}
-	} else if (strcmp("online", actionstr) == 0) {
+	} else if (action_code == DCD_UEVENT_ACTION_ONLINE) {
 		if (action->online == 1) {
 			ret = DCD_UEVENT_ACTION_ONLINE;
 		}
-	} else if (strcmp("offline", actionstr) == 0) {
+	} else if (action_code == DCD_UEVENT_ACTION_OFFLINE) {
 		if (action->offline == 1) {
 			ret = DCD_UEVENT_ACTION_OFFLINE;
 		}
-	} else if (strcmp("bind", actionstr) == 0) {
+	} else if (action_code == DCD_UEVENT_ACTION_BIND) {
 		if (action->bind == 1) {
 			ret = DCD_UEVENT_ACTION_BIND;
 		}
-	} else if (strcmp("unbind", actionstr) == 0) {
+	} else if (action_code == DCD_UEVENT_ACTION_UNBIND) {
 		if (action->unbind == 1) {
 			ret = DCD_UEVENT_ACTION_UNBIND;
 		}
+	} else {
+		ret = DCD_UEVENT_ACTION_NON;
 	}
 
 	return ret;
