@@ -47,6 +47,12 @@ typedef struct s_container_extif_command_change {
     char guest_name[CONTAINER_EXTIF_STR_LEN_MAX];
 } container_extif_command_change_t;
 
+#define CONTAINER_EXTIF_COMMAND_TEST_TRIGGER    (0xf000u)
+typedef struct s_container_extif_command_test_trigger {
+	container_extif_command_header_t header;
+    int32_t code;
+} container_extif_command_test_trigger_t;
+
 //-----------------------------------------------------------------------------
 // Container manager -> Client
 typedef struct s_container_extif_command_response_header {
@@ -95,6 +101,11 @@ typedef struct s_container_extif_command_change_response {
 #define CONTAINER_EXTIF_CHANGE_RESPONSE_NONAME   (-1)
 #define CONTAINER_EXTIF_CHANGE_RESPONSE_ERROR    (-100)
 
+#define CONTAINER_EXTIF_COMMAND_RESPONSE_TEST_TRIGGER    (0xaf000u)
+typedef struct s_container_extif_command_test_trigger_response {
+	container_extif_command_response_header_t header;
+    int32_t response;
+} container_extif_command_test_trigger_response_t;
 
 //-----------------------------------------------------------------------------
 #endif //#ifndef CONTAINER_MANAGER_EXTERNAL_INTERFACE_H

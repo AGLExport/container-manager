@@ -7,6 +7,8 @@
 #include "container-manager-interface.h"
 #include "container-external-interface.h"
 #include "container-control-internal.h"
+#include "container-workqueue-worker.h"
+#include "container-workqueue.h"
 #include "container.h"
 
 // TODO
@@ -410,6 +412,63 @@ static int container_external_interface_command_change(cm_external_interface_t *
 	return ret;
 }
 /**
+ * Command group handler for "test".
+ *
+ * @param [in]	pextif	Pointer to cm_external_interface_t
+ * @param [in]	fd		File descriptor to use send response.
+ * @param [in]	buf		Received data buffer
+ * @param [in]	size	Received data size
+ * @param [in]	role	Argument name is guest name (=0) or role name (=1).
+ * @return int
+ * @retval 0	Success to exec command.
+ * @retval -1	Internal error.
+ */
+static int container_external_interface_command_test(cm_external_interface_t *pextif, int fd, void *buf, ssize_t size)
+{
+	container_extif_command_test_trigger_t *pcom_test = (container_extif_command_test_trigger_t*)buf;
+	container_extif_command_test_trigger_response_t response;
+	ssize_t sret = -1;
+	int ret = -1;
+
+	(void) memset(&response, 0 , sizeof(response));
+
+	if(size >= sizeof(container_extif_command_test_trigger_t)) {
+		if (pcom_test->code == 0) {
+			containers_t *cs = pextif->cs;
+			int target = -1;
+			for (int i =0; i < cs->num_of_container; i++) {
+				if (strcmp(cs->containers[i]->name, "agl-momi-ivi-demo") == 0) {
+					target = i;
+					break;
+				}
+			}
+
+			// Container workqueue test
+			if (target > 0) {
+				ret = container_workqueue_schedule(&(cs->containers[target]->workqueue), container_worker_test, 1);
+				if (ret == 0)
+					response.response = 0;
+				else
+					response.response = -1;
+			}
+		} else {
+			// other is not support
+			// TODO
+			response.response = -1;
+		}
+
+		if (ret == 0) {
+			sret = write(fd, &response, sizeof(response));
+		} else {
+			ret = -1;
+		}
+	} else {
+		ret = -1;
+	}
+
+	return ret;
+}
+/**
  * Event handler for external interface session socket
  *
  * @param [in]	pextif	Pointer to cm_external_interface_t
@@ -443,6 +502,9 @@ static int container_external_interface_exec(cm_external_interface_t *pextif, in
 		break;
 	case CONTAINER_EXTIF_COMMAND_CHANGE_ACTIVE_GUEST_NAME :
 		ret = container_external_interface_command_change(pextif, fd, buf, size);
+		break;
+	case CONTAINER_EXTIF_COMMAND_TEST_TRIGGER :
+		ret = container_external_interface_command_test(pextif, fd, buf, size);
 		break;
 	default:
 		ret = -1;

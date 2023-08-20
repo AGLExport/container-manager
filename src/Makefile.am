@@ -25,6 +25,8 @@ containermanager_SOURCES = \
 	container-control-exec.c \
 	container-control-monitor.c \
 	container-external-interface.c \
+	container-workqueue.c \
+	container-workqueue-worker.c \
 	container-manager.c
 
 
