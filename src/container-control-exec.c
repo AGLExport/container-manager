@@ -23,6 +23,7 @@
 #include "cm-utils.h"
 #include "lxc-util.h"
 #include "container-config.h"
+#include "container-workqueue.h"
 #include "device-control.h"
 
 static int container_start_preprocess_base(container_baseconfig_t *bc);
@@ -603,29 +604,63 @@ int container_exec_internal_event(containers_t *cs)
 
 				// Find own role
 				ret = container_get_active_guest_by_role(cs, role, &active_cc);
-				if (ret == 0 && cc != active_cc) {
-					// When cc != active_cc, change active guest cc to active_cc and disable cc.
-					cc->runtime_stat.status = CONTAINER_DISABLE;
-					(void) container_cleanup(cc, 0);
+				if (ret == 0) {
+					if (cc != active_cc) {
+						// When cc != active_cc, change active guest cc to active_cc and disable cc.
+						cc->runtime_stat.status = CONTAINER_DISABLE;
+						(void) container_cleanup(cc, 0);
 
-					// Enable active_cc
-					active_cc->runtime_stat.status = CONTAINER_NOT_STARTED;
-					ret = container_start(active_cc);
-					if (ret == 0) {
-						#ifdef _PRINTF_DEBUG_
-						(void) fprintf(stdout,"container_start: Container guest %s was launched. role = %s\n", active_cc->name, role);
-						#endif
-
-						ret = container_monitor_addguest(cs, active_cc);
-						if (ret < 0) {
-							// Can run guest with out monitor, critical log only.
-							#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-							(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_monitor_addguest ret = %d\n", ret);
+						// Enable active_cc
+						active_cc->runtime_stat.status = CONTAINER_NOT_STARTED;
+						ret = container_start(active_cc);
+						if (ret == 0) {
+							#ifdef _PRINTF_DEBUG_
+							(void) fprintf(stdout,"container_start: Container guest %s was launched. role = %s\n", active_cc->name, role);
 							#endif
+
+							ret = container_monitor_addguest(cs, active_cc);
+							if (ret < 0) {
+								// Can run guest with out monitor, critical log only.
+								#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+								(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_monitor_addguest ret = %d\n", ret);
+								#endif
+							}
+							// re-assign dynamic device
+							// dynamic device update - if these return error, recover to update timing
+							(void) container_all_dynamic_device_update_notification(cs);
 						}
-						// re-assign dynamic device
-						// dynamic device update - if these return error, recover to update timing
-						(void) container_all_dynamic_device_update_notification(cs);
+					} else {
+						// When cc == active_cc and per container workqueue is active, exec per container workqueue operation.
+						int status = -1;
+
+						status = container_workqueue_get_status(&cc->workqueue);
+						if (status == CONTAINER_WORKER_SCHEDULED) {
+							// A workqueue is scheduled, run that.
+							ret = container_workqueue_run(&cc->workqueue);
+							if (ret < 0) {
+								if (ret == -2 || ret == -3) {
+									#ifdef _PRINTF_DEBUG_
+									(void) fprintf(stderr, "[FAIL] container_workqueue_run ret = %d at %s\n", ret, cc->name);
+									#endif
+									;	//nop
+								}
+							}
+						} else if (status == CONTAINER_WORKER_COMPLETED) {
+							// A workqueue is completed, cleanup and set next state.
+							int after_execute = 0;
+
+							ret = container_workqueue_cleanup(&cc->workqueue, &after_execute);
+							if (ret == 0) {
+								if (after_execute == 1) {
+									// When CONTAINER_DEAD set to runtime_stat.status, this container will restart in next event execution cycle.
+									cc->runtime_stat.status = CONTAINER_DEAD;
+								}
+							} else {
+								;	// nop
+							}
+						} else {
+							;	// nop
+						}
 					}
 				}
 			} else {
