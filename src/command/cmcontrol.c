@@ -28,6 +28,7 @@ static struct option long_options[] = {
 	{"force-reboot-guest-name", required_argument, NULL, 24},
 	{"force-reboot-guest-role", required_argument, NULL, 25},
 	{"change-active-guest-name", required_argument, NULL, 30},
+	{"test-trigger", required_argument, NULL, 90},
 	{0, 0, 0, 0},
 };
 
@@ -55,6 +56,7 @@ static void usage(void)
 	    " --force-reboot-guest-name=N    reboot request to container manager. (N=guest name)\n"
 	    " --force-reboot-guest-role=R    shutdown request to container manager. (R=guest role)\n"
 		" --change-active-guest-name=N    change active guest request to container manager. (N=guest name)\n"
+	    " --test-trigger=n          Trigger test. (n=number of test.)\n"
 	);
 }
 
@@ -356,6 +358,64 @@ error_return:
 	return;
 }
 
+void cm_test_trigger(char *arg)
+{
+	int fd = -1;
+	int ret = -1;
+	int sret = -1;
+	int value = 0;
+	char *endptr = NULL;
+	container_extif_command_test_trigger_t packet;
+	container_extif_command_test_trigger_response_t response;
+
+	(void) memset(&packet, 0, sizeof(packet));
+	(void) memset(&response, 0, sizeof(response));
+
+	value = (int)strtol(arg, &endptr, 10);
+	if (endptr == arg) {
+		// Convert fail.
+		goto error_return;
+	}
+
+	// Create client socket
+	fd = cm_socket_setup();
+	if (fd < 0) {
+		(void) fprintf(stderr,"Container manager is busy.\n");
+		goto error_return;
+	}
+
+	packet.header.command = CONTAINER_EXTIF_COMMAND_TEST_TRIGGER;
+	packet.code = (int32_t)value;
+	sret = write(fd, &packet, sizeof(packet));
+	if (sret < sizeof(packet)) {
+		(void) fprintf(stderr,"Container manager is confuse.\n");
+		goto error_return;
+	}
+
+	ret = cm_socket_wait_response(fd, 1000);
+	if (ret < 0) {
+		(void) fprintf(stderr,"Container manager communication is un available.\n");
+		goto error_return;
+	}
+
+	sret = read(fd, &response, sizeof(response));
+	if (sret < sizeof(response)) {
+		(void) fprintf(stderr,"Container manager is confuse. sret = %d errno = %d\n", sret, errno);
+		goto error_return;
+	}
+
+	if (response.header.command == CONTAINER_EXTIF_COMMAND_RESPONSE_TEST_TRIGGER) {
+		(void) fprintf(stderr,"Container manager return test trigger = %d\n", response.response);
+	}
+
+error_return:
+	if (fd != -1) {
+		close(fd);
+	}
+
+	return;
+}
+
 int main(int argc, char *argv[])
 {
 	int ret = -1;
@@ -378,6 +438,9 @@ int main(int argc, char *argv[])
 			break;
 		} else if (ret == 30) {
 			cm_get_guest_change(ret, optarg);
+			break;
+		} else if (ret == 90) {
+			cm_test_trigger(optarg);
 			break;
 		} else {
 			//TODO

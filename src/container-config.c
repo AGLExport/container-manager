@@ -15,6 +15,7 @@
 #include <dirent.h>
 
 #include "container-config.h"
+#include "container-workqueue.h"
 
 #undef _PRINTF_DEBUG_
 
@@ -288,6 +289,7 @@ containers_t *create_container_configs(const char *config_file)
 						#endif
 						continue;
 					}
+					(void)container_workqueue_initialize(&(cc->workqueue));
 					cc->runtime_stat.status = CONTAINER_DISABLE;
 					ca[num] = cc;
 					num = num + 1;
@@ -347,6 +349,7 @@ err_ret:
 	(void) role_list_cleanup(cs);
 
 	for(int i=0; i < num;i++) {
+		(void)container_workqueue_deinitialize(&(ca[i]->workqueue));
 		cmparser_release_config(ca[i]);
 	}
 
@@ -383,6 +386,7 @@ int release_container_configs(containers_t *cs)
 	num = cs->num_of_container;
 
 	for(int i=0; i<num;i++) {
+		(void)container_workqueue_deinitialize(&(cs->containers[i]->workqueue));
 		cmparser_release_config(cs->containers[i]);
 	}
 

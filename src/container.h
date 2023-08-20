@@ -9,6 +9,7 @@
 //-----------------------------------------------------------------------------
 #include <stdint.h>
 #include <stddef.h>
+#include <pthread.h>
 #include "list.h"
 
 #include <lxc/lxccontainer.h>
@@ -566,6 +567,56 @@ struct s_container_netifconfig {
 typedef struct s_container_netifconfig container_netifconfig_t;	/**< typedef for struct s_container_netifconfig. */
 
 //-----------------------------------------------------------------------------
+// Container workqueue ---------------------------------
+/**
+ * @def	CONTAINER_WORKER_DISABLE
+ * @brief	Container workqueue status is disable.  This state assign to unusable workqueue.
+ */
+#define CONTAINER_WORKER_DISABLE	(0)
+/**
+ * @def	CONTAINER_WORKER_INACTIVE
+ * @brief	Container workqueue status is inactive.  This state assign to inactive workqueue.
+ */
+#define CONTAINER_WORKER_INACTIVE	(1)
+/**
+ * @def	CONTAINER_WORKER_SCHEDULED
+ * @brief	Container workqueue status is scheduled.  This state assign to scheduled workqueue.
+ */
+#define CONTAINER_WORKER_SCHEDULED	(2)
+/**
+ * @def	CONTAINER_WORKER_STARTED
+ * @brief	Container workqueue status is started.  This state assign to executing workqueue.
+ */
+#define CONTAINER_WORKER_STARTED	(3)
+/**
+ * @def	CONTAINER_WORKER_COMPLETED
+ * @brief	Container workqueue status is completed.  This state assign to completed workqueue.
+ */
+#define CONTAINER_WORKER_COMPLETED	(4)
+
+/**
+ * @brief Function pointer for container workqueue.
+ *
+ * @return Description for return value
+ * @retval 0	Success to execute worker.
+ * @retval -1	Fail to execute worker.
+ */
+typedef int (*container_worker_func_t)(void);
+
+/**
+ * @struct	s_container_workqueue
+ * @brief	The data structure for per container extra operation.
+ */
+struct s_container_workqueue {
+	pthread_t worker_thread;				/**< Worker thread object. */
+	pthread_mutex_t workqueue_mutex;		/**< Mutex for container workqueue. */
+	container_worker_func_t worker_func;	/**< Worker function.*/
+	int status;								/**< Status of this workqueue. */
+	int state_after_execute;				/**< Container state after workque execute. Keep stop: 0. Restart: 1. Other: error.*/
+};
+typedef struct s_container_workqueue container_workqueue_t;	/**< typedef for struct s_container_workqueue. */
+
+//-----------------------------------------------------------------------------
 // runtime status ---------------------------------
 /**
  * @def	CONTAINER_DISABLE
@@ -630,6 +681,7 @@ struct s_container_config {
 	container_netifconfig_t netifconfig;		/**< Network interface config of this guest container. */
 	//--- internal control data
 	container_runtime_status_t runtime_stat;	/**< Runtime status of this guest container. */
+	container_workqueue_t workqueue;			/**< A structure for per container workqueue. */
 };
 typedef struct s_container_config container_config_t;	/**< typedef for struct s_container_config. */
 //-----------------------------------------------------------------------------
