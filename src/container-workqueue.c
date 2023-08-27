@@ -10,8 +10,6 @@
 
 #include "container-workqueue.h"
 
-//#undef _PRINTF_DEBUG_
-
 /**
  * Cleanup scheduled per container workqueue.
  *
