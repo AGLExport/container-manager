@@ -122,10 +122,6 @@ err_return:
 		mnl_socket_close(nl);
 	}
 
-	if (ns_fd >= 0) {
-		close(ns_fd);
-	}
-
 	return result;
 }
 /**

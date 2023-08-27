@@ -14,8 +14,6 @@
 #include <string.h>
 #include <errno.h>
 
-//#undef _PRINTF_DEBUG_
-
 /**
  * @brief Function pointer for container workqueue.
  *
