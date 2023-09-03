@@ -30,8 +30,6 @@ static int container_start_preprocess_base(container_baseconfig_t *bc);
 static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t timeout);
 static int container_get_active_guest_by_role(containers_t *cs, char *role, container_config_t **active_cc);
 
-int container_restart(container_config_t *cc);
-
 /**
  * The function for dynamic network interface add (remove) event handling.
  *
@@ -579,7 +577,7 @@ int container_exec_internal_event(containers_t *cs)
 			cc = cs->containers[i];
 			if (cc->runtime_stat.status == CONTAINER_DEAD) {
 				// Dead state -> relaunch
-				ret = container_restart(cc);
+				ret = container_start(cc);
 				if (ret == 0) {
 					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 					(void) fprintf(stderr,"[CM CRITICAL ERROR] container %s relaunched.\n", cc->name);
@@ -732,7 +730,7 @@ out:
 	return 0;
 }
 /**
- * Container launch common part of start and restart.
+ * Container launch operation for container start.
  *
  * @param [in]	cc	Pointer to container_config_t.
  * @return int
@@ -740,7 +738,7 @@ out:
  * @retval -1 Create instance fail.
  * @retval -2 Container start fail.
  */
-int container_restart(container_config_t *cc)
+static int container_launch(container_config_t *cc)
 {
 	int ret = -1;
 	bool bret = false;
@@ -751,7 +749,7 @@ int container_restart(container_config_t *cc)
 		cc->runtime_stat.status = CONTAINER_DEAD;
 
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		(void) fprintf(stderr,"[CM CRITICAL ERROR] container_restart: lxcutil_create_instance ret = %d\n", ret);
+		(void) fprintf(stderr,"[CM CRITICAL ERROR] container_launch: lxcutil_create_instance ret = %d\n", ret);
 		#endif
 		return -1;
 	}
@@ -805,8 +803,8 @@ int container_start(container_config_t *cc)
 		return -1;
 	}
 
-	// Start container
-	ret = container_restart(cc);
+	// Launch container
+	ret = container_launch(cc);
 	if (ret < 0) {
 		cc->runtime_stat.status = CONTAINER_DEAD;
 
@@ -1107,20 +1105,26 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 	unsigned long mntflag = 0;
 
 	// mount rootfs
-	if (bc->rootfs.mode == DISKMOUNT_TYPE_RW) {
-		mntflag = MS_DIRSYNC | MS_NOATIME | MS_NODEV | MS_SYNCHRONOUS;
-	} else {
-		mntflag = MS_NOATIME | MS_RDONLY;
-	}
+	if (bc->rootfs.is_mounted == 0) {
+		// When already mounted, bypass this mount operation.
+		if (bc->rootfs.mode == DISKMOUNT_TYPE_RW) {
+			mntflag = MS_DIRSYNC | MS_NOATIME | MS_NODEV | MS_SYNCHRONOUS;
+		} else {
+			mntflag = MS_NOATIME | MS_RDONLY;
+		}
 
-	ret = container_start_mountdisk_ab(bc->rootfs.blockdev, bc->rootfs.path
-										, bc->rootfs.filesystem, mntflag, bc->rootfs.option, bc->abboot);
-	if ( ret < 0) {
-		// root fs mount is mandatory.
-		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatory disk %s could not mount\n", bc->rootfs.blockdev[bc->abboot]);
-		#endif
-		return -1;
+		ret = container_start_mountdisk_ab(bc->rootfs.blockdev, bc->rootfs.path
+											, bc->rootfs.filesystem, mntflag, bc->rootfs.option, bc->abboot);
+		if ( ret < 0) {
+			// root fs mount is mandatory.
+			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+			(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatory disk %s could not mount\n", bc->rootfs.blockdev[bc->abboot]);
+			#endif
+			return -1;
+		} else {
+			// root fs mount is succeed.
+			bc->rootfs.is_mounted = 1;
+		}
 	}
 
 	// mount extradisk - optional
@@ -1128,33 +1132,41 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 		container_baseconfig_extradisk_t *exdisk = NULL;
 
 		dl_list_for_each(exdisk, &bc->extradisk_list, container_baseconfig_extradisk_t, list) {
-			if (exdisk->mode == DISKMOUNT_TYPE_RW) {
-				mntflag = MS_DIRSYNC | MS_NOATIME | MS_NODEV | MS_NOEXEC | MS_SYNCHRONOUS;
-			} else {
-				mntflag = MS_NOATIME | MS_RDONLY;
-			}
-
-			if (exdisk->redundancy == DISKREDUNDANCY_TYPE_AB)
-			{
-				ret = container_start_mountdisk_ab(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, exdisk->option, bc->abboot);
-				if (ret < 0) {
-					// AB disk mount is mandatory function.
-					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-					(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatory disk %s could not mount\n", exdisk->blockdev[bc->abboot]);
-					#endif
-					return -1;
+			if (exdisk->is_mounted == 1) {
+				// When already mounted, bypass this mount operation.
+				if (exdisk->mode == DISKMOUNT_TYPE_RW) {
+					mntflag = MS_DIRSYNC | MS_NOATIME | MS_NODEV | MS_NOEXEC | MS_SYNCHRONOUS;
+				} else {
+					mntflag = MS_NOATIME | MS_RDONLY;
 				}
-			} else {
-				ret = container_start_mountdisk_failover(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, exdisk->option);
-				if (ret < 0) {
-					// Failover disk mount is optional function.
-					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-					(void) fprintf(stderr,"[CM ERROR] container_start_preprocess_base: failover disk %s could not mount\n", exdisk->blockdev[0]);
-					#endif
-					continue;
+
+				if (exdisk->redundancy == DISKREDUNDANCY_TYPE_AB)
+				{
+					ret = container_start_mountdisk_ab(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, exdisk->option, bc->abboot);
+					if (ret < 0) {
+						// AB disk mount is mandatory function.
+						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+						(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatory disk %s could not mount\n", exdisk->blockdev[bc->abboot]);
+						#endif
+						return -1;
+					} else {
+						// This extra disk mount is succeed.
+						exdisk->is_mounted = 1;
+					}
+				} else {
+					ret = container_start_mountdisk_failover(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, exdisk->option);
+					if (ret < 0) {
+						// Failover disk mount is optional function.
+						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+						(void) fprintf(stderr,"[CM ERROR] container_start_preprocess_base: failover disk %s could not mount\n", exdisk->blockdev[0]);
+						#endif
+						continue;
+					} else {
+						// This extra disk mount is succeed.
+						exdisk->is_mounted = 1;
+					}
 				}
 			}
-
 		}
 	}
 
@@ -1248,11 +1260,13 @@ static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t
 		dl_list_for_each(exdisk, &bc->extradisk_list, container_baseconfig_extradisk_t, list) {
 
 			(void) container_cleanup_unmountdisk(exdisk->from, timeout_time, retry_max);
+			exdisk->is_mounted = 0;
 		}
 	}
 
 	// unmount rootfs
 	(void) container_cleanup_unmountdisk(bc->rootfs.path, timeout_time, retry_max);
+	bc->rootfs.is_mounted = 0;
 
 	return 0;
 }

@@ -49,6 +49,8 @@ struct s_container_baseconfig_rootfs {
 	int mode;			/**< file system mount mode. (ro=DISKMOUNT_TYPE_RO/rw=DISKMOUNT_TYPE_RW) */
 	char *option;			/**< file system specific mount option. (ex. data=ordered,errors=remount-ro at ext4)*/
 	char *blockdev[2];	/**< block device for rootfs with A/B update. 0=a.1=b */
+	//--- internal control data
+	int is_mounted;		/**< rootfs is mounted or not. 0: not mounted. 1: mounted.*/
 };
 typedef struct s_container_baseconfig_rootfs container_baseconfig_rootfs_t;	/**< typedef for struct s_container_baseconfig_rootfs. */
 
@@ -65,6 +67,8 @@ struct s_container_baseconfig_extradisk {
 	char *option;			/**< file system specific mount option. (ex. data=ordered,errors=remount-ro at ext4)*/
 	int	redundancy;			/**< redundancy mode. (failover=DISKREDUNDANCY_TYPE_FAILOVER/ab=DISKREDUNDANCY_TYPE_AB) */
 	char *blockdev[2];		/**< block device for rootfs primary and secondary. */
+	//--- internal control data
+	int is_mounted;			/**< This extra disk is mounted or not. 0: not mounted. 1: mounted.*/
 };
 typedef struct s_container_baseconfig_extradisk container_baseconfig_extradisk_t;	/**< typedef for struct s_container_baseconfig_extradisk. */
 
