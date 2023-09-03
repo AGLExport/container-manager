@@ -76,6 +76,8 @@ PKG_CHECK_MODULES([GMOCK_MAIN], [gmock_main], , enable_test=no)
 AC_CONFIG_FILES([Makefile
 				src/Makefile
         src/command/Makefile
+        plugin/Makefile
+        plugin/libs/Makefile
 				test/unit/Makefile ])
 AC_OUTPUT
 

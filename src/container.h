@@ -49,6 +49,8 @@ struct s_container_baseconfig_rootfs {
 	int mode;			/**< file system mount mode. (ro=DISKMOUNT_TYPE_RO/rw=DISKMOUNT_TYPE_RW) */
 	char *option;			/**< file system specific mount option. (ex. data=ordered,errors=remount-ro at ext4)*/
 	char *blockdev[2];	/**< block device for rootfs with A/B update. 0=a.1=b */
+	//--- internal control data
+	int is_mounted;		/**< rootfs is mounted or not. 0: not mounted. 1: mounted.*/
 };
 typedef struct s_container_baseconfig_rootfs container_baseconfig_rootfs_t;	/**< typedef for struct s_container_baseconfig_rootfs. */
 
@@ -65,6 +67,8 @@ struct s_container_baseconfig_extradisk {
 	char *option;			/**< file system specific mount option. (ex. data=ordered,errors=remount-ro at ext4)*/
 	int	redundancy;			/**< redundancy mode. (failover=DISKREDUNDANCY_TYPE_FAILOVER/ab=DISKREDUNDANCY_TYPE_AB) */
 	char *blockdev[2];		/**< block device for rootfs primary and secondary. */
+	//--- internal control data
+	int is_mounted;			/**< This extra disk is mounted or not. 0: not mounted. 1: mounted.*/
 };
 typedef struct s_container_baseconfig_extradisk container_baseconfig_extradisk_t;	/**< typedef for struct s_container_baseconfig_extradisk. */
 
@@ -603,6 +607,8 @@ typedef struct s_container_netifconfig container_netifconfig_t;	/**< typedef for
  */
 typedef int (*container_worker_func_t)(void);
 
+struct s_cm_worker_object;
+
 /**
  * @struct	s_container_workqueue
  * @brief	The data structure for per container extra operation.
@@ -610,9 +616,11 @@ typedef int (*container_worker_func_t)(void);
 struct s_container_workqueue {
 	pthread_t worker_thread;				/**< Worker thread object. */
 	pthread_mutex_t workqueue_mutex;		/**< Mutex for container workqueue. */
-	container_worker_func_t worker_func;	/**< Worker function.*/
+	//container_worker_func_t worker_func;	/**< Worker function.*/
+	struct s_cm_worker_object *object;
 	int status;								/**< Status of this workqueue. */
-	int state_after_execute;				/**< Container state after workque execute. Keep stop: 0. Restart: 1. Other: error.*/
+	int state_after_execute;				/**< Container state after workqueue execute. Keep stop: 0. Restart: 1. Other: error.*/
+	int result;								/**< Result of worker execute. 1: cancel, 0: success, -1: fail.*/
 };
 typedef struct s_container_workqueue container_workqueue_t;	/**< typedef for struct s_container_workqueue. */
 
@@ -653,6 +661,11 @@ typedef struct s_container_workqueue container_workqueue_t;	/**< typedef for str
  * @brief	Container runtime status is exited.  This state assign to exited guest container with shutdown operation.
  */
 #define CONTAINER_EXIT			(6)
+/**
+ * @def	CONTAINER_EXIT
+ * @brief	Container runtime status is not started and run worker.
+ */
+#define CONTAINER_RUN_WORKER	(7)
 
 /**
  * @struct	s_container_runtime_status
