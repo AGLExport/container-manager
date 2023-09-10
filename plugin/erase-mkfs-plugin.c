@@ -97,7 +97,7 @@ static int cm_worker_exec_erase(erase_mkfs_plugin_t *permkfs)
 			if (permkfs->cancel_request == 1) {
 				// Got cancel request.
 				ret = 1;
-				break;
+				goto do_return;
 			}
 			sret = write(fd, buff, sizeof(buff));
 		} while(sret > 0 && errno != EINTR);
@@ -111,6 +111,8 @@ static int cm_worker_exec_erase(erase_mkfs_plugin_t *permkfs)
 
 		ret = 0;
 	}
+
+do_return:
 
 	return ret;
 }

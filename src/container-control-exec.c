@@ -751,7 +751,7 @@ int container_exec_internal_event(containers_t *cs)
 				ret = container_workqueue_cleanup(&cc->workqueue, &after_execute);
 				if (ret == 0) {
 					// A workqueue is completed and cleanup success.
-					cc->runtime_stat.status = CONTAINER_NOT_STARTED;
+					cc->runtime_stat.status = CONTAINER_EXIT;
 
 					#ifdef _PRINTF_DEBUG_
 					(void) fprintf(stdout, "container_workqueue end of worker exec(%d) at %s\n", after_execute, cc->name);
