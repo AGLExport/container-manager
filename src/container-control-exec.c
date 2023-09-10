@@ -1204,7 +1204,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 		container_baseconfig_extradisk_t *exdisk = NULL;
 
 		dl_list_for_each(exdisk, &bc->extradisk_list, container_baseconfig_extradisk_t, list) {
-			if (exdisk->is_mounted == 1) {
+			if (exdisk->is_mounted == 0) {
 				// When already mounted, bypass this mount operation.
 				if (exdisk->mode == DISKMOUNT_TYPE_RW) {
 					mntflag = MS_DIRSYNC | MS_NOATIME | MS_NODEV | MS_NOEXEC | MS_SYNCHRONOUS;
