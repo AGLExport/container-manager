@@ -616,10 +616,11 @@ struct s_cm_worker_object;
 struct s_container_workqueue {
 	pthread_t worker_thread;				/**< Worker thread object. */
 	pthread_mutex_t workqueue_mutex;		/**< Mutex for container workqueue. */
-	container_worker_func_t worker_func;	/**< Worker function.*/
+	//container_worker_func_t worker_func;	/**< Worker function.*/
 	struct s_cm_worker_object *object;
 	int status;								/**< Status of this workqueue. */
 	int state_after_execute;				/**< Container state after workqueue execute. Keep stop: 0. Restart: 1. Other: error.*/
+	int result;								/**< Result of worker execute. 1: cancel, 0: success, -1: fail.*/
 };
 typedef struct s_container_workqueue container_workqueue_t;	/**< typedef for struct s_container_workqueue. */
 

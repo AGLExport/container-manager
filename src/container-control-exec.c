@@ -386,7 +386,7 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 			;
 		} else if (cc->runtime_stat.status == CONTAINER_RUN_WORKER) {
 			// Now working container worker, need to cancel worker.
-			// TODO cancel worker
+			(void) container_workqueue_cancel(&cc->workqueue);
 			(void) container_timeout_set(cc);
 
 		} else if (cc->runtime_stat.status == CONTAINER_DISABLE) {
@@ -503,7 +503,7 @@ int container_request_reboot(container_config_t *cc, int sys_state)
 			;
 		} else if (cc->runtime_stat.status == CONTAINER_RUN_WORKER) {
 			// Now working container worker, need to cancel worker.
-			// TODO cancel worker
+			(void) container_workqueue_cancel(&cc->workqueue);
 			(void) container_timeout_set(cc);
 
 		} else if (cc->runtime_stat.status == CONTAINER_DISABLE) {
@@ -641,7 +641,7 @@ int container_exec_internal_event(containers_t *cs)
 					} else {
 						// When cc == active_cc and per container workqueue is active, exec per container workqueue operation.
 						int status = -1;
-						(void) container_cleanup(cc, 100);
+						(void) container_cleanup(cc, 200);
 
 						status = container_workqueue_get_status(&cc->workqueue);
 						if (status == CONTAINER_WORKER_SCHEDULED) {
@@ -758,7 +758,7 @@ int container_exec_internal_event(containers_t *cs)
 					#endif
 				} else {
 					// A workqueue is not completed. Fail safe : send cancel request.
-					// TODO
+					(void) container_workqueue_cancel(&cc->workqueue);
 				}
 			} else {
 				;	//nop
