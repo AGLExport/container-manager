@@ -607,6 +607,8 @@ typedef struct s_container_netifconfig container_netifconfig_t;	/**< typedef for
  */
 typedef int (*container_worker_func_t)(void);
 
+struct s_cm_worker_object;
+
 /**
  * @struct	s_container_workqueue
  * @brief	The data structure for per container extra operation.
@@ -615,8 +617,9 @@ struct s_container_workqueue {
 	pthread_t worker_thread;				/**< Worker thread object. */
 	pthread_mutex_t workqueue_mutex;		/**< Mutex for container workqueue. */
 	container_worker_func_t worker_func;	/**< Worker function.*/
+	struct s_cm_worker_object *object;
 	int status;								/**< Status of this workqueue. */
-	int state_after_execute;				/**< Container state after workque execute. Keep stop: 0. Restart: 1. Other: error.*/
+	int state_after_execute;				/**< Container state after workqueue execute. Keep stop: 0. Restart: 1. Other: error.*/
 };
 typedef struct s_container_workqueue container_workqueue_t;	/**< typedef for struct s_container_workqueue. */
 
@@ -657,6 +660,11 @@ typedef struct s_container_workqueue container_workqueue_t;	/**< typedef for str
  * @brief	Container runtime status is exited.  This state assign to exited guest container with shutdown operation.
  */
 #define CONTAINER_EXIT			(6)
+/**
+ * @def	CONTAINER_EXIT
+ * @brief	Container runtime status is not started and run worker.
+ */
+#define CONTAINER_RUN_WORKER	(7)
 
 /**
  * @struct	s_container_runtime_status

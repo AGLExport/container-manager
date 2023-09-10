@@ -112,7 +112,7 @@ static int cm_worker_exec(cm_worker_handle_t handle)
 	}
 
 	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout, "fsck-plugin: cm_worker_exec fork and exec fsck.ext4 pif=%d\n",(int)child_pid);
+	(void) fprintf(stdout, "fsck-plugin: cm_worker_exec fork and exec fsck.ext4 pid=%d\n",(int)child_pid);
 	#endif
 
 	child_fd = cm_pidfd_open(child_pid);
@@ -187,9 +187,13 @@ static int cm_worker_exec(cm_worker_handle_t handle)
 		goto err_return;
 	}
 
+	(void) close(child_fd);
+
 	return 0;
 
 err_return:
+	if (child_fd >= 0)
+		(void) close(child_fd);
 
 	return result;
 }

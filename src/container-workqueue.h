@@ -13,7 +13,8 @@
 //-----------------------------------------------------------------------------
 int container_workqueue_cleanup(container_workqueue_t *workqueue, int *after_execute);
 int container_workqueue_run(container_workqueue_t *workqueue);
-int container_workqueue_remove(container_workqueue_t *workqueue);
+int container_workqueue_cancel(container_workqueue_t *workqueue);
+int container_workqueue_remove(container_workqueue_t *workqueue, int *after_execute);
 int container_workqueue_schedule(container_workqueue_t *workqueue, container_worker_func_t func, int launch_after_end);
 int container_workqueue_get_status(container_workqueue_t *workqueue);
 int container_workqueue_initialize(container_workqueue_t *workqueue);

@@ -65,6 +65,7 @@ typedef struct s_cm_worker_instance cm_worker_instance_t;	/**< typedef for struc
  * @retval -1	Fail to execute worker.
  */
 int __attribute__((visibility ("default"))) cm_worker_new(cm_worker_instance_t **instance);
+typedef int (*cm_worker_new_t)(cm_worker_instance_t **instance);
 
 /**
  * @brief Entry point for the container workqueue worker plugin.
@@ -76,5 +77,6 @@ int __attribute__((visibility ("default"))) cm_worker_new(cm_worker_instance_t *
  * @retval -1	Fail to execute worker.
  */
 int __attribute__((visibility ("default"))) cm_worker_delete(cm_worker_instance_t *instance);
+typedef int (*cm_worker_delete_t)(cm_worker_instance_t *instance);
 //-----------------------------------------------------------------------------
 #endif //#ifndef WORKER_PLUGIN_INTERFACE_H

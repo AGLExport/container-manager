@@ -29,6 +29,30 @@
 static int container_start_preprocess_base(container_baseconfig_t *bc);
 static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t timeout);
 static int container_get_active_guest_by_role(containers_t *cs, char *role, container_config_t **active_cc);
+static int container_timeout_set(container_config_t *cc);
+
+/**
+ * The function for timeout calculate and set.
+ *
+ * @param [in]	cc	Pointer to container_config_t.
+ * @return int
+ * @retval  0 Success to operation.
+ * @retval -1 Critical error.(Reserve)
+ */
+static int container_timeout_set(container_config_t *cc)
+{
+	int64_t timeout = 0;
+
+	// Set timeout
+	timeout = get_current_time_ms();
+	if (timeout < 0) {
+		timeout = 0;
+	}
+	timeout = timeout + cc->baseconfig.lifecycle.timeout;
+	cc->runtime_stat.timeout = timeout;
+
+	return 0;
+}
 
 /**
  * The function for dynamic network interface add (remove) event handling.
@@ -225,6 +249,9 @@ int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
 		} else if (cc->runtime_stat.status == CONTAINER_EXIT) {
 			// undefined state
 			result = -1;
+		} else if (cc->runtime_stat.status == CONTAINER_RUN_WORKER) {
+			// not running, not need shutdown. same as CONTAINER_NOT_STARTED.
+			;
 		} else {
 			// undefined state
 			result = -1;
@@ -248,6 +275,9 @@ int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
 		} else if (cc->runtime_stat.status == CONTAINER_EXIT) {
 			// Already exit, not need new action
 			;
+		} else if (cc->runtime_stat.status == CONTAINER_RUN_WORKER) {
+			// May not get this state, change to exit state. (fail safe)
+			cc->runtime_stat.status = CONTAINER_EXIT;
 		} else {
 			// undefined state
 			result = -1;
@@ -297,17 +327,7 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 				(void) fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
 				#endif
 			} else {
-				int64_t timeout = 0;
-
-				// Set timeout
-				timeout = get_current_time_ms();
-				if (timeout < 0) {
-					timeout = 0;
-				}
-				timeout = timeout + cc->baseconfig.lifecycle.timeout;
-				cc->runtime_stat.timeout = timeout;
-
-				//Requested, wait to exit.
+				(void) container_timeout_set(cc);
 				cc->runtime_stat.status = CONTAINER_SHUTDOWN;
 			}
 		} else if (cc->runtime_stat.status == CONTAINER_REBOOT) {
@@ -322,6 +342,9 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 		} else if (cc->runtime_stat.status == CONTAINER_EXIT) {
 			// undefined state
 			result = -1;
+		} else if (cc->runtime_stat.status == CONTAINER_RUN_WORKER) {
+			// Now working container worker, already shutdown, not need new action
+			;
 		} else if (cc->runtime_stat.status == CONTAINER_DISABLE) {
 			// disabled container, not need new action
 			;
@@ -346,17 +369,7 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 				(void) fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
 				#endif
 			} else {
-				int64_t timeout = 0;
-
-				// Set timeout
-				timeout = get_current_time_ms();
-				if (timeout < 0) {
-					timeout = 0;
-				}
-				timeout = timeout + cc->baseconfig.lifecycle.timeout;
-				cc->runtime_stat.timeout = timeout;
-
-				//Requested, wait to exit.
+				(void) container_timeout_set(cc);
 				cc->runtime_stat.status = CONTAINER_SHUTDOWN;
 			}
 		} else if (cc->runtime_stat.status == CONTAINER_REBOOT) {
@@ -371,6 +384,11 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 		} else if (cc->runtime_stat.status == CONTAINER_EXIT) {
 			// Already exit, not need new action
 			;
+		} else if (cc->runtime_stat.status == CONTAINER_RUN_WORKER) {
+			// Now working container worker, need to cancel worker.
+			// TODO cancel worker
+			(void) container_timeout_set(cc);
+
 		} else if (cc->runtime_stat.status == CONTAINER_DISABLE) {
 			// disabled container, not need new action
 			;
@@ -421,17 +439,9 @@ int container_request_reboot(container_config_t *cc, int sys_state)
 				(void) fprintf(stderr,"[CM CRITICAL ERROR] container_request_reboot fourcekill to %s.\n", cc->name);
 				#endif
 			} else {
-				int64_t timeout = 0;
-
-				// Set timeout
-				timeout = get_current_time_ms();
-				if (timeout < 0) {
-					timeout = 0;
-				}
-				timeout = timeout + cc->baseconfig.lifecycle.timeout;
-				cc->runtime_stat.timeout = timeout;
-
 				//Requested, wait to exit.
+				(void) container_timeout_set(cc);
+
 				cc->runtime_stat.status = CONTAINER_REBOOT;
 			}
 		} else if (cc->runtime_stat.status == CONTAINER_REBOOT) {
@@ -441,11 +451,14 @@ int container_request_reboot(container_config_t *cc, int sys_state)
 			// Already requested shutdown, not need new action.
 			;
 		} else if (cc->runtime_stat.status == CONTAINER_DEAD) {
-			// Already dead container, disable to re-launch.
-			cc->runtime_stat.status = CONTAINER_NOT_STARTED;
+			// Already dead container, shall be re-launch - no change state.
+			;
 		} else if (cc->runtime_stat.status == CONTAINER_EXIT) {
 			// undefined state
 			result = -1;
+		} else if (cc->runtime_stat.status == CONTAINER_RUN_WORKER) {
+			// Now working container worker, shall not change new state.
+			;
 		} else if (cc->runtime_stat.status == CONTAINER_DISABLE) {
 			// disabled container, not need new action
 			;
@@ -470,22 +483,15 @@ int container_request_reboot(container_config_t *cc, int sys_state)
 				(void) fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
 				#endif
 			} else {
-				int64_t timeout = 0;
-
 				// Set timeout
-				timeout = get_current_time_ms();
-				if (timeout < 0) {
-					timeout = 0;
-				}
-				timeout = timeout + cc->baseconfig.lifecycle.timeout;
-				cc->runtime_stat.timeout = timeout;
+				(void) container_timeout_set(cc);
 
 				//Requested, wait to exit.
 				cc->runtime_stat.status = CONTAINER_SHUTDOWN;
 			}
 		} else if (cc->runtime_stat.status == CONTAINER_REBOOT) {
-			// Already requested reboot, change to shutdown state.
-			cc->runtime_stat.status = CONTAINER_SHUTDOWN;
+			// Already requested reboot, not need new action.
+			;
 		} else if (cc->runtime_stat.status == CONTAINER_SHUTDOWN) {
 			// Already requested shutdown, not need new action.
 			;
@@ -495,6 +501,11 @@ int container_request_reboot(container_config_t *cc, int sys_state)
 		} else if (cc->runtime_stat.status == CONTAINER_EXIT) {
 			// Already exit, not need new action
 			;
+		} else if (cc->runtime_stat.status == CONTAINER_RUN_WORKER) {
+			// Now working container worker, need to cancel worker.
+			// TODO cancel worker
+			(void) container_timeout_set(cc);
+
 		} else if (cc->runtime_stat.status == CONTAINER_DISABLE) {
 			// disabled container, not need new action
 			;
@@ -620,7 +631,7 @@ int container_exec_internal_event(containers_t *cs)
 							if (ret < 0) {
 								// Can run guest with out monitor, critical log only.
 								#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-								(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_monitor_addguest ret = %d\n", ret);
+								(void) fprintf(stderr,"[CM CRITICAL ERROR] container_exec_internal_event: container_monitor_addguest ret = %d\n", ret);
 								#endif
 							}
 							// re-assign dynamic device
@@ -630,6 +641,7 @@ int container_exec_internal_event(containers_t *cs)
 					} else {
 						// When cc == active_cc and per container workqueue is active, exec per container workqueue operation.
 						int status = -1;
+						(void) container_cleanup(cc, 100);
 
 						status = container_workqueue_get_status(&cc->workqueue);
 						if (status == CONTAINER_WORKER_SCHEDULED) {
@@ -637,29 +649,64 @@ int container_exec_internal_event(containers_t *cs)
 							ret = container_workqueue_run(&cc->workqueue);
 							if (ret < 0) {
 								if (ret == -2 || ret == -3) {
-									#ifdef _PRINTF_DEBUG_
-									(void) fprintf(stderr, "[FAIL] container_workqueue_run ret = %d at %s\n", ret, cc->name);
+									// Remove work queue
+									#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+									(void) fprintf(stderr,"[CM CRITICAL ERROR] container_exec_internal_event: container_workqueue_run fail ret = %d at %s\n", ret, cc->name);
 									#endif
-									;	//nop
-								}
-							}
-						} else if (status == CONTAINER_WORKER_COMPLETED) {
-							// A workqueue is completed, cleanup and set next state.
-							int after_execute = 0;
 
-							ret = container_workqueue_cleanup(&cc->workqueue, &after_execute);
-							if (ret == 0) {
-								if (after_execute == 1) {
-									// When CONTAINER_DEAD set to runtime_stat.status, this container will restart in next event execution cycle.
-									cc->runtime_stat.status = CONTAINER_DEAD;
+									ret = container_workqueue_cancel(&cc->workqueue);
+									if (ret <= 0) {
+										int after_execute = 0;
+
+										(void) container_workqueue_remove(&cc->workqueue, &after_execute);
+										if (after_execute == 1) {
+											// When CONTAINER_DEAD set to runtime_stat.status, this container will restart in next event execution cycle.
+											cc->runtime_stat.status = CONTAINER_DEAD;
+										} else {
+											cc->runtime_stat.status = CONTAINER_NOT_STARTED;
+										}
+										#ifdef _PRINTF_DEBUG_
+										(void) fprintf(stdout, "container_workqueue cancel and remove at %s\n", cc->name);
+										#endif
+									} else {
+										;	//nop
+									}
 								}
 							} else {
-								;	// nop
+								// Change state to CONTAINER_RUN_WORKER
+								cc->runtime_stat.status = CONTAINER_RUN_WORKER;
 							}
+
 						} else {
 							;	// nop
 						}
 					}
+				}
+			} else if (cc->runtime_stat.status == CONTAINER_RUN_WORKER) {
+				// Now run worker
+				int status = -1;
+
+				status = container_workqueue_get_status(&cc->workqueue);
+				if (status == CONTAINER_WORKER_COMPLETED) {
+					// A workqueue is completed, cleanup and set next state.
+					int after_execute = 0;
+
+					ret = container_workqueue_cleanup(&cc->workqueue, &after_execute);
+					if (ret == 0) {
+						if (after_execute == 1) {
+							// When CONTAINER_DEAD set to runtime_stat.status, this container will restart in next event execution cycle.
+							cc->runtime_stat.status = CONTAINER_DEAD;
+						} else {
+							cc->runtime_stat.status = CONTAINER_NOT_STARTED;
+						}
+						#ifdef _PRINTF_DEBUG_
+						(void) fprintf(stdout, "container_workqueue end of worker exec(%d) at %s\n", after_execute, cc->name);
+						#endif
+					} else {
+						;	// nop
+					}
+				} else {
+					;	// nop
 				}
 			} else {
 				// nop
@@ -697,6 +744,24 @@ int container_exec_internal_event(containers_t *cs)
 			cc = cs->containers[i];
 			if (cc->runtime_stat.status == CONTAINER_EXIT || cc->runtime_stat.status == CONTAINER_DISABLE) {
 				exit_count++;
+			} else if (cc->runtime_stat.status == CONTAINER_RUN_WORKER) {
+				// Now run worker
+				int after_execute = 0;	//dummy
+
+				ret = container_workqueue_cleanup(&cc->workqueue, &after_execute);
+				if (ret == 0) {
+					// A workqueue is completed and cleanup success.
+					cc->runtime_stat.status = CONTAINER_NOT_STARTED;
+
+					#ifdef _PRINTF_DEBUG_
+					(void) fprintf(stdout, "container_workqueue end of worker exec(%d) at %s\n", after_execute, cc->name);
+					#endif
+				} else {
+					// A workqueue is not completed. Fail safe : send cancel request.
+					// TODO
+				}
+			} else {
+				;	//nop
 			}
 		}
 
@@ -719,6 +784,13 @@ int container_exec_internal_event(containers_t *cs)
 					(void) fprintf(stderr,"[CM CRITICAL ERROR] container %s was shutdown timeout at sys shutdown, fourcekill.\n", cc->name);
 					#endif
 				}
+			} else if (cc->runtime_stat.status == CONTAINER_RUN_WORKER) {
+				if (cc->runtime_stat.timeout < timeout) {
+					// force state change
+					cc->runtime_stat.status = CONTAINER_EXIT;
+				}
+			} else {
+				;	//nop
 			}
 		}
 	} else {
@@ -1259,14 +1331,18 @@ static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t
 
 		dl_list_for_each(exdisk, &bc->extradisk_list, container_baseconfig_extradisk_t, list) {
 
-			(void) container_cleanup_unmountdisk(exdisk->from, timeout_time, retry_max);
-			exdisk->is_mounted = 0;
+			if (exdisk->is_mounted != 0) {
+				(void) container_cleanup_unmountdisk(exdisk->from, timeout_time, retry_max);
+				exdisk->is_mounted = 0;
+			}
 		}
 	}
 
 	// unmount rootfs
-	(void) container_cleanup_unmountdisk(bc->rootfs.path, timeout_time, retry_max);
-	bc->rootfs.is_mounted = 0;
+	if (bc->rootfs.is_mounted != 0) {
+		(void) container_cleanup_unmountdisk(bc->rootfs.path, timeout_time, retry_max);
+		bc->rootfs.is_mounted = 0;
+	}
 
 	return 0;
 }

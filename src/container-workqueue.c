@@ -7,9 +7,121 @@
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
+#include <dlfcn.h>
 
 #include "container-workqueue.h"
+#include "worker-plugin-interface.h"
 
+struct s_cm_worker_object {
+	void *plugin_dlhandle;
+	cm_worker_instance_t *instance;
+	cm_worker_new_t cm_worker_new;
+	cm_worker_delete_t cm_worker_delete;
+};
+
+/**
+ * Cleanup scheduled per container workqueue.
+ *
+ * @param [in]	workqueue	Pointer to initialized container_workqueue_t.
+ * @return int
+ * @retval 0	Success to load plugin.
+ * @retval -1	Fail to load plugin.
+ */
+static int container_workqueue_load_plugin(container_workqueue_t *workqueue)
+{
+	int ret = -1;
+	struct s_cm_worker_object *obj = NULL;
+
+	obj = (struct s_cm_worker_object*)malloc(sizeof(struct s_cm_worker_object));
+	if (obj == NULL)
+		return -1;
+
+	(void) memset(obj, 0, sizeof(struct s_cm_worker_object));
+
+	obj->plugin_dlhandle = dlopen("/usr/lib/container-manager/cm-worker-fsck.so", (RTLD_NOW | RTLD_NODELETE));
+	if (obj->plugin_dlhandle == NULL) {
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"container_workqueue_load_plugin: fail to load %s / %s\n", "/usr/lib/container-manager/cm-worker-fsck.so", dlerror());
+		#endif
+		goto error_return;
+	}
+
+	obj->cm_worker_new = (cm_worker_new_t)dlsym(obj->plugin_dlhandle, "cm_worker_new");
+	if (obj->cm_worker_new == NULL) {
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"container_workqueue_load_plugin: fail to symbol load %s at %s\n", "cm_worker_new", "/usr/lib/container-manager/cm-worker-fsck.so");
+		#endif
+		goto error_return;
+	}
+	obj->cm_worker_delete = (cm_worker_delete_t)dlsym(obj->plugin_dlhandle, "cm_worker_delete");
+	if (obj->cm_worker_delete == NULL) {
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"container_workqueue_load_plugin: fail to symbol load %s at %s\n", "cm_worker_delete", "/usr/lib/container-manager/cm-worker-fsck.so");
+		#endif
+		goto error_return;
+	}
+
+	ret = obj->cm_worker_new(&obj->instance);
+	if (ret < 0) {
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"container_workqueue_load_plugin: fail to %s at %s\n", "cm_worker_new", "/usr/lib/container-manager/cm-worker-fsck.so");
+		#endif
+		goto error_return;
+	}
+
+	workqueue->object = obj;
+
+	return 0;
+
+error_return:
+	if (obj != NULL) {
+		if (obj->plugin_dlhandle != NULL)
+			(void) dlclose(obj->plugin_dlhandle);
+		(void)free(obj);
+	}
+
+	return -1;
+}
+/**
+ * Cleanup scheduled per container workqueue.
+ *
+ * @param [in]	workqueue	Pointer to initialized container_workqueue_t.
+ * @return int
+ * @retval 0	Success to unload plugin.
+ * @retval -1	Fail to unload plugin.
+ */
+static int container_workqueue_unload_plugin(container_workqueue_t *workqueue)
+{
+	int ret = -1;
+	struct s_cm_worker_object *obj = NULL;
+
+	if (workqueue == NULL)
+		goto error_return;
+
+	obj = (struct s_cm_worker_object*)workqueue->object;
+	if (obj == NULL)
+		goto error_return;
+
+	ret = obj->cm_worker_delete(obj->instance);
+	if (ret < 0) {
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"container_workqueue_unload_plugin: fail to %s at %s\n", "cm_worker_delete", "/usr/lib/container-manager/cm-worker-fsck.so");
+		#endif
+		goto error_return;
+	}
+
+	obj->instance = NULL;
+
+	(void) dlclose(obj->plugin_dlhandle);
+	(void) free(obj);
+	workqueue->object = NULL;
+
+	return 0;
+
+error_return:
+
+	return -1;
+}
 /**
  * Cleanup scheduled per container workqueue.
  *
@@ -40,6 +152,8 @@ int container_workqueue_cleanup(container_workqueue_t *workqueue, int *after_exe
 
 	workqueue->state_after_execute = 0;
 
+	(void) container_workqueue_unload_plugin(workqueue);
+
 	return 0;
 }
 
@@ -53,14 +167,17 @@ static void* container_workqueue_thread(void *args)
 {
 	int ret = -1;
 	container_workqueue_t *workqueue = (container_workqueue_t*)args;
-	container_worker_func_t func;
+	//container_worker_func_t func;
 
 	if (args == NULL)
 		pthread_exit(NULL);
 
+	/*
 	func = workqueue->worker_func;
 	if (func != NULL)
 		ret = func();
+	*/
+	ret = workqueue->object->instance->exec(workqueue->object->instance->handle);
 
 	(void)pthread_mutex_lock(&(workqueue->workqueue_mutex));
 	workqueue->status = CONTAINER_WORKER_COMPLETED;
@@ -110,7 +227,38 @@ int container_workqueue_run(container_workqueue_t *workqueue)
 
 	return 0;
 }
+/**
+ * Run scheduled per container workqueue.
+ *
+ * @param [in]	workqueue	Pointer to initialized container_workqueue_t.
+ * @return int
+ * @retval 1	Success to cancel request. Need to wait worker stop.
+ * @retval 0	Success to cancel. Can remove worker.
+ * @retval -1	Is not scheduled workqueue.
+ * @retval -2	Arg. error.
+ * @retval -3	Internal error.
+ */
+int container_workqueue_cancel(container_workqueue_t *workqueue)
+{
+	int result = -1;
 
+	if (workqueue == NULL)
+		return -2;
+
+	if (workqueue->status == CONTAINER_WORKER_DISABLE
+		|| workqueue->status == CONTAINER_WORKER_INACTIVE) {
+		// Not need cancel.
+		result = -1;
+	} else if (workqueue->status == CONTAINER_WORKER_SCHEDULED) {
+		// Worker is scheduled but not run. Can remove worker.
+		result = 0;
+	} else {
+		// TODO cancel operation
+		result = 1;
+	}
+
+	return result;
+}
 /**
  * Remove scheduled per container workqueue.
  *
@@ -120,7 +268,7 @@ int container_workqueue_run(container_workqueue_t *workqueue)
  * @retval -1	Already run.
  * @retval -2	Arg. error.
  */
-int container_workqueue_remove(container_workqueue_t *workqueue)
+int container_workqueue_remove(container_workqueue_t *workqueue, int *after_execute)
 {
 	if (workqueue == NULL)
 		return -2;
@@ -133,7 +281,12 @@ int container_workqueue_remove(container_workqueue_t *workqueue)
 	if (workqueue->status != CONTAINER_WORKER_DISABLE)
 		workqueue->status = CONTAINER_WORKER_INACTIVE;
 
+	if (after_execute != NULL)
+		(*after_execute) = workqueue->state_after_execute;
+
 	workqueue->state_after_execute = 0;
+
+	(void) container_workqueue_unload_plugin(workqueue);
 
 	return 0;
 }
@@ -149,15 +302,26 @@ int container_workqueue_remove(container_workqueue_t *workqueue)
  * @retval -1	Already scheduled.
  * @retval -2	Arg. error.
  */
+static const char *cstr_option_device = "device=/dev/mmcblk1p7";
+
 int container_workqueue_schedule(container_workqueue_t *workqueue, container_worker_func_t func, int launch_after_end)
 {
+	int ret = -1;
+
 	if (workqueue == NULL || func == NULL)
 		return -2;
 
 	if (workqueue->status != CONTAINER_WORKER_INACTIVE)
 		return -1;
 
-	workqueue->worker_func = func;
+	ret = container_workqueue_load_plugin(workqueue);
+	if (ret < 0) {
+		return -3;
+	}
+
+	ret = workqueue->object->instance->set_args(workqueue->object->instance->handle, cstr_option_device, strlen(cstr_option_device)+1u);// TODO create sub function.
+
+	//workqueue->worker_func = func;
 	workqueue->status = CONTAINER_WORKER_SCHEDULED;
 
 	workqueue->state_after_execute = launch_after_end;
@@ -201,7 +365,7 @@ int container_workqueue_initialize(container_workqueue_t *workqueue)
 	if (workqueue == NULL)
 		return -1;
 
-	memset(workqueue, 0, sizeof(container_workqueue_t));
+	(void) memset(workqueue, 0, sizeof(container_workqueue_t));
 	workqueue->status = CONTAINER_WORKER_DISABLE;
 
 	(void)pthread_mutexattr_init(&mutex_attr);

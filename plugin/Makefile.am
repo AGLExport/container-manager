@@ -22,6 +22,9 @@ cm_worker_fsck_la_CXXFLAGS = \
 	-I$(top_srcdir)/include \
 	-D_GNU_SOURCE
 
+cm_worker_fsck_la_LIBADD = \
+	libs/libcmworker.a
+
 # Linker options
 cm_worker_fsck_la_LDFLAGS = \
 	-module -avoid-version -shared \
