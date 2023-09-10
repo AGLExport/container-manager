@@ -296,9 +296,6 @@ static int cm_worker_exec(cm_worker_handle_t handle)
 		result = 0;
 	}
 
-	if (result == 1)
-		goto do_return;
-
 	// Do mkfs
 	ret = cm_worker_exec_mkfs(permkfs);
 	if (ret < 0) {
