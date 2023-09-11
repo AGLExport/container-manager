@@ -8,6 +8,8 @@
 #ifndef WORKER_PLUGIN_INTERFACE_H
 #define WORKER_PLUGIN_INTERFACE_H
 
+#include <stddef.h>
+
 /**
  * @def	RESOURCE_TYPE_CGROUP
  * @brief	Resource type is cgroup.  It use at s_container_resource_elem.type.
@@ -17,17 +19,19 @@ typedef void* cm_worker_handle_t;
 /**
  * @brief Function pointer for set argument to container workqueue worker.
  *
- * @param [in]	argc	An integer argument count of the command line arguments.
- * @param [in]	argv	An argument vector of the command line arguments.
+ * @param [in]	handle		Initialized cm_worker_handle_t.
+ * @param [in]	arg_str		Pointer to the argument string.
+ * @param [in]	arg_length	Length for the argument string.
  * @return Description for return value
- * @retval 0	Success to set args.
- * @retval -1	Fail to set args.
+ * @retval 0	Success to set argument.
+ * @retval -1	Fail to set argument.
  */
-typedef int (*cm_worker_set_args_t)(cm_worker_handle_t handle, const char *arg_str, int arg_length);
+typedef int (*cm_worker_set_args_t)(cm_worker_handle_t handle, const char *arg_str, size_t arg_length);
 
 /**
  * @brief Function pointer for execute to container workqueue worker.
  *
+ * @param [in]	handle		Initialized cm_worker_handle_t.
  * @return Description for return value
  * @retval 0	Success to execute worker.
  * @retval -1	Fail to execute worker.
@@ -37,6 +41,7 @@ typedef int (*cm_worker_exec_t)(cm_worker_handle_t handle);
 /**
  * @brief Function pointer for cancel to container workqueue worker.
  *
+ * @param [in]	handle		Initialized cm_worker_handle_t.
  * @return Description for return value
  * @retval 0	Success to cancel request to worker.
  * @retval -1	Fail to cancel request to worker.
