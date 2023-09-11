@@ -35,48 +35,72 @@ typedef struct s_erase_mkfs_plugin erase_mkfs_plugin_t;	/**< typedef for struct 
  * @brief	default signal to use guest container termination.
  */
 static const char *cstr_option_device = "device=";
-
-static int cm_worker_set_args(cm_worker_handle_t handle, const char *arg_str, int arg_length)
+/**
+ * @brief Function for argument set to erase and mkfs plugin.
+ *
+ * @param [in]	handle		Initialized cm_worker_handle_t.
+ * @param [in]	arg_str		Pointer to the argument string.
+ * @param [in]	arg_length	Length for the argument string.
+ * @return Description for return value
+ * @retval 0	Success to set argument.
+ * @retval -1	Fail to set argument.
+ */
+static int cm_worker_set_args(cm_worker_handle_t handle, const char *arg_str, size_t arg_length)
 {
 	erase_mkfs_plugin_t *permkfs = NULL;
 	char *substr = NULL, *saveptr = NULL;
+	size_t cstr_option_device_length = 0;
 	char strbuf[1024];
 	int result = -1;
 
-	if (handle == NULL || arg_str == NULL || arg_length >= 1024)
+	if ((handle == NULL) || (arg_str == NULL) || (arg_length >= 1024)) {
 		return -1;
+	}
 
 	permkfs = (erase_mkfs_plugin_t*)handle;
 
 	(void) strncpy(strbuf, arg_str, (arg_length + 1u));
 
 	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout,"erase-mkfs-plugin: cm_worker_set_args %s (%d)\n", arg_str, arg_length);
+	(void) fprintf(stdout,"erase-mkfs-plugin: cm_worker_set_args %s (%ld)\n", arg_str, arg_length);
 	#endif
 
+	cstr_option_device_length = strlen(cstr_option_device);
+	substr = strtok_r(strbuf, " ", &saveptr);
 	for(int i=0; i < 1024;i++) {
-		substr = strtok_r(strbuf, " ", &saveptr);
-		if (strncmp(substr, cstr_option_device, strlen(cstr_option_device)) == 0) {
-			char *device = &substr[strlen(cstr_option_device)];
-			int len = strlen(device);
-			if (len > 0) {
-				permkfs->blkdev_path = strdup(device);
-				result = 0;
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"erase-mkfs-plugin: cm_worker_set_args set device = %s\n", permkfs->blkdev_path);
-				#endif
-				break;
+		if (substr != NULL) {
+			if (strncmp(substr, cstr_option_device, cstr_option_device_length) == 0) {
+				if (cstr_option_device_length < strlen(substr)) {
+					char *device = &substr[cstr_option_device_length];
+					size_t len = strlen(device);
+					if (len > 0) {
+						permkfs->blkdev_path = strdup(device);
+						result = 0;
+						#ifdef _PRINTF_DEBUG_
+						(void) fprintf(stdout,"erase-mkfs-plugin: cm_worker_set_args set device = %s\n", permkfs->blkdev_path);
+						#endif
+						break;
+					}
+				}
 			}
+			substr = strtok_r(NULL, " ", &saveptr);
+		} else {
+			result = -1;
+			break;
 		}
 	}
 
 	return result;
 }
-
-static uint64_t buff[1024*1024/sizeof(uint64_t)];	// 1MByte buffer
 /**
- * @brief Function pointer for container workqueue execution.
+ * @var		g_erase_buff
+ * @brief	Work buffer for disk erase.
+ */
+static const uint64_t g_erase_buff[1024*1024/sizeof(uint64_t)];	// 1MByte buffer
+/**
+ * @brief Function for disk erase execution.
  *
+ * @param [in]	permkfs		Initialized erase_mkfs_plugin_t.
  * @return Description for return value
  * @retval 0	Success to execute worker.
  * @retval -1	Fail to execute worker.
@@ -99,15 +123,15 @@ static int cm_worker_exec_erase(erase_mkfs_plugin_t *permkfs)
 				ret = 1;
 				goto do_return;
 			}
-			sret = write(fd, buff, sizeof(buff));
-		} while(sret > 0 && errno != EINTR);
+			sret = write(fd, g_erase_buff, sizeof(g_erase_buff));
+		} while((sret > 0) && (errno != EINTR));
 
 		// Finally, sret = -1 and errno = 28(ENOSPC).
 		#ifdef _PRINTF_DEBUG_
 		(void) fprintf(stdout,"container_worker_test: write end for /dev/mmcblk1p7 ret = %d(%d)\n",(int)sret, errno);
 		#endif
 
-		close(fd);
+		(void) close(fd);
 
 		ret = 0;
 	}
@@ -117,8 +141,9 @@ do_return:
 	return ret;
 }
 /**
- * @brief Function pointer for container workqueue execution.
+ * @brief Function for disk format execution.
  *
+ * @param [in]	permkfs		Initialized erase_mkfs_plugin_t.
  * @return Description for return value
  * @retval 0	Success to execute worker.
  * @retval -1	Fail to execute worker.
@@ -145,7 +170,7 @@ static int cm_worker_exec_mkfs(erase_mkfs_plugin_t *permkfs)
 		(void) execlp("/sbin/mkfs.ext4", "/sbin/mkfs.ext4", "-I", "256", permkfs->blkdev_path, (char*)0);
 
 		// Shall not return execlp
-		_exit(128);
+		(void) _exit(128);
 	}
 
 	#ifdef _PRINTF_DEBUG_
@@ -224,21 +249,24 @@ static int cm_worker_exec_mkfs(erase_mkfs_plugin_t *permkfs)
 		goto do_return;
 	}
 
-	if (permkfs->cancel_request == 1)
+	if (permkfs->cancel_request == 1) {
 		result = 1;
-	else
+	} else {
 		result = 0;
+	}
 
 do_return:
-	if (child_fd >= 0)
+	if (child_fd >= 0) {
 		(void) close(child_fd);
+	}
 
 	return result;
 }
 
 /**
- * @brief Function pointer for container workqueue execution.
+ * @brief Function for erase and mkfs plugin worker execution.
  *
+ * @param [in]	handle		Initialized cm_worker_handle_t.
  * @return Description for return value
  * @retval 0	Success to execute worker.
  * @retval -1	Fail to execute worker.
@@ -287,6 +315,7 @@ do_return:
 /**
  * @brief Function pointer for cancel to container workqueue worker.
  *
+ * @param [in]	handle		Initialized cm_worker_handle_t.
  * @return Description for return value
  * @retval 0	Success to cancel request to worker.
  * @retval -1	Fail to cancel request to worker.
@@ -295,8 +324,9 @@ int cm_worker_cancel(cm_worker_handle_t handle)
 {
 	erase_mkfs_plugin_t *permkfs = NULL;
 
-	if (handle == NULL)
+	if (handle == NULL) {
 		return -1;
+	}
 
 	permkfs = (erase_mkfs_plugin_t*)handle;
 
@@ -339,11 +369,13 @@ int cm_worker_new(cm_worker_instance_t **instance)
 	return 0;
 
 err_return:
-	if (plug != NULL)
+	if (plug != NULL) {
 		(void)free(plug);
+	}
 
-	if (inst != NULL)
+	if (inst != NULL) {
 		(void)free(inst);
+	}
 
 	return result;
 }

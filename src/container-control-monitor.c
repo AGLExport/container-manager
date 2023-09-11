@@ -52,7 +52,7 @@ static int container_monitor_state_change(containers_t *cs, int status, int num)
 	command.data.container_number = num;
 
 	ret = write(cm->secondary_fd, &command, sizeof(command));
-	if (ret != sizeof(command)) {
+	if (ret != (ssize_t)sizeof(command)) {
 		return -1;
 	}
 
@@ -93,7 +93,7 @@ static int container_monitor_pidfd_handler(sd_event_source *event, int fd, uint3
 		if (cc->runtime_stat.pidfd_source == event) {
 			ret = container_monitor_state_change(cs, CONTAINER_DEAD, i);
 			if (ret == 0) {
-				sd_event_source_disable_unref(event);
+				(void) sd_event_source_disable_unref(event);
 				cc->runtime_stat.pidfd_source = NULL;
 			}
 			// if command send fail...
@@ -119,7 +119,7 @@ int container_monitor_addguest(containers_t *cs, container_config_t *cc)
 	int ret = -1;
 	int pidfd = -1;
 
-	if (cs == NULL || cc == NULL) {
+	if ((cs == NULL) || (cc == NULL)) {
 		return -1;
 	}
 
@@ -144,7 +144,7 @@ int container_monitor_addguest(containers_t *cs, container_config_t *cc)
 
 err_return:
 	if (pidfd_source != NULL) {
-		(void)sd_event_source_disable_unref(pidfd_source);
+		(void) sd_event_source_disable_unref(pidfd_source);
 	}
 
 	return -1;
@@ -161,7 +161,7 @@ err_return:
  */
 int container_monitor_removeguest(containers_t *cs, container_config_t *cc)
 {
-	if (cs == NULL || cc == NULL) {
+	if ((cs == NULL) || (cc == NULL)) {
 		return -1;
 	}
 

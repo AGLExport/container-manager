@@ -148,7 +148,7 @@ error_return:
  * @retval 0	Success to get plugin file name.
  * @retval -1	Fail to get plugin file name.
  */
-static int container_workqueue_get_plugin(char *key, char *module)
+static int container_workqueue_get_plugin(const char *key, char *module)
 {
 	int result = -1;
 
@@ -171,7 +171,7 @@ static int container_workqueue_get_plugin(char *key, char *module)
  * @retval 0	Success to load plugin.
  * @retval -1	Fail to load plugin.
  */
-static int container_workqueue_load_plugin(container_workqueue_t *workqueue, char *key)
+static int container_workqueue_load_plugin(container_workqueue_t *workqueue, const char *key)
 {
 	int ret = -1;
 	struct s_cm_worker_object *obj = NULL;
@@ -302,10 +302,11 @@ int container_workqueue_cleanup(container_workqueue_t *workqueue, int *after_exe
 
 	workqueue->status = CONTAINER_WORKER_INACTIVE;
 
-	if (workqueue->state_after_execute == 1)
+	if (workqueue->state_after_execute == 1) {
 		(*after_execute) = 1;
-	else
+	} else {
 		(*after_execute) = 0;
+	}
 
 	workqueue->state_after_execute = 0;
 
@@ -377,8 +378,9 @@ int container_workqueue_run(container_workqueue_t *workqueue)
 	}
 
 	(void)pthread_mutex_lock(&(workqueue->workqueue_mutex));
-	if (workqueue->status == CONTAINER_WORKER_SCHEDULED)
+	if (workqueue->status == CONTAINER_WORKER_SCHEDULED) {
 		workqueue->status = CONTAINER_WORKER_STARTED;
+	}
 	(void)pthread_mutex_unlock(&(workqueue->workqueue_mutex));
 
 	return 0;
@@ -465,7 +467,7 @@ int container_workqueue_remove(container_workqueue_t *workqueue, int *after_exec
  */
 static const char *cstr_option_device = "device=/dev/mmcblk1p7";
 
-int container_workqueue_schedule(container_workqueue_t *workqueue, char *key, int launch_after_end)
+int container_workqueue_schedule(container_workqueue_t *workqueue, const char *key, int launch_after_end)
 {
 	int ret = -1;
 	int result = -2;
