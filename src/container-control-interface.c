@@ -48,7 +48,7 @@ int container_mngsm_interface_get(container_control_interface_t **pcci, containe
 {
 	struct s_container_control_interface *cci = NULL;
 
-	if (pcci == NULL || cs == NULL) {
+	if ((pcci == NULL) || (cs == NULL)) {
 		return -2;
 	}
 
@@ -90,7 +90,7 @@ int container_mngsm_interface_free(containers_t *cs)
 		return -2;
 	}
 
-	free(cs->cci);
+	(void) free(cs->cci);
 	cs->cci = NULL;
 
 	return 0;
