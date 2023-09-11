@@ -407,7 +407,7 @@ static int container_external_interface_command_change(cm_external_interface_t *
 		}
 
 		sret = write(fd, &response, sizeof(response));
-		if (sret != sizeof(response)) {
+		if (sret != (ssize_t)sizeof(response)) {
 			ret = -1;
 		}
 
