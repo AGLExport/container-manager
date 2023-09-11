@@ -119,7 +119,6 @@ static int udev_event_handler(sd_event_source *event, int fd, uint32_t revents, 
 		sd_event_source_disable_unref(event);
 	} else if ((revents & EPOLLIN) != 0) {
 		// Receive
-		// Not check error. TODO Fix
 		(void)device_control_dynamic_udev_devevent(ddm);
 	}
 
