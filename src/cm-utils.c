@@ -40,9 +40,9 @@ int once_write(const char *path, const void* data, size_t size)
 
 	do {
 		ret = write(fd, data, size);
-	} while (ret == -1 && errno == EINTR);
+	} while ((ret == -1) && (errno == EINTR));
 
-	close(fd);
+	(void) close(fd);
 
 	return 0;
 }
@@ -70,9 +70,9 @@ int once_read(const char *path, void* data, size_t size)
 
 	do {
 		ret = read(fd, data, size);
-	} while (ret == -1 && errno == EINTR);
+	} while ((ret == -1) && (errno == EINTR));
 
-	close(fd);
+	(void) close(fd);
 
 	return 0;
 }
@@ -112,18 +112,18 @@ int node_check(const char *path)
 int mkdir_p(const char *dir, mode_t mode)
 {
 	int ret = -1, result = 0;
-	int len = 0;
+	size_t len = 0;
 	char path[PATH_MAX];
 
 	(void) memset(path, 0, sizeof(path));
 
 	len = strnlen(dir, PATH_MAX-1);
 
-	for(int i=1; i < len; i++) {
+	for(size_t i=1; i < len; i++) {
 		if (dir[i] == '/') {
 			(void) strncpy(path, dir, i);
 			ret = mkdir(path, mode);
-			if(ret < 0 && errno != EEXIST) {
+			if((ret < 0) && (errno != EEXIST)) {
 				result = -1;
 				break;
 			}
@@ -149,7 +149,7 @@ int wait_child_pid(pid_t pid)
 	do {
 		ret = waitpid(pid, &status, 0);
 
-	} while (ret < 0 && errno == EINTR);
+	} while ((ret < 0) && (errno == EINTR));
 
 	if (!WIFEXITED(status)) {
 		return -1;
@@ -176,7 +176,7 @@ int64_t get_current_time_ms(void)
 
 	ret = clock_gettime(CLOCK_MONOTONIC, &t);
 	if (ret == 0) {
-		ms = (t.tv_sec * 1000) + (t.tv_nsec / 1000 / 1000);
+		ms = ((int64_t)t.tv_sec * 1000) + ((int64_t)t.tv_nsec / 1000 / 1000);
 	}
 
 	return ms;
@@ -203,7 +203,7 @@ void sleep_ms_time(int64_t wait_time)
 
 	for(int i=0;i < 10; i++) {	// INTR recover is 10 times.  To avoid no return.
 		ret = nanosleep(&req, &rem);
-		if (ret < 0 && errno == EINTR) {
+		if ((ret < 0) && (errno == EINTR)) {
 			req.tv_sec = rem.tv_sec;
 			req.tv_nsec = rem.tv_nsec;
 			rem.tv_sec = 0;
