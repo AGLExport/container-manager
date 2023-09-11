@@ -14,9 +14,9 @@
 
 //-----------------------------------------------------------------------------
 // Command packet
-#define CONTAINER_EXTIF_COMMAND_BUFSIZEMAX (8*1024)
+#define CONTAINER_EXTIF_COMMAND_BUFSIZEMAX (8u*1024u)
 
-#define CONTAINER_EXTIF_STR_LEN_MAX (128)
+#define CONTAINER_EXTIF_STR_LEN_MAX (128u)
 #define CONTAINER_EXTIF_GUESTS_MAX (8*2) //Ref. to container.h GUEST_CONTAINER_LIMIT
 //-----------------------------------------------------------------------------
 // Client -> Container manager

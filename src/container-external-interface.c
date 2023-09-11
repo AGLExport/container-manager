@@ -11,9 +11,7 @@
 #include "container-workqueue.h"
 #include "container.h"
 
-// TODO
 #include "lxc-util.h"
-// TODO
 
 #include <errno.h>
 #include <stdlib.h>
@@ -80,7 +78,7 @@ static int container_external_interface_get_guest_info(containers_t *cs, contain
 {
 	int num_of_guest = 0;
 
-	if (cs == NULL || guests_info == NULL) {
+	if ((cs == NULL) || (guests_info == NULL)) {
 		return -2;
 	}
 
@@ -116,11 +114,14 @@ static int container_external_interface_command_get(cm_external_interface_t *pex
 
 	(void) memset(&guests_info, 0 , sizeof(guests_info));
 
-	if(size >= sizeof(container_extif_command_get_t)) {
+	if(size >= (ssize_t)sizeof(container_extif_command_get_t)) {
 		guests_info.header.command = CONTAINER_EXTIF_COMMAND_RESPONSE_GETGUESTS;
 		ret = container_external_interface_get_guest_info(pextif->cs, &guests_info);
 		if (ret == 0) {
 			sret = write(fd, &guests_info, sizeof(guests_info));
+			if (sret != (ssize_t)sizeof(guests_info)) {
+				ret = -1;
+			}
 		} else {
 			ret = -1;
 		}
@@ -145,7 +146,7 @@ static int container_external_interface_force_reboot_guest(containers_t *cs, cha
 {
 	int command_accept = -1;
 
-	if (cs == NULL || name == NULL) {
+	if ((cs == NULL) || (name == NULL)) {
 		return -2;
 	}
 
@@ -154,13 +155,13 @@ static int container_external_interface_force_reboot_guest(containers_t *cs, cha
 
 		if (role == 0) {
 			if (strncmp(cc->name, name, strlen(cc->name)) == 0) {
-				(void)lxcutil_container_forcekill(cc);
+				(void) lxcutil_container_forcekill(cc);
 				command_accept = 0;
 			}
 		} else {
 			if (cc->runtime_stat.status == CONTAINER_STARTED) {
 				if (strncmp(cc->role, name, strlen(cc->role)) == 0) {
-					(void)lxcutil_container_forcekill(cc);
+					(void) lxcutil_container_forcekill(cc);
 					command_accept = 0;
 				}
 			}
@@ -185,7 +186,7 @@ static int container_external_interface_reboot_guest(containers_t *cs, char *nam
 	int ret = -1;
 	int command_accept = -1;
 
-	if (cs == NULL || name == NULL) {
+	if ((cs == NULL) || (name == NULL)) {
 		return -2;
 	}
 
@@ -235,7 +236,7 @@ static int container_external_interface_shutdown_guest(containers_t *cs, char *n
 	int ret = -1;
 	int command_accept = -1;
 
-	if (cs == NULL || name == NULL) {
+	if ((cs == NULL) || (name == NULL)) {
 		return -2;
 	}
 
@@ -317,12 +318,14 @@ static int container_external_interface_command_lifecycle(cm_external_interface_
 			}
 		} else {
 			// other is not support
-			// TODO
 			response.response = CONTAINER_EXTIF_LIFECYCLE_RESPONSE_ERROR;
 		}
 
 		if (ret == 0) {
 			sret = write(fd, &response, sizeof(response));
+			if (sret != (ssize_t)sizeof(response)) {
+				ret = -1;
+			}
 		} else {
 			ret = -1;
 		}
@@ -404,6 +407,9 @@ static int container_external_interface_command_change(cm_external_interface_t *
 		}
 
 		sret = write(fd, &response, sizeof(response));
+		if (sret != sizeof(response)) {
+			ret = -1;
+		}
 
 	} else {
 		ret = -1;
@@ -471,12 +477,14 @@ static int container_external_interface_command_test(cm_external_interface_t *pe
 			}
 		} else {
 			// other is not support
-			// TODO
 			response.response = -1;
 		}
 
 		if (ret == 0) {
 			sret = write(fd, &response, sizeof(response));
+			if (sret != (ssize_t)sizeof(response)) {
+				ret = -1;
+			}
 		} else {
 			ret = -1;
 		}
@@ -502,7 +510,7 @@ static int container_external_interface_exec(cm_external_interface_t *pextif, in
 	container_extif_command_header_t *pheader = NULL;
 	int ret = 0;
 
-	if (buf == NULL || size < sizeof(container_extif_command_header_t)) {
+	if ((buf == NULL) || (size < (ssize_t)sizeof(container_extif_command_header_t))) {
 		return -1;
 	}
 
@@ -556,7 +564,7 @@ static int container_external_interface_sessions_handler(sd_event_source *event,
 		// Receive
 		sret = read(fd, buf, sizeof(buf));
 		if (sret > 0) {
-			(void)container_external_interface_exec(pextif, fd, buf, sret);
+			(void) container_external_interface_exec(pextif, fd, buf, sret);
 		}
 		// close session
 		(void) sd_event_source_disable_unref(pextif->interface_session_evsource);
@@ -634,7 +642,7 @@ static int container_external_interface_incoming_handler(sd_event_source *event,
 
 error_return_b:
 	if ((pextif != NULL) && (pextif->interface_session_evsource != NULL)) {
-		(void *) sd_event_source_disable_unref(pextif->interface_session_evsource);
+		(void) sd_event_source_disable_unref(pextif->interface_session_evsource);
 		pextif->interface_session_evsource = NULL;
 	}
 
@@ -664,7 +672,7 @@ int container_external_interface_setup(containers_t *cs, sd_event *event)
 	int fd = -1;
 	int ret = -1;
 
-	if (cs == NULL || event == NULL) {
+	if ((cs == NULL) || (event == NULL)) {
 		return -2;
 	}
 
@@ -731,8 +739,8 @@ int container_external_interface_setup(containers_t *cs, sd_event *event)
 	return 0;
 
 err_return:
-	socket_source = sd_event_source_disable_unref(socket_source);
-	free(pextif);
+	(void) sd_event_source_disable_unref(socket_source);
+	(void) free(pextif);
 	if (fd != -1) {
 		(void) close(fd);
 	}
@@ -772,7 +780,7 @@ int container_external_interface_cleanup(containers_t *cs)
 	}
 
 	(void) sd_event_source_disable_unref(pextif->interface_evsource);
-	free(pextif);
+	(void) free(pextif);
 
 	return 0;
 }
