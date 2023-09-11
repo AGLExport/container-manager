@@ -29,7 +29,7 @@ int block_util_getfs(const char *devpath, block_device_info_t *bdi)
 	const char *data;
 	size_t sz;
 
-	if (devpath == NULL || bdi == NULL) {
+	if ((devpath == NULL) || (bdi == NULL)) {
 		return -1;
 	}
 
