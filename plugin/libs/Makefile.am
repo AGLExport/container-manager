@@ -11,11 +11,13 @@ libcmworker_a_SOURCES = \
 # C compiler options
 libcmworker_a_CFLAGS = \
 	-g -Wall -Wno-unused-but-set-variable \
+	-fPIC -DPIC \
 	-D_GNU_SOURCE
 
 # C++ compiler options
-libcmworker_a_CFLAGS = \
+libcmworker_a_CXXFLAGS = \
 	-g -Wall -Wno-unused-but-set-variable \
+	-fPIC -DPIC \
 	-D_GNU_SOURCE
 
 # configure option
