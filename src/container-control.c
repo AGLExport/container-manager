@@ -39,43 +39,48 @@ static const char abboot_cmdline_key[] = "aglabboot";
  */
 static int container_mngsm_state_machine(containers_t *cs, const uint8_t *buf)
 {
-	container_mngsm_command_header_t *phead;
+	const container_mngsm_command_header_t *phead;
 	uint32_t command = 0;
-	int ret = -1;
 
-	phead = (container_mngsm_command_header_t*)buf;
+	phead = (const container_mngsm_command_header_t*)buf;
 
 	command = phead->command;
 
 	#ifdef _PRINTF_DEBUG_
-	if (command != CONTAINER_MNGSM_COMMAND_TIMER_TICK)
+	if (command != CONTAINER_MNGSM_COMMAND_TIMER_TICK) {
 		(void) fprintf(stdout,"container_mngsm_state_machine: command %x\n", command);
+	}
 	#endif
 
 	switch(command) {
 	case CONTAINER_MNGSM_COMMAND_NETIFUPDATED :
-		ret = container_netif_updated(cs);
-
+		{
+			(void) container_netif_updated(cs);
+		}
 		break;
 	case CONTAINER_MNGSM_COMMAND_GUEST_EXIT :
 		{
-			container_mngsm_guest_status_exit_t *p = (container_mngsm_guest_status_exit_t*)buf;
+			const container_mngsm_guest_status_exit_t *p = (const container_mngsm_guest_status_exit_t*)buf;
 
-			ret = container_exited(cs, &p->data);
+			(void) container_exited(cs, &p->data);
 		}
 		break;
 	case CONTAINER_MNGSM_COMMAND_SYSTEM_SHUTDOWN :
-		ret = container_manager_shutdown(cs);
+		{
+			(void) container_manager_shutdown(cs);
+		}
 		break;
 	case CONTAINER_MNGSM_COMMAND_TIMER_TICK :
-		// exec internal event after tick update
-		ret = container_mngsm_update_timertick(cs);
+		{
+			// exec internal event after tick update
+			(void) container_mngsm_update_timertick(cs);
+		}
 		break;
 	default:
-		;
+		break;
 	}
 
-	ret = container_exec_internal_event(cs);
+	(void) container_exec_internal_event(cs);
 
 	return 0;
 }
@@ -98,7 +103,7 @@ static int container_mngsm_commsocket_handler(sd_event_source *event, int fd, ui
 
 	if (userdata == NULL) {
 		//  Fail safe it unref.
-		sd_event_source_disable_unref(event);
+		(void) sd_event_source_disable_unref(event);
 		return 0;
 	}
 
@@ -106,17 +111,19 @@ static int container_mngsm_commsocket_handler(sd_event_source *event, int fd, ui
 
 	if ((revents & (EPOLLHUP | EPOLLERR)) != 0) {
 		//  Fail safe it unref.
-		sd_event_source_disable_unref(event);
+		(void) sd_event_source_disable_unref(event);
 	} else if ((revents & EPOLLIN) != 0) {
 		// Event receive
 		(void) memset(buf, 0, sizeof(buf));
 
 		rret = read(fd, buf, sizeof(buf));
 		if (rret > 0) {
-			(void)container_mngsm_state_machine(cs, (const uint8_t*)buf);
+			(void) container_mngsm_state_machine(cs, (const uint8_t*)buf);
 		}
 
 		return 0;
+	} else {
+		;	//nop
 	}
 
 	return -1;
@@ -154,7 +161,7 @@ static int container_mngsm_commsocket_setup(containers_t *cs, sd_event *event)
 	}
 
 	// Higher priority set.
-	(void)sd_event_source_set_priority(socket_source, SD_EVENT_PRIORITY_NORMAL -10);
+	(void) sd_event_source_set_priority(socket_source, SD_EVENT_PRIORITY_NORMAL -10);
 
 	// Set automatically fd closed at delete object.
 	ret = sd_event_source_set_io_fd_own(socket_source, 1);
@@ -209,10 +216,10 @@ static int container_mngsm_commsocket_cleanup(containers_t *cs)
 	}
 
 	if (cms->socket_source != NULL) {
-		(void)sd_event_source_disable_unref(cms->socket_source);
+		(void) sd_event_source_disable_unref(cms->socket_source);
 	}
 	if (cms->secondary_fd != -1) {
-		close(cms->secondary_fd);
+		(void) close(cms->secondary_fd);
 	}
 
 	return 0;
@@ -272,7 +279,7 @@ static int container_mngsm_timer_handler(sd_event_source *es, uint64_t usec, voi
 
 	if (userdata == NULL) {
 		//  Fail safe it unref.
-		sd_event_source_disable_unref(es);
+		(void) sd_event_source_disable_unref(es);
 		return 0;
 	}
 
@@ -284,7 +291,7 @@ static int container_mngsm_timer_handler(sd_event_source *es, uint64_t usec, voi
 	command.header.command = CONTAINER_MNGSM_COMMAND_TIMER_TICK;
 
 	ret = write(cm->secondary_fd, &command, sizeof(command));
-	if (ret != sizeof(command)) {
+	if (ret != (ssize_t)sizeof(command)) {
 		goto error_ret;
 	}
 
@@ -339,7 +346,7 @@ static int container_mngsm_internal_timer_setup(containers_t *cs, sd_event *even
 
 err_return:
 	if (timer_source != NULL) {
-		(void)sd_event_source_disable_unref(timer_source);
+		(void) sd_event_source_disable_unref(timer_source);
 	}
 
 	return -1;
@@ -367,7 +374,7 @@ static int container_mngsm_internal_timer_cleanup(containers_t *cs)
 	}
 
 	if (cms->timer_source != NULL) {
-		(void)sd_event_source_disable_unref(cms->timer_source);
+		(void) sd_event_source_disable_unref(cms->timer_source);
 	}
 
 	return 0;
@@ -385,7 +392,7 @@ static int container_mngsm_internal_timer_cleanup(containers_t *cs)
 int container_mngsm_regist_device_manager(containers_t *cs, dynamic_device_manager_t *ddm)
 {
 
-	if (cs == NULL || ddm == NULL) {
+	if ((cs == NULL) || (ddm == NULL)) {
 		return -2;
 	}
 
@@ -551,7 +558,7 @@ int container_mngsm_setup(containers_t **pcs, sd_event *event, const char *confi
 	containers_t *cs = NULL;
 	int ret = -1;
 
-	if (pcs == NULL || event == NULL) {
+	if ((pcs == NULL) || (event == NULL)) {
 		return -2;
 	}
 
@@ -598,15 +605,15 @@ int container_mngsm_setup(containers_t **pcs, sd_event *event, const char *confi
 err_return:
 
 	if (cs->cms != NULL) {
-		(void)container_external_interface_cleanup(cs);
-		(void)container_mngsm_internal_timer_cleanup(cs);
-		(void)container_mngsm_commsocket_cleanup(cs);
-		(void)container_mngsm_cleanup_system(cs);
-		free(cs->cms);
+		(void) container_external_interface_cleanup(cs);
+		(void) container_mngsm_internal_timer_cleanup(cs);
+		(void) container_mngsm_commsocket_cleanup(cs);
+		(void) container_mngsm_cleanup_system(cs);
+		(void) free(cs->cms);
 	}
 
 	if (cs != NULL) {
-		(void)release_container_configs(cs);
+		(void) release_container_configs(cs);
 	}
 
 	return -1;
@@ -635,7 +642,7 @@ int container_mngsm_exit(containers_t *cs)
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 		(void) fprintf(stderr,"[CM CRITICAL ERROR] container_mngsm_exit was fail.\n");
 		#endif
-		_exit(0);
+		(void) _exit(0);
 	}
 
 	return 0;
@@ -658,14 +665,14 @@ int container_mngsm_cleanup(containers_t *cs)
 		return -2;
 	}
 
-	container_mngsm_interface_free(cs);
+	(void) container_mngsm_interface_free(cs);
 
 	if (cs->cms != NULL) {
-		(void)container_external_interface_cleanup(cs);
-		(void)container_mngsm_internal_timer_cleanup(cs);
-		(void)container_mngsm_commsocket_cleanup(cs);
-		(void)container_mngsm_cleanup_system(cs);
-		free(cs->cms);
+		(void) container_external_interface_cleanup(cs);
+		(void) container_mngsm_internal_timer_cleanup(cs);
+		(void) container_mngsm_commsocket_cleanup(cs);
+		(void) container_mngsm_cleanup_system(cs);
+		(void) free(cs->cms);
 	}
 
 	(void)release_container_configs(cs);

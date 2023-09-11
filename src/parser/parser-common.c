@@ -59,17 +59,17 @@ char *cmparser_read_jsonstring(const char *file)
 		goto err_ret;
 	}
 
-	close(fd);
+	(void) close(fd);
 
 	return strbuf;
 
 err_ret:
 	if (strbuf != NULL) {
-		free(strbuf);
+		(void) free(strbuf);
 	}
 
 	if(fd >= 0) {
-		close(fd);
+		(void) close(fd);
 	}
 
 	return NULL;
@@ -82,6 +82,6 @@ err_ret:
 void cmparser_release_jsonstring(char *jsonstring)
 {
 	if (jsonstring != NULL) {
-		free(jsonstring);
+		(void) free(jsonstring);
 	}
 }

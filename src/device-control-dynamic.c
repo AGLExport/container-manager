@@ -82,7 +82,7 @@ int devc_device_manager_cleanup(containers_t *cs)
 
 		(void)device_control_dynamic_udev_cleanup(ddm);
 
-		free(ddm);
+		(void) free(ddm);
 	}
 	cs->ddm = NULL;
 

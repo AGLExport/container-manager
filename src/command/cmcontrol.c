@@ -77,7 +77,7 @@ static int cm_socket_setup(void)
 	name.sun_family = AF_UNIX;
 	(void) memcpy(name.sun_path, CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME, sizeof(CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME));
 
-	ret = connect(fd, (const struct sockaddr *) &name, sizeof(CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME) + sizeof(sa_family_t));
+	ret = connect(fd, (const struct sockaddr *) &name, (sizeof(CONTAINER_MANAGER_EXTERNAL_SOCKET_NAME) + sizeof(sa_family_t)));
 	if (ret < 0) {
 		goto err_return;
 	} // TODO EALREADY and EINTR
@@ -86,7 +86,7 @@ static int cm_socket_setup(void)
 
 err_return:
 	if (fd != -1) {
-		close(fd);
+		(void) close(fd);
 	}
 
 	return -1;
@@ -112,6 +112,12 @@ static int cm_socket_wait_response(int fd, int timeout)
 
 			result = -1;
 			goto return_function;
+		} else if (ret == 0) {
+			// Timeout
+			result = -1;
+			break;
+		} else {
+			;	//nop
 		}
 
 		if ((poll_fds[0].revents & (POLLIN | POLLHUP | POLLERR | POLLNVAL)) != 0) {
@@ -130,7 +136,7 @@ void cm_get_guest_list(int json)
 {
 	int fd = -1;
 	int ret = -1;
-	int sret = -1;
+	ssize_t sret = -1;
 	container_extif_command_get_t packet;
 	container_extif_command_get_response_t response;
 
@@ -146,7 +152,7 @@ void cm_get_guest_list(int json)
 
 	packet.header.command = CONTAINER_EXTIF_COMMAND_GETGUESTS;
 	sret = write(fd, &packet, sizeof(packet));
-	if (sret < sizeof(packet)) {
+	if (sret < (ssize_t)sizeof(packet)) {
 		(void) fprintf(stderr,"Container manager is confuse.\n");
 		goto error_return;
 	}
@@ -158,8 +164,8 @@ void cm_get_guest_list(int json)
 	}
 
 	sret = read(fd, &response, sizeof(response));
-	if (sret < sizeof(response)) {
-		(void) fprintf(stderr,"Container manager is confuse. sret = %d errno = %d\n", sret, errno);
+	if (sret < (ssize_t)sizeof(response)) {
+		(void) fprintf(stderr,"Container manager is confuse. sret = %ld errno = %d\n", sret, errno);
 		goto error_return;
 	}
 
@@ -204,7 +210,7 @@ void cm_get_guest_list(int json)
 
 error_return:
 	if (fd != -1) {
-		close(fd);
+		(void) close(fd);
 	}
 
 	return;
@@ -214,7 +220,7 @@ void cm_get_guest_lifecycle(int code, char *name)
 {
 	int fd = -1;
 	int ret = -1;
-	int sret = -1;
+	ssize_t sret = -1;
 	container_extif_command_lifecycle_t packet;
 	container_extif_command_lifecycle_response_t response;
 
@@ -250,10 +256,10 @@ void cm_get_guest_lifecycle(int code, char *name)
 		goto error_return;
 	}
 
-	(void) strncpy(packet.guest_name, name, sizeof(packet.guest_name)-1);
+	(void) strncpy(packet.guest_name, name, (sizeof(packet.guest_name) - 1u));
 
 	sret = write(fd, &packet, sizeof(packet));
-	if (sret < sizeof(packet)) {
+	if (sret < (ssize_t)sizeof(packet)) {
 		(void) fprintf(stderr,"Container manager is confuse.\n");
 		goto error_return;
 	}
@@ -265,8 +271,8 @@ void cm_get_guest_lifecycle(int code, char *name)
 	}
 
 	sret = read(fd, &response, sizeof(response));
-	if (sret < sizeof(response)) {
-		(void) fprintf(stderr,"Container manager is confuse. sret = %d errno = %d\n", sret, errno);
+	if (sret < (ssize_t)sizeof(response)) {
+		(void) fprintf(stderr,"Container manager is confuse. sret = %ld errno = %d\n", sret, errno);
 		goto error_return;
 	}
 
@@ -287,7 +293,7 @@ void cm_get_guest_lifecycle(int code, char *name)
 
 error_return:
 	if (fd != -1) {
-		close(fd);
+		(void) close(fd);
 	}
 
 	return;
@@ -297,7 +303,7 @@ void cm_get_guest_change(int code, char *name)
 {
 	int fd = -1;
 	int ret = -1;
-	int sret = -1;
+	ssize_t sret = -1;
 	container_extif_command_change_t packet;
 	container_extif_command_change_response_t response;
 
@@ -317,10 +323,10 @@ void cm_get_guest_change(int code, char *name)
 		goto error_return;
 	}
 
-	(void) strncpy(packet.guest_name, name, sizeof(packet.guest_name)-1);
+	(void) strncpy(packet.guest_name, name, sizeof(packet.guest_name)-1u);
 
 	sret = write(fd, &packet, sizeof(packet));
-	if (sret < sizeof(packet)) {
+	if (sret < (ssize_t)sizeof(packet)) {
 		(void) fprintf(stderr,"Container manager is confuse.\n");
 		goto error_return;
 	}
@@ -332,8 +338,8 @@ void cm_get_guest_change(int code, char *name)
 	}
 
 	sret = read(fd, &response, sizeof(response));
-	if (sret < sizeof(response)) {
-		(void) fprintf(stderr,"Container manager is confuse. sret = %d errno = %d\n", sret, errno);
+	if (sret < (ssize_t)sizeof(response)) {
+		(void) fprintf(stderr,"Container manager is confuse. sret = %ld errno = %d\n", sret, errno);
 		goto error_return;
 	}
 
@@ -352,7 +358,7 @@ void cm_get_guest_change(int code, char *name)
 
 error_return:
 	if (fd != -1) {
-		close(fd);
+		(void) close(fd);
 	}
 
 	return;
@@ -362,7 +368,7 @@ void cm_test_trigger(char *arg)
 {
 	int fd = -1;
 	int ret = -1;
-	int sret = -1;
+	ssize_t sret = -1;
 	int value = 0;
 	char *endptr = NULL;
 	container_extif_command_test_trigger_t packet;
@@ -387,7 +393,7 @@ void cm_test_trigger(char *arg)
 	packet.header.command = CONTAINER_EXTIF_COMMAND_TEST_TRIGGER;
 	packet.code = (int32_t)value;
 	sret = write(fd, &packet, sizeof(packet));
-	if (sret < sizeof(packet)) {
+	if (sret < (ssize_t)sizeof(packet)) {
 		(void) fprintf(stderr,"Container manager is confuse.\n");
 		goto error_return;
 	}
@@ -399,8 +405,8 @@ void cm_test_trigger(char *arg)
 	}
 
 	sret = read(fd, &response, sizeof(response));
-	if (sret < sizeof(response)) {
-		(void) fprintf(stderr,"Container manager is confuse. sret = %d errno = %d\n", sret, errno);
+	if (sret < (ssize_t)sizeof(response)) {
+		(void) fprintf(stderr,"Container manager is confuse. sret = %ld errno = %d\n", sret, errno);
 		goto error_return;
 	}
 
@@ -410,7 +416,7 @@ void cm_test_trigger(char *arg)
 
 error_return:
 	if (fd != -1) {
-		close(fd);
+		(void) close(fd);
 	}
 
 	return;

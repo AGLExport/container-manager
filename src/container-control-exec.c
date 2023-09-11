@@ -209,7 +209,7 @@ err_ret:
  * @retval  0 Success to change next state.
  * @retval -1 Got undefined state.
  */
-int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
+int container_exited(containers_t *cs, const container_mngsm_guest_exit_data_t *data)
 {
 	int num = 0, container_num = 0;
 	int result = 0;
@@ -217,8 +217,9 @@ int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
 
 	num = cs->num_of_container;
 	container_num = data->container_number;
-	if (container_num < 0 || num <= container_num)
+	if ((container_num < 0) || (num <= container_num)) {
 		return -1;
+	}
 
 	cc = cs->containers[container_num];
 
@@ -648,7 +649,7 @@ int container_exec_internal_event(containers_t *cs)
 							// A workqueue is scheduled, run that.
 							ret = container_workqueue_run(&cc->workqueue);
 							if (ret < 0) {
-								if (ret == -2 || ret == -3) {
+								if ((ret == -2) || (ret == -3)) {
 									// Remove work queue
 									#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 									(void) fprintf(stderr,"[CM CRITICAL ERROR] container_exec_internal_event: container_workqueue_run fail ret = %d at %s\n", ret, cc->name);
@@ -718,7 +719,7 @@ int container_exec_internal_event(containers_t *cs)
 		for(int i=0;i < num;i++) {
 			cc = cs->containers[i];
 
-			if (cc->runtime_stat.status == CONTAINER_SHUTDOWN || cc->runtime_stat.status == CONTAINER_REBOOT) {
+			if ((cc->runtime_stat.status == CONTAINER_SHUTDOWN) || (cc->runtime_stat.status == CONTAINER_REBOOT)) {
 				if (cc->runtime_stat.timeout < timeout) {
 					// force kill after timeout
 					(void) lxcutil_container_forcekill(cc);
@@ -742,7 +743,7 @@ int container_exec_internal_event(containers_t *cs)
 		// Check to all container was exited.
 		for(int i=0;i < num;i++) {
 			cc = cs->containers[i];
-			if (cc->runtime_stat.status == CONTAINER_EXIT || cc->runtime_stat.status == CONTAINER_DISABLE) {
+			if ((cc->runtime_stat.status == CONTAINER_EXIT) || (cc->runtime_stat.status == CONTAINER_DISABLE)) {
 				exit_count++;
 			} else if (cc->runtime_stat.status == CONTAINER_RUN_WORKER) {
 				// Now run worker
@@ -774,7 +775,7 @@ int container_exec_internal_event(containers_t *cs)
 		// Check to all container shutdown timeout.
 		for(int i=0;i < num;i++) {
 			cc = cs->containers[i];
-			if (cc->runtime_stat.status == CONTAINER_SHUTDOWN || cc->runtime_stat.status == CONTAINER_REBOOT) {
+			if ((cc->runtime_stat.status == CONTAINER_SHUTDOWN) || (cc->runtime_stat.status == CONTAINER_REBOOT)) {
 				if (cc->runtime_stat.timeout < timeout) {
 					// force kill after timeout
 					(void) lxcutil_container_forcekill(cc);
@@ -1315,15 +1316,17 @@ static int container_cleanup_unmountdisk(const char *path, int64_t timeout_at, i
  */
 static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t timeout)
 {
-	int64_t timeout_time = 0;
+	int64_t timeout_time = 0, timeout_local = 0;
 	int retry_max = 0;
 
 	if (timeout < 0) {
-		timeout = 0;
+		timeout_local = 0;
+	} else {
+		timeout_local = timeout;
 	}
 
-	timeout_time = get_current_time_ms() + timeout;
-	retry_max = (timeout / 50) + 1;
+	timeout_time = get_current_time_ms() + timeout_local;
+	retry_max = (timeout_local / 50) + 1;
 
 	// unmount extradisk
 	if (!dl_list_empty(&bc->extradisk_list)) {

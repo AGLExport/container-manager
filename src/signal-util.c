@@ -97,7 +97,7 @@ int signal_setup(sd_event *event, signal_util_t *util_array, int array_num)
 	sigset_t ss;
 	int ret = -1;
 
-	if (event == NULL || util_array == NULL || array_num < 1) {
+	if ((event == NULL) || (util_array == NULL) || (array_num < 1)) {
 		return -2;
 	}
 
@@ -138,7 +138,7 @@ int signal_setup(sd_event *event, signal_util_t *util_array, int array_num)
 	return 0;
 
 err_return:
-	pthread_sigmask(SIG_UNBLOCK, &ss, NULL);
+	(void) pthread_sigmask(SIG_UNBLOCK, &ss, NULL);
 
 	return -1;
 }

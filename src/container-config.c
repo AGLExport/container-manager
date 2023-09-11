@@ -114,8 +114,8 @@ static int bind_container_to_role_list(containers_t* cs)
 					dl_list_add_tail(&cmrc->container_list, &pelem->list);
 					dl_list_add_tail(&cs->cmcfg->role_list, &cmrc->list);
 				} else {
-					free(cmrc->name);
-					free(cmrc);
+					(void) free(cmrc->name);
+					(void) free(cmrc);
 					continue;	//skip data creation
 				}
 
@@ -176,12 +176,12 @@ static int role_list_cleanup(containers_t* cs)
 			container_manager_role_elem_t *pelem = NULL;
 			pelem = dl_list_last(&cmrc->container_list, container_manager_role_elem_t, list);
 			dl_list_del(&pelem->list);
-			free(pelem);
+			(void) free(pelem);
 		}
 
 		dl_list_del(&cmrc->list);
-		free(cmrc->name);
-		free(cmrc);
+		(void) free(cmrc->name);
+		(void) free(cmrc);
 	}
 
 	return ret;
@@ -275,6 +275,13 @@ containers_t *create_container_configs(const char *config_file)
 		do {
 			dent = readdir(dir);
 			if (dent != NULL) {
+				if (!(num < GUEST_CONTAINER_LIMIT)) {
+					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+					(void) fprintf(stderr,"[CM CRITICAL ERROR] create_container_configs: Number of guest containers was over to limit.");
+					#endif
+					break;
+				}
+
 				if (strstr(dent->d_name, ".json") != NULL) {
 
 					buf[slen] = '\0';
@@ -293,18 +300,12 @@ containers_t *create_container_configs(const char *config_file)
 					cc->runtime_stat.status = CONTAINER_DISABLE;
 					ca[num] = cc;
 					num = num + 1;
-					if (num >= GUEST_CONTAINER_LIMIT) {
-						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-						(void) fprintf(stderr,"[CM CRITICAL ERROR] create_container_configs: Number of guest containers was over to limit.");
-						#endif
-						break;
-					}
 				}
 			}
 		}
 		while(dent != NULL);
 
-		closedir(dir);
+		(void) closedir(dir);
 	}
 
 	if (num <= 0) {
@@ -354,10 +355,10 @@ err_ret:
 	}
 
 	if (cs !=NULL) {
-		free(cs->containers);
+		(void) free(cs->containers);
 	}
 
-	free(cs);
+	(void) free(cs);
 
 	if (cm != NULL) {
 		cmparser_manager_release_config(cm);
@@ -390,9 +391,9 @@ int release_container_configs(containers_t *cs)
 		cmparser_release_config(cs->containers[i]);
 	}
 
-	free(cs->containers);
+	(void) free(cs->containers);
 	cmparser_manager_release_config(cs->cmcfg);
-	free(cs);
+	(void) free(cs);
 
 	return 0;
 }

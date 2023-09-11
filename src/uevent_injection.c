@@ -41,11 +41,11 @@
  */
 static int open_namespace_fd(pid_t pid, const char *ns_name)
 {
-	int ret = -1;
+	ssize_t ret = -1;
 	char buf[1024];
 
-	ret = snprintf(buf, sizeof(buf), "/proc/%d/ns/%s", pid, ns_name);
-	if (!(ret < sizeof(buf))) {
+	ret = (ssize_t)snprintf(buf, sizeof(buf), "/proc/%d/ns/%s", pid, ns_name);
+	if (!(ret < (ssize_t)sizeof(buf))) {
 		return -1;
 	}
 
@@ -89,7 +89,7 @@ static int uevent_injection_child(int net_ns_fd, const char *message, int messag
 
 	// event injection
 	ret = setns(ns_fd, CLONE_NEWNET);
-	close(ns_fd);
+	(void) close(ns_fd);
 	ns_fd = -1;
 	if (ret < 0) {
 		result = -1;
@@ -103,7 +103,7 @@ static int uevent_injection_child(int net_ns_fd, const char *message, int messag
 	}
 
 	/* There is one single group in kobject over netlink */
-	if (mnl_socket_bind(nl, (1<<0), MNL_SOCKET_AUTOPID) < 0) {
+	if (mnl_socket_bind(nl, 1u, MNL_SOCKET_AUTOPID) < 0) {
 		result = -1;
 		goto err_return;
 	}
@@ -113,13 +113,13 @@ static int uevent_injection_child(int net_ns_fd, const char *message, int messag
 		goto err_return;
 	}
 
-	mnl_socket_close(nl);
+	(void) mnl_socket_close(nl);
 
 	return 0;
 
 err_return:
 	if (nl != NULL) {
-		mnl_socket_close(nl);
+		(void) mnl_socket_close(nl);
 	}
 
 	return result;
@@ -143,7 +143,7 @@ int uevent_injection_to_pid(pid_t target_pid, uevent_injection_message_t *uim)
 	int net_ns_fd = -1;
 	pid_t child_pid = -1;
 
-	if (target_pid < 1 || uim == NULL) {
+	if ((target_pid < 1) || (uim == NULL)) {
 		return -1;
 	}
 
@@ -181,14 +181,14 @@ int uevent_injection_to_pid(pid_t target_pid, uevent_injection_message_t *uim)
 		goto err_return;
 	}
 
-	close(net_ns_fd);
+	(void) close(net_ns_fd);
 
 	return 0;
 
 err_return:
 
 	if (net_ns_fd >= 0) {
-		close(net_ns_fd);
+		(void) close(net_ns_fd);
 	}
 
 	return result;
