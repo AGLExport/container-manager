@@ -47,8 +47,9 @@ static int container_mngsm_state_machine(containers_t *cs, const uint8_t *buf)
 	command = phead->command;
 
 	#ifdef _PRINTF_DEBUG_
-	if (command != CONTAINER_MNGSM_COMMAND_TIMER_TICK)
+	if (command != CONTAINER_MNGSM_COMMAND_TIMER_TICK) {
 		(void) fprintf(stdout,"container_mngsm_state_machine: command %x\n", command);
+	}
 	#endif
 
 	switch(command) {
@@ -121,6 +122,8 @@ static int container_mngsm_commsocket_handler(sd_event_source *event, int fd, ui
 		}
 
 		return 0;
+	} else {
+		;	//nop
 	}
 
 	return -1;
@@ -158,7 +161,7 @@ static int container_mngsm_commsocket_setup(containers_t *cs, sd_event *event)
 	}
 
 	// Higher priority set.
-	(void)sd_event_source_set_priority(socket_source, SD_EVENT_PRIORITY_NORMAL -10);
+	(void) sd_event_source_set_priority(socket_source, SD_EVENT_PRIORITY_NORMAL -10);
 
 	// Set automatically fd closed at delete object.
 	ret = sd_event_source_set_io_fd_own(socket_source, 1);
@@ -216,7 +219,7 @@ static int container_mngsm_commsocket_cleanup(containers_t *cs)
 		(void) sd_event_source_disable_unref(cms->socket_source);
 	}
 	if (cms->secondary_fd != -1) {
-		(void)  close(cms->secondary_fd);
+		(void) close(cms->secondary_fd);
 	}
 
 	return 0;
