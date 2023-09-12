@@ -191,8 +191,9 @@ static int container_workqueue_load_plugin(container_workqueue_t *workqueue, con
 	plugin_path[0] = '\0';
 
 	ret = container_workqueue_get_plugin(key, module);
-	if (ret < 0)
+	if (ret < 0) {
 		return -1;
+	}
 
 	ret = snprintf(plugin_path, sizeof(plugin_path), "%s/%s", g_plugin_directory, module);
 	if (!((size_t)ret < sizeof(plugin_path))) {
@@ -200,8 +201,9 @@ static int container_workqueue_load_plugin(container_workqueue_t *workqueue, con
 	}
 
 	obj = (struct s_cm_worker_object*)malloc(sizeof(struct s_cm_worker_object));
-	if (obj == NULL)
+	if (obj == NULL) {
 		return -1;
+	}
 
 	(void) memset(obj, 0, sizeof(struct s_cm_worker_object));
 
@@ -304,8 +306,9 @@ error_return:
  */
 int container_workqueue_cleanup(container_workqueue_t *workqueue, int *after_execute)
 {
-	if ((workqueue == NULL) || (after_execute == NULL))
+	if ((workqueue == NULL) || (after_execute == NULL)) {
 		return -2;
+	}
 
 	if (workqueue->status == CONTAINER_WORKER_STARTED) {
 		return -1;
