@@ -291,7 +291,7 @@ static int container_external_interface_command_lifecycle(cm_external_interface_
 
 	(void) memset(&response, 0 , sizeof(response));
 
-	if(size >= sizeof(container_extif_command_lifecycle_t)) {
+	if(size >= (ssize_t)sizeof(container_extif_command_lifecycle_t)) {
 		if (pcom_life->subcommand == CONTAINER_EXTIF_SUBCOMMAND_FORCEREBOOT_GUEST) {
 			// Test imp. TODO change state machine request
 			ret = container_external_interface_force_reboot_guest(pextif->cs, pcom_life->guest_name , role);
@@ -357,7 +357,7 @@ static int container_external_interface_command_change(cm_external_interface_t *
 	response.header.command = CONTAINER_EXTIF_COMMAND_RESPONSE_CHANGE;
 	response.response = CONTAINER_EXTIF_CHANGE_RESPONSE_ERROR;
 
-	if(size >= sizeof(container_extif_command_change_t)) {
+	if(size >= (ssize_t)sizeof(container_extif_command_change_t)) {
 		containers_t *cs = pextif->cs;
 		char *role = NULL;
 
@@ -438,7 +438,7 @@ static int container_external_interface_command_test(cm_external_interface_t *pe
 
 	(void) memset(&response, 0 , sizeof(response));
 
-	if(size >= sizeof(container_extif_command_test_trigger_t)) {
+	if(size >= (ssize_t)sizeof(container_extif_command_test_trigger_t)) {
 		if (pcom_test->code == 0) {
 			containers_t *cs = pextif->cs;
 			int target = -1;
@@ -452,10 +452,11 @@ static int container_external_interface_command_test(cm_external_interface_t *pe
 			// Container workqueue test
 			if (target > 0) {
 				ret = container_workqueue_schedule(&(cs->containers[target]->workqueue), "fsck", 1);
-				if (ret == 0)
+				if (ret == 0) {
 					response.response = 0;
-				else
+				} else {
 					response.response = -1;
+				}
 			}
 		} else if (pcom_test->code == 1) {
 			containers_t *cs = pextif->cs;
@@ -470,10 +471,11 @@ static int container_external_interface_command_test(cm_external_interface_t *pe
 			// Container workqueue test
 			if (target > 0) {
 				ret = container_workqueue_schedule(&(cs->containers[target]->workqueue), "erase", 1);
-				if (ret == 0)
+				if (ret == 0) {
 					response.response = 0;
-				else
+				} else {
 					response.response = -1;
+				}
 			}
 		} else {
 			// other is not support
@@ -569,6 +571,8 @@ static int container_external_interface_sessions_handler(sd_event_source *event,
 		// close session
 		(void) sd_event_source_disable_unref(pextif->interface_session_evsource);
 		pextif->interface_session_evsource = NULL;
+	} else {
+		;	//nop
 	}
 
 	return 0;
