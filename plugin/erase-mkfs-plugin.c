@@ -62,7 +62,7 @@ static int cm_worker_set_args(cm_worker_handle_t handle, const char *arg_str, si
 	(void) strncpy(strbuf, arg_str, (arg_length + 1u));
 
 	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout,"erase-mkfs-plugin: cm_worker_set_args %s (%lu)\n", arg_str, arg_length);
+	(void) fprintf(stdout,"erase-mkfs-plugin: cm_worker_set_args %s (%zu)\n", arg_str, arg_length);
 	#endif
 
 	cstr_option_device_length = strlen(cstr_option_device);
