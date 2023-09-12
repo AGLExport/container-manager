@@ -107,8 +107,7 @@ static int cmparser_parser_get_diskmountmode(const char *str)
 
 	if (strncmp(read_only, str, sizeof(read_only)) == 0) {
 		ret = DISKMOUNT_TYPE_RO;
-	}
-	else if (strncmp(read_write, str, sizeof(read_write)) == 0) {
+	} else if (strncmp(read_write, str, sizeof(read_write)) == 0) {
 		ret = DISKMOUNT_TYPE_RW;
 	} else {
 		// unknow str, select RO.
@@ -134,8 +133,7 @@ static int cmparser_parser_get_diskmountfailop(const char *str)
 
 	if (strncmp(failover, str, sizeof(failover)) == 0) {
 		ret = DISKREDUNDANCY_TYPE_FAILOVER;
-	}
-	else if (strncmp(ab, str, sizeof(ab)) == 0) {
+	} else if (strncmp(ab, str, sizeof(ab)) == 0) {
 		ret = DISKREDUNDANCY_TYPE_AB;
 	} else {
 		// unknow str, select FAILOVER.
@@ -753,9 +751,9 @@ err_ret:
 		while(dl_list_empty(&rc->resource.resourcelist) == 0) {
 			melem = dl_list_last(&rc->resource.resourcelist, container_resource_elem_t, list);
 			dl_list_del(&melem->list);
-			free(melem->object);
-			free(melem->value);
-			free(melem);
+			(void) free(melem->object);
+			(void) free(melem->value);
+			(void) free(melem);
 		}
 	}
 
@@ -883,11 +881,11 @@ err_ret:
 		while(dl_list_empty(&fc->fsmount.mountlist) == 0) {
 			melem = dl_list_last(&fc->fsmount.mountlist, container_fsmount_elem_t, list);
 			dl_list_del(&melem->list);
-			free(melem->from);
-			free(melem->to);
-			free(melem->fstype);
-			free(melem->option);
-			free(melem);
+			(void) free(melem->from);
+			(void) free(melem->to);
+			(void) free(melem->fstype);
+			(void) free(melem->option);
+			(void) free(melem);
 		}
 	}
 
@@ -1193,6 +1191,8 @@ static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON
 
 					dl_list_add_tail(&sdc->static_iiolist, &p->list);
 
+				} else {
+					;	//not support type
 				}
 			}
 		}
@@ -1207,10 +1207,10 @@ err_ret:
 		while(dl_list_empty(&sdc->static_devlist) == 0) {
 			delem = dl_list_last(&sdc->static_devlist, container_static_device_elem_t, list);
 			dl_list_del(&delem->list);
-			free(delem->from);
-			free(delem->to);
-			free(delem->devnode);
-			free(delem);
+			(void) free(delem->from);
+			(void) free(delem->to);
+			(void) free(delem->devnode);
+			(void) free(delem);
 		}
 
 		container_static_gpio_elem_t *gpioelem = NULL;
@@ -1218,9 +1218,9 @@ err_ret:
 		while(dl_list_empty(&sdc->static_gpiolist) == 0) {
 			gpioelem = dl_list_last(&sdc->static_gpiolist, container_static_gpio_elem_t, list);
 			dl_list_del(&gpioelem->list);
-			free(gpioelem->from);
-			free(gpioelem->to);
-			free(gpioelem);
+			(void) free(gpioelem->from);
+			(void) free(gpioelem->to);
+			(void) free(gpioelem);
 		}
 
 		container_static_iio_elem_t *iioelem = NULL;
@@ -1228,12 +1228,12 @@ err_ret:
 		while(dl_list_empty(&sdc->static_iiolist) == 0) {
 			iioelem = dl_list_last(&sdc->static_iiolist, container_static_iio_elem_t, list);
 			dl_list_del(&iioelem->list);
-			free(iioelem->sysfrom);
-			free(iioelem->systo);
-			free(iioelem->devfrom);
-			free(iioelem->devto);
-			free(iioelem->devnode);
-			free(iioelem);
+			(void) free(iioelem->sysfrom);
+			(void) free(iioelem->systo);
+			(void) free(iioelem->devfrom);
+			(void) free(iioelem->devto);
+			(void) free(iioelem->devnode);
+			(void) free(iioelem);
 		}
 	}
 
@@ -1330,6 +1330,8 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 						p->rule.action.bind = 1;
 					} else if (strcmp("unbind", actionstr->valuestring) == 0) {
 						p->rule.action.unbind = 1;
+					} else {
+						;	//nop
 					}
 				}
 			}
@@ -1377,8 +1379,8 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 			}
 		}
 	} else {
-		free(p->subsystem);
-		free(p);
+		(void) free(p->subsystem);
+		(void) free(p);
 		goto err_ret;
 	}
 
@@ -1432,10 +1434,10 @@ err_ret:
 		while(dl_list_empty(&p->rule.devtype_list) == 0) {
 			pli = dl_list_last(&p->rule.devtype_list, short_string_list_item_t, list);
 			dl_list_del(&pli->list);
-			free(pli);
+			(void) free(pli);
 		}
 
-		free(p->behavior.permission);
+		(void) free(p->behavior.permission);
 	}
 
 	return -3;
@@ -1591,7 +1593,7 @@ static void* cmparser_parse_static_netif_veth_create(cJSON *param)
 		plink = strdup(link->valuestring);
 	} else {
 		//link is mandatory
-		free(pveth);
+		(void) free(pveth);
 		return NULL;
 	}
 
@@ -1654,14 +1656,14 @@ static int cmparser_parse_static_netif_veth_free(void *p)
 	}
 
 	pveth = (netif_elem_veth_t*)p;
-	free(pveth->link);
-	free(pveth->name);
-	free(pveth->flags);
-	free(pveth->hwaddr);
-	free(pveth->mode);
-	free(pveth->address);
-	free(pveth->gateway);
-	free(pveth);
+	(void) free(pveth->link);
+	(void) free(pveth->name);
+	(void) free(pveth->flags);
+	(void) free(pveth->hwaddr);
+	(void) free(pveth->mode);
+	(void) free(pveth->address);
+	(void) free(pveth->gateway);
+	(void) free(pveth);
 
 	return 0;
 }
@@ -1737,7 +1739,7 @@ err_ret:
 				(void) cmparser_parse_static_netif_veth_free((void *)selem->setting);
 			}
 
-			free(selem);
+			(void) free(selem);
 		}
 	}
 
@@ -1799,8 +1801,8 @@ err_ret:
 		while(dl_list_empty(&dnif->dynamic_netiflist) == 0) {
 			delem = dl_list_last(&dnif->dynamic_netiflist, container_dynamic_netif_elem_t, list);
 			dl_list_del(&delem->list);
-			free(delem->ifname);
-			free(delem);
+			(void) free(delem->ifname);
+			(void) free(delem);
 		}
 	}
 
@@ -2048,29 +2050,29 @@ void cmparser_release_config(container_config_t *cc)
 		while(dl_list_empty(&cc->deviceconfig.static_device.static_devlist) == 0) {
 			delem = dl_list_last(&cc->deviceconfig.static_device.static_devlist, container_static_device_elem_t, list);
 			dl_list_del(&delem->list);
-			free(delem->from);
-			free(delem->to);
-			free(delem->devnode);
-			free(delem);
+			(void) free(delem->from);
+			(void) free(delem->to);
+			(void) free(delem->devnode);
+			(void) free(delem);
 		}
 
 		while(dl_list_empty(&cc->deviceconfig.static_device.static_gpiolist) == 0) {
 			gpioelem = dl_list_last(&cc->deviceconfig.static_device.static_gpiolist, container_static_gpio_elem_t, list);
 			dl_list_del(&gpioelem->list);
-			free(gpioelem->from);
-			free(gpioelem->to);
-			free(gpioelem);
+			(void) free(gpioelem->from);
+			(void) free(gpioelem->to);
+			(void) free(gpioelem);
 		}
 
 		while(dl_list_empty(&cc->deviceconfig.static_device.static_iiolist) == 0) {
 			iioelem = dl_list_last(&cc->deviceconfig.static_device.static_iiolist, container_static_iio_elem_t, list);
 			dl_list_del(&iioelem->list);
-			free(iioelem->sysfrom);
-			free(iioelem->systo);
-			free(iioelem->devfrom);
-			free(iioelem->devto);
-			free(iioelem->devnode);
-			free(iioelem);
+			(void) free(iioelem->sysfrom);
+			(void) free(iioelem->systo);
+			(void) free(iioelem->devfrom);
+			(void) free(iioelem->devto);
+			(void) free(iioelem->devnode);
+			(void) free(iioelem);
 		}
 	}
 
@@ -2094,24 +2096,24 @@ void cmparser_release_config(container_config_t *cc)
 				while(dl_list_empty(&ddei->rule.devtype_list) == 0) {
 					pli = dl_list_last(&ddei->rule.devtype_list, short_string_list_item_t, list);
 					dl_list_del(&pli->list);
-					free(pli);
+					(void) free(pli);
 				}
 
 				while(dl_list_empty(&ddei->rule.extra_list) == 0) {
 					pre = dl_list_last(&ddei->rule.extra_list, dynamic_device_entry_items_rule_extra_t, list);
 					dl_list_del(&pre->list);
-					free(pre->checker);
-					free(pre->value);
-					free(pre);
+					(void) free(pre->checker);
+					(void) free(pre->value);
+					(void) free(pre);
 				}
 
-				free(ddei->behavior.permission);
-				free(ddei->subsystem);
-				free(ddei);
+				(void) free(ddei->behavior.permission);
+				(void) free(ddei->subsystem);
+				(void) free(ddei);
 			}
 
-			free(dde->devpath);
-			free(dde);
+			(void) free(dde->devpath);
+			(void) free(dde);
 		}
 	}
 
@@ -2126,7 +2128,7 @@ void cmparser_release_config(container_config_t *cc)
 				(void) cmparser_parse_static_netif_veth_free((void *)selem->setting);
 			}
 
-			free(selem);
+			(void) free(selem);
 		}
 	}
 
@@ -2137,8 +2139,8 @@ void cmparser_release_config(container_config_t *cc)
 		while(dl_list_empty(&cc->netifconfig.dynamic_netif.dynamic_netiflist) == 0) {
 			delem = dl_list_last(&cc->netifconfig.dynamic_netif.dynamic_netiflist, container_dynamic_netif_elem_t, list);
 			dl_list_del(&delem->list);
-			free(delem->ifname);
-			free(delem);
+			(void) free(delem->ifname);
+			(void) free(delem);
 		}
 	}
 
@@ -2149,11 +2151,11 @@ void cmparser_release_config(container_config_t *cc)
 		while(dl_list_empty(&cc->fsconfig.fsmount.mountlist) == 0) {
 			melem = dl_list_last(&cc->fsconfig.fsmount.mountlist, container_fsmount_elem_t, list);
 			dl_list_del(&melem->list);
-			free(melem->from);
-			free(melem->to);
-			free(melem->fstype);
-			free(melem->option);
-			free(melem);
+			(void) free(melem->from);
+			(void) free(melem->to);
+			(void) free(melem->fstype);
+			(void) free(melem->option);
+			(void) free(melem);
 		}
 	}
 
@@ -2164,9 +2166,9 @@ void cmparser_release_config(container_config_t *cc)
 		while(dl_list_empty(&cc->resourceconfig.resource.resourcelist) == 0) {
 			melem = dl_list_last(&cc->resourceconfig.resource.resourcelist, container_resource_elem_t, list);
 			dl_list_del(&melem->list);
-			free(melem->object);
-			free(melem->value);
-			free(melem);
+			(void) free(melem->object);
+			(void) free(melem->value);
+			(void) free(melem);
 		}
 	}
 
@@ -2178,37 +2180,37 @@ void cmparser_release_config(container_config_t *cc)
 		while(dl_list_empty(&cc->baseconfig.envlist) == 0) {
 			env = dl_list_last(&cc->baseconfig.envlist, container_baseconfig_env_t, list);
 			dl_list_del(&env->list);
-			free(env->envstring);
-			free(env);
+			(void) free(env->envstring);
+			(void) free(env);
 		}
 
-		free(cc->baseconfig.cap.drop);
-		free(cc->baseconfig.cap.keep);
+		(void) free(cc->baseconfig.cap.drop);
+		(void) free(cc->baseconfig.cap.keep);
 
-		free(cc->baseconfig.lifecycle.halt);
-		free(cc->baseconfig.lifecycle.reboot);
+		(void) free(cc->baseconfig.lifecycle.halt);
+		(void) free(cc->baseconfig.lifecycle.reboot);
 
 		while(dl_list_empty(&cc->baseconfig.extradisk_list) == 0) {
 			exdisk = dl_list_last(&cc->baseconfig.extradisk_list, container_baseconfig_extradisk_t, list);
 			dl_list_del(&exdisk->list);
-			free(exdisk->blockdev[0]);
-			free(exdisk->blockdev[1]);
-			free(exdisk->option);
-			free(exdisk->filesystem);
-			free(exdisk->to);
-			free(exdisk->from);
-			free(exdisk);
+			(void) free(exdisk->blockdev[0]);
+			(void) free(exdisk->blockdev[1]);
+			(void) free(exdisk->option);
+			(void) free(exdisk->filesystem);
+			(void) free(exdisk->to);
+			(void) free(exdisk->from);
+			(void) free(exdisk);
 		}
 
-		free(cc->baseconfig.rootfs.blockdev[0]);
-		free(cc->baseconfig.rootfs.blockdev[1]);
-		free(cc->baseconfig.rootfs.option);
-		free(cc->baseconfig.rootfs.filesystem);
-		free(cc->baseconfig.rootfs.path);
+		(void) free(cc->baseconfig.rootfs.blockdev[0]);
+		(void) free(cc->baseconfig.rootfs.blockdev[1]);
+		(void) free(cc->baseconfig.rootfs.option);
+		(void) free(cc->baseconfig.rootfs.filesystem);
+		(void) free(cc->baseconfig.rootfs.path);
 	}
 
 	// global
-	free(cc->name);
-	free(cc->role);
-	free(cc);
+	(void) free(cc->name);
+	(void) free(cc->role);
+	(void) free(cc);
 }

@@ -112,6 +112,8 @@ static int devc_static_devnode_scan(container_static_device_t *sdevc)
 			develem->devtype = DEVNODE_TYPE_CHR;
 		} else if (S_ISBLK(sb.st_mode)) {
 			develem->devtype = DEVNODE_TYPE_BLK;
+		} else {
+			develem->devtype = DEVICE_TYPE_UNKNOWN;	//may not run this line
 		}
 
 		if (develem->devtype != 0) {
@@ -167,7 +169,7 @@ static int devc_gpionode_scan(container_static_device_t *sdevc)
 	int result = -1;
 	char buf[1024];
 	char directionbuf[128];
-	int slen = 0, buflen = 0;
+	ssize_t slen = 0, buflen = 0;
 	container_static_gpio_elem_t *gpioelem = NULL;
 
 	// static device node
@@ -184,10 +186,10 @@ static int devc_gpionode_scan(container_static_device_t *sdevc)
 		if (ret == -1) {
 			// gpio is not exported, need to export
 			buf[0] = '\0';
-			buflen = sizeof(buf) - 1;
+			buflen = (ssize_t)sizeof(buf) - 1;
 
-			slen = snprintf(buf, buflen, "%d", gpioelem->port);
-			if (!(slen < buflen)) {
+			slen = (ssize_t)snprintf(buf, buflen, "%d", gpioelem->port);
+			if (slen >= buflen) {
 				continue; //May not cause this error.
 			}
 
@@ -209,10 +211,10 @@ static int devc_gpionode_scan(container_static_device_t *sdevc)
 		// direction setting
 		buf[0] = '\0';
 		directionbuf[0] = '\0';
-		buflen = sizeof(buf) - 1;
+		buflen = (ssize_t)sizeof(buf) - 1;
 
-		slen = snprintf(buf, buflen, "%s/direction", gpioelem->from);
-		if (!(slen < buflen)) {
+		slen = (ssize_t)snprintf(buf, buflen, "%s/direction", gpioelem->from);
+		if (slen >= buflen) {
 			continue; //Skip port setup, may not cause this error.
 		}
 
@@ -253,7 +255,7 @@ static int devc_iionode_scan(container_static_device_t *sdevc)
 	// static device node
 	dl_list_for_each(iioelem, &sdevc->static_iiolist, container_static_iio_elem_t, list) {
 
-		if (iioelem->sysfrom == NULL || iioelem->systo == NULL) {
+		if ((iioelem->sysfrom == NULL) || (iioelem->systo == NULL)) {
 			// This type data must not created in data parser.
 			result = -1;
 			goto err_ret;
@@ -269,7 +271,7 @@ static int devc_iionode_scan(container_static_device_t *sdevc)
 		iioelem->is_sys_valid = 1;
 
 		// optional info check
-		if (iioelem->devfrom != NULL && iioelem->devto != NULL && iioelem->devnode != NULL) {
+		if ((iioelem->devfrom != NULL) && (iioelem->devto != NULL) && (iioelem->devnode != NULL)) {
 			// dev node option is enabled.
 			struct stat sb = {0};
 
@@ -345,12 +347,12 @@ static int devc_netbridge_setup(container_manager_config_t *cmc)
 		(void) strncpy(buf, elem->name, IFNAMSIZ);
 
 		ret = ioctl(sock, SIOCBRADDBR, buf);
-		if (ret < 0 && errno != EEXIST) {
+		if ((ret < 0) && (errno != EEXIST)) {
 			result = -2;
 		}
 	}
 
-	close(sock);
+	(void) close(sock);
 
 	return result;
 }

@@ -275,6 +275,13 @@ containers_t *create_container_configs(const char *config_file)
 		do {
 			dent = readdir(dir);
 			if (dent != NULL) {
+				if (!(num < GUEST_CONTAINER_LIMIT)) {
+					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+					(void) fprintf(stderr,"[CM CRITICAL ERROR] create_container_configs: Number of guest containers was over to limit.");
+					#endif
+					break;
+				}
+
 				if (strstr(dent->d_name, ".json") != NULL) {
 
 					buf[slen] = '\0';
@@ -293,12 +300,6 @@ containers_t *create_container_configs(const char *config_file)
 					cc->runtime_stat.status = CONTAINER_DISABLE;
 					ca[num] = cc;
 					num = num + 1;
-					if (num >= GUEST_CONTAINER_LIMIT) {
-						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-						(void) fprintf(stderr,"[CM CRITICAL ERROR] create_container_configs: Number of guest containers was over to limit.");
-						#endif
-						break;
-					}
 				}
 			}
 		}

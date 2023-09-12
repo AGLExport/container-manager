@@ -53,7 +53,7 @@ static int cm_worker_set_args(cm_worker_handle_t handle, const char *arg_str, si
 	char strbuf[1024];
 	int result = -1;
 
-	if ((handle == NULL) || (arg_str == NULL) || (arg_length >= 1024)) {
+	if ((handle == NULL) || (arg_str == NULL) || (arg_length >= 1024u)) {
 		return -1;
 	}
 
@@ -62,7 +62,7 @@ static int cm_worker_set_args(cm_worker_handle_t handle, const char *arg_str, si
 	(void) strncpy(strbuf, arg_str, (arg_length + 1u));
 
 	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout,"erase-mkfs-plugin: cm_worker_set_args %s (%ld)\n", arg_str, arg_length);
+	(void) fprintf(stdout,"erase-mkfs-plugin: cm_worker_set_args %s (%zu)\n", arg_str, arg_length);
 	#endif
 
 	cstr_option_device_length = strlen(cstr_option_device);
@@ -73,7 +73,7 @@ static int cm_worker_set_args(cm_worker_handle_t handle, const char *arg_str, si
 				if (cstr_option_device_length < strlen(substr)) {
 					char *device = &substr[cstr_option_device_length];
 					size_t len = strlen(device);
-					if (len > 0) {
+					if (len > 0u) {
 						permkfs->blkdev_path = strdup(device);
 						result = 0;
 						#ifdef _PRINTF_DEBUG_
@@ -96,7 +96,7 @@ static int cm_worker_set_args(cm_worker_handle_t handle, const char *arg_str, si
  * @var		g_erase_buff
  * @brief	Work buffer for disk erase.
  */
-static const uint64_t g_erase_buff[1024*1024/sizeof(uint64_t)];	// 1MByte buffer
+static const uint64_t g_erase_buff[1024u*1024u/sizeof(uint64_t)];	// 1MByte buffer
 /**
  * @brief Function for disk erase execution.
  *
@@ -167,7 +167,7 @@ static int cm_worker_exec_mkfs(erase_mkfs_plugin_t *permkfs)
 
 	if (child_pid == 0) {
 		// exec /sbin/fsck.ext4 -p
-		(void) execlp("/sbin/mkfs.ext4", "/sbin/mkfs.ext4", "-I", "256", permkfs->blkdev_path, (char*)0);
+		(void) execlp("/sbin/mkfs.ext4", "/sbin/mkfs.ext4", "-I", "256", permkfs->blkdev_path, (char*)NULL);
 
 		// Shall not return execlp
 		(void) _exit(128);

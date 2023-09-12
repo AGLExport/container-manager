@@ -54,16 +54,19 @@ static int container_workqueue_exec(container_workqueue_t *workqueue)
 	cm_worker_instance_t *inst = NULL;
 	int ret = -1;
 
-	if (workqueue == NULL)
+	if (workqueue == NULL) {
 		goto error_return;
+	}
 
 	obj = workqueue->object;
-	if (obj == NULL)
-		goto error_return;
+	if (obj == NULL) {
+ 		goto error_return;
+	}
 
 	inst = obj->instance;
-	if (inst == NULL)
+	if (inst == NULL) {
 		goto error_return;
+	}
 
 	ret = inst->exec(inst->handle);
 
@@ -86,16 +89,19 @@ static int container_workqueue_exec_cancel(container_workqueue_t *workqueue)
 	cm_worker_instance_t *inst = NULL;
 	int ret = -1;
 
-	if (workqueue == NULL)
+	if (workqueue == NULL) {
 		goto error_return;
+	}
 
 	obj = workqueue->object;
-	if (obj == NULL)
+	if (obj == NULL) {
 		goto error_return;
+	}
 
 	inst = obj->instance;
-	if (inst == NULL)
+	if (inst == NULL) {
 		goto error_return;
+	}
 
 	ret = inst->cancel(inst->handle);
 
@@ -120,16 +126,19 @@ static int container_workqueue_set_args(container_workqueue_t *workqueue, const 
 	cm_worker_instance_t *inst = NULL;
 	int ret = -1;
 
-	if (workqueue == NULL)
+	if (workqueue == NULL) {
 		goto error_return;
+	}
 
 	obj = workqueue->object;
-	if (obj == NULL)
+	if (obj == NULL) {
 		goto error_return;
+	}
 
 	inst = obj->instance;
-	if (inst == NULL)
+	if (inst == NULL) {
 		goto error_return;
+	}
 
 	ret = inst->set_args(inst->handle, arg, strlen(arg));
 
@@ -152,7 +161,7 @@ static int container_workqueue_get_plugin(const char *key, char *module)
 {
 	int result = -1;
 
-	for(int i=0; i < (sizeof(g_worker_operation)/sizeof(g_worker_operation[0])); i++) {
+	for(size_t i=0; i < (sizeof(g_worker_operation)/sizeof(g_worker_operation[0])); i++) {
 		if (strcmp(g_worker_operation[i].key, key) == 0) {
 			(void) strcpy(module, g_worker_operation[i].plugin_module);
 			result = 0;
@@ -182,17 +191,19 @@ static int container_workqueue_load_plugin(container_workqueue_t *workqueue, con
 	plugin_path[0] = '\0';
 
 	ret = container_workqueue_get_plugin(key, module);
-	if (ret < 0)
+	if (ret < 0) {
 		return -1;
+	}
 
 	ret = snprintf(plugin_path, sizeof(plugin_path), "%s/%s", g_plugin_directory, module);
-	if (!(ret < sizeof(plugin_path))) {
+	if (!((size_t)ret < sizeof(plugin_path))) {
 		return -1;
 	}
 
 	obj = (struct s_cm_worker_object*)malloc(sizeof(struct s_cm_worker_object));
-	if (obj == NULL)
+	if (obj == NULL) {
 		return -1;
+	}
 
 	(void) memset(obj, 0, sizeof(struct s_cm_worker_object));
 
@@ -233,8 +244,9 @@ static int container_workqueue_load_plugin(container_workqueue_t *workqueue, con
 
 error_return:
 	if (obj != NULL) {
-		if (obj->plugin_dlhandle != NULL)
+		if (obj->plugin_dlhandle != NULL) {
 			(void) dlclose(obj->plugin_dlhandle);
+		}
 		(void)free(obj);
 	}
 
@@ -253,12 +265,14 @@ static int container_workqueue_unload_plugin(container_workqueue_t *workqueue)
 	int ret = -1;
 	struct s_cm_worker_object *obj = NULL;
 
-	if (workqueue == NULL)
+	if (workqueue == NULL) {
 		goto error_return;
+	}
 
 	obj = (struct s_cm_worker_object*)workqueue->object;
-	if (obj == NULL)
+	if (obj == NULL) {
 		goto error_return;
+	}
 
 	ret = obj->cm_worker_delete(obj->instance);
 	if (ret < 0) {
@@ -292,13 +306,17 @@ error_return:
  */
 int container_workqueue_cleanup(container_workqueue_t *workqueue, int *after_execute)
 {
-	if (workqueue == NULL || after_execute == NULL)
+	if ((workqueue == NULL) || (after_execute == NULL)) {
 		return -2;
+	}
 
-	if (workqueue->status == CONTAINER_WORKER_STARTED)
+	if (workqueue->status == CONTAINER_WORKER_STARTED) {
 		return -1;
-	else if (workqueue->status != CONTAINER_WORKER_COMPLETED)
+	} else if (workqueue->status != CONTAINER_WORKER_COMPLETED) {
 		return -3;
+	} else {
+		;	//nop
+	}
 
 	workqueue->status = CONTAINER_WORKER_INACTIVE;
 
@@ -330,15 +348,16 @@ static void* container_workqueue_thread(void *args)
 	int ret = -1;
 	container_workqueue_t *workqueue = (container_workqueue_t*)args;
 
-	if (args == NULL)
+	if (args == NULL) {
 		pthread_exit(NULL);
+	}
 
 	ret = container_workqueue_exec(workqueue);
 
-	(void)pthread_mutex_lock(&(workqueue->workqueue_mutex));
+	(void) pthread_mutex_lock(&(workqueue->workqueue_mutex));
 	workqueue->result = ret;
 	workqueue->status = CONTAINER_WORKER_COMPLETED;
-	(void)pthread_mutex_unlock(&(workqueue->workqueue_mutex));
+	(void) pthread_mutex_unlock(&(workqueue->workqueue_mutex));
 
 	pthread_exit(NULL);
 
@@ -360,11 +379,13 @@ int container_workqueue_run(container_workqueue_t *workqueue)
 	int ret = -1;
 	pthread_attr_t thread_attr;
 
-	if (workqueue == NULL)
+	if (workqueue == NULL) {
 		return -2;
+	}
 
-	if (workqueue->status != CONTAINER_WORKER_SCHEDULED)
+	if (workqueue->status != CONTAINER_WORKER_SCHEDULED) {
 		return -1;
+	}
 
 	(void) pthread_attr_init(&thread_attr);
 	(void) pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED);
@@ -377,11 +398,11 @@ int container_workqueue_run(container_workqueue_t *workqueue)
 		return -3;
 	}
 
-	(void)pthread_mutex_lock(&(workqueue->workqueue_mutex));
+	(void) pthread_mutex_lock(&(workqueue->workqueue_mutex));
 	if (workqueue->status == CONTAINER_WORKER_SCHEDULED) {
 		workqueue->status = CONTAINER_WORKER_STARTED;
 	}
-	(void)pthread_mutex_unlock(&(workqueue->workqueue_mutex));
+	(void) pthread_mutex_unlock(&(workqueue->workqueue_mutex));
 
 	return 0;
 }
@@ -401,11 +422,12 @@ int container_workqueue_cancel(container_workqueue_t *workqueue)
 	int ret = -1;
 	int result = -1;
 
-	if (workqueue == NULL)
+	if (workqueue == NULL) {
 		return -2;
+	}
 
-	if (workqueue->status == CONTAINER_WORKER_DISABLE
-		|| workqueue->status == CONTAINER_WORKER_INACTIVE) {
+	if ((workqueue->status == CONTAINER_WORKER_DISABLE)
+		|| (workqueue->status == CONTAINER_WORKER_INACTIVE)) {
 		// Not need cancel.
 		result = -1;
 	} else if (workqueue->status == CONTAINER_WORKER_SCHEDULED) {
@@ -434,17 +456,23 @@ int container_workqueue_cancel(container_workqueue_t *workqueue)
  */
 int container_workqueue_remove(container_workqueue_t *workqueue, int *after_execute)
 {
-	if (workqueue == NULL)
+	if (workqueue == NULL) {
 		return -2;
+	}
 
-	if (workqueue->status == CONTAINER_WORKER_STARTED || workqueue->status == CONTAINER_WORKER_COMPLETED)
+	if ((workqueue->status == CONTAINER_WORKER_STARTED)
+		|| (workqueue->status == CONTAINER_WORKER_COMPLETED)) {
 		return -1;
 
-	if (workqueue->status != CONTAINER_WORKER_DISABLE)
-		workqueue->status = CONTAINER_WORKER_INACTIVE;
+	}
 
-	if (after_execute != NULL)
+	if (workqueue->status != CONTAINER_WORKER_DISABLE) {
+		workqueue->status = CONTAINER_WORKER_INACTIVE;
+	}
+
+	if (after_execute != NULL) {
 		(*after_execute) = workqueue->state_after_execute;
+	}
 
 	workqueue->state_after_execute = 0;
 	workqueue->result = 0;
@@ -472,11 +500,13 @@ int container_workqueue_schedule(container_workqueue_t *workqueue, const char *k
 	int ret = -1;
 	int result = -2;
 
-	if (workqueue == NULL || key == NULL)
+	if ((workqueue == NULL) || (key == NULL)) {
 		return -2;
+	}
 
-	if (workqueue->status != CONTAINER_WORKER_INACTIVE)
+	if (workqueue->status != CONTAINER_WORKER_INACTIVE) {
 		return -1;
+	}
 
 	ret = container_workqueue_load_plugin(workqueue, key);
 	if (ret < 0) {
@@ -509,8 +539,9 @@ int container_workqueue_schedule(container_workqueue_t *workqueue, const char *k
  */
 int container_workqueue_get_status(container_workqueue_t *workqueue)
 {
-	if (workqueue == NULL)
+	if (workqueue == NULL) {
 		return CONTAINER_WORKER_DISABLE;
+	}
 
 	return workqueue->status;
 }
@@ -529,25 +560,27 @@ int container_workqueue_initialize(container_workqueue_t *workqueue)
 	int result = -1;
 	pthread_mutexattr_t mutex_attr;
 
-	if (workqueue == NULL)
+	if (workqueue == NULL) {
 		return -1;
+	}
 
 	(void) memset(workqueue, 0, sizeof(container_workqueue_t));
 	workqueue->status = CONTAINER_WORKER_DISABLE;
 
-	(void)pthread_mutexattr_init(&mutex_attr);
-	(void)pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_ERRORCHECK);
+	(void) pthread_mutexattr_init(&mutex_attr);
+	(void) pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_ERRORCHECK);
 
 	ret = pthread_mutex_init(&(workqueue->workqueue_mutex), &mutex_attr);
-	if (ret < 0)
+	if (ret < 0) {
 		goto err_ret;
+	}
 
 	workqueue->status = CONTAINER_WORKER_INACTIVE;
 	workqueue->state_after_execute = 0;
 	workqueue->result = 0;
 err_ret:
 
-	(void)pthread_mutexattr_destroy(&mutex_attr);
+	(void) pthread_mutexattr_destroy(&mutex_attr);
 
 	return result;
 }
@@ -561,12 +594,13 @@ err_ret:
  */
 int container_workqueue_deinitialize(container_workqueue_t *workqueue)
 {
-	if (workqueue == NULL)
+	if (workqueue == NULL) {
 		return -1;
+	}
 
 	workqueue->status = CONTAINER_WORKER_DISABLE;
 	workqueue->state_after_execute = 0;
-	(void)pthread_mutex_destroy(&(workqueue->workqueue_mutex));
+	(void) pthread_mutex_destroy(&(workqueue->workqueue_mutex));
 
 	return 0;
 }

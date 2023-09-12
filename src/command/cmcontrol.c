@@ -86,7 +86,7 @@ static int cm_socket_setup(void)
 
 err_return:
 	if (fd != -1) {
-		close(fd);
+		(void) close(fd);
 	}
 
 	return -1;
@@ -116,6 +116,8 @@ static int cm_socket_wait_response(int fd, int timeout)
 			// Timeout
 			result = -1;
 			break;
+		} else {
+			;	//nop
 		}
 
 		if ((poll_fds[0].revents & (POLLIN | POLLHUP | POLLERR | POLLNVAL)) != 0) {
@@ -150,7 +152,7 @@ void cm_get_guest_list(int json)
 
 	packet.header.command = CONTAINER_EXTIF_COMMAND_GETGUESTS;
 	sret = write(fd, &packet, sizeof(packet));
-	if (sret < sizeof(packet)) {
+	if (sret < (ssize_t)sizeof(packet)) {
 		(void) fprintf(stderr,"Container manager is confuse.\n");
 		goto error_return;
 	}
@@ -291,7 +293,7 @@ void cm_get_guest_lifecycle(int code, char *name)
 
 error_return:
 	if (fd != -1) {
-		close(fd);
+		(void) close(fd);
 	}
 
 	return;
@@ -321,7 +323,7 @@ void cm_get_guest_change(int code, char *name)
 		goto error_return;
 	}
 
-	(void) strncpy(packet.guest_name, name, sizeof(packet.guest_name)-1);
+	(void) strncpy(packet.guest_name, name, sizeof(packet.guest_name)-1u);
 
 	sret = write(fd, &packet, sizeof(packet));
 	if (sret < (ssize_t)sizeof(packet)) {
@@ -336,7 +338,7 @@ void cm_get_guest_change(int code, char *name)
 	}
 
 	sret = read(fd, &response, sizeof(response));
-	if (sret < sizeof(response)) {
+	if (sret < (ssize_t)sizeof(response)) {
 		(void) fprintf(stderr,"Container manager is confuse. sret = %ld errno = %d\n", sret, errno);
 		goto error_return;
 	}
@@ -356,7 +358,7 @@ void cm_get_guest_change(int code, char *name)
 
 error_return:
 	if (fd != -1) {
-		close(fd);
+		(void) close(fd);
 	}
 
 	return;
