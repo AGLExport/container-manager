@@ -161,7 +161,7 @@ static int container_workqueue_get_plugin(const char *key, char *module)
 {
 	int result = -1;
 
-	for(int i=0; i < (sizeof(g_worker_operation)/sizeof(g_worker_operation[0])); i++) {
+	for(size_t i=0; i < (sizeof(g_worker_operation)/sizeof(g_worker_operation[0])); i++) {
 		if (strcmp(g_worker_operation[i].key, key) == 0) {
 			(void) strcpy(module, g_worker_operation[i].plugin_module);
 			result = 0;
@@ -422,8 +422,9 @@ int container_workqueue_cancel(container_workqueue_t *workqueue)
 	int ret = -1;
 	int result = -1;
 
-	if (workqueue == NULL)
+	if (workqueue == NULL) {
 		return -2;
+	}
 
 	if ((workqueue->status == CONTAINER_WORKER_DISABLE)
 		|| (workqueue->status == CONTAINER_WORKER_INACTIVE)) {

@@ -53,7 +53,7 @@ static int cm_worker_set_args(cm_worker_handle_t handle, const char *arg_str, si
 	char strbuf[1024];
 	int result = -1;
 
-	if ((handle == NULL) || (arg_str == NULL) || (arg_length >= 1024)) {
+	if ((handle == NULL) || (arg_str == NULL) || (arg_length >= 1024u)) {
 		return -1;
 	}
 

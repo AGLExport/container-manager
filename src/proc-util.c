@@ -71,7 +71,7 @@ static int procutil_get_cmdline(char **ppbuf, int *ppbuf_size)
 	buffer_size_max = ((64*1024) > (COMMAND_LINE_SIZE*8)) ? (64*1024) : (COMMAND_LINE_SIZE*8);
 
 	while (buffer_size <= buffer_size_max) {
-		free(pbuf);
+		(void) free(pbuf);
 		pbuf = (char*)malloc(buffer_size);
 		if (pbuf == NULL) {
 			result = -1;
@@ -99,15 +99,15 @@ static int procutil_get_cmdline(char **ppbuf, int *ppbuf_size)
 		buffer_size = buffer_size * 2;
 	}
 
-	close(fd);
+	(void) close(fd);
 
 	return 0;
 
 error_ret:
-	free(pbuf);
+	(void) free(pbuf);
 
 	if (fd != -1) {
-		close(fd);
+		(void) close(fd);
 	}
 
 	return result;
@@ -205,8 +205,9 @@ int procutil_create(procutil_t **ppu)
 	int pbuf_size = 0;
 	procutil_t *pu = NULL;
 
-	if (ppu == NULL)
+	if (ppu == NULL) {
 		return -2;
+	}
 
 	pu = (procutil_t*)malloc(sizeof(procutil_t));
 	if (pu == NULL) {
@@ -233,7 +234,7 @@ int procutil_create(procutil_t **ppu)
 	return 0;
 
 error_ret:
-	procutil_cleanup(pu);
+	(void) procutil_cleanup(pu);
 
 	return result;
 }
@@ -257,11 +258,11 @@ int procutil_cleanup(procutil_t *pu)
 	while(dl_list_empty(&pu->argument_list) == 0) {
 		pelem = dl_list_last(&pu->argument_list, procutl_cmdline_elem_t, list);
 		dl_list_del(&pelem->list);
-		free(pelem);
+		(void) free(pelem);
 	}
 
-	free(pu->org_buf_ptr);
-	free(pu);
+	(void) free(pu->org_buf_ptr);
+	(void) free(pu);
 
 	return 0;
 }
@@ -284,7 +285,7 @@ int procutil_get_cmdline_value_int64(procutil_t *pu, const char *key, int64_t *v
 	char *endptr = NULL;
 	int64_t v = 0;
 
-	if (pu == NULL || key == NULL || value == NULL) {
+	if ((pu == NULL) || (key == NULL) || (value == NULL)) {
 		return -2;
 	}
 
@@ -305,6 +306,8 @@ int procutil_get_cmdline_value_int64(procutil_t *pu, const char *key, int64_t *v
 							result = -1;
 							goto error_ret;
 						}
+					} else {
+						;	//nop
 					}
 					// Success to convert
 					(*value) = v;
@@ -336,7 +339,7 @@ int procutil_test_key_in_cmdline(procutil_t *pu, const char *key)
 	int result = -1;
 	procutl_cmdline_elem_t *pelem = NULL;
 
-	if (pu == NULL || key == NULL) {
+	if ((pu == NULL) || (key == NULL)) {
 		return -2;
 	}
 
