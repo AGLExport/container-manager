@@ -7,7 +7,6 @@
 #include "container-manager-interface.h"
 #include "container-external-interface.h"
 #include "container-control-internal.h"
-#include "container-workqueue-worker.h"
 #include "container-workqueue.h"
 #include "container.h"
 
