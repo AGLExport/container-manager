@@ -120,6 +120,8 @@ static int udev_event_handler(sd_event_source *event, int fd, uint32_t revents, 
 	} else if ((revents & EPOLLIN) != 0) {
 		// Receive
 		(void)device_control_dynamic_udev_devevent(ddm);
+	} else {
+		;	//nop
 	}
 
 	return ret;
@@ -174,7 +176,7 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 		goto bypass_ret;	// Not match rule
 	}
 
-	if (behavior->devnode == 1 || behavior->allow == 1) {
+	if ((behavior->devnode == 1) || (behavior->allow == 1)) {
 		if (behavior->devnode == 1) {
 			lddr.is_create_node = 1;
 		}
@@ -214,13 +216,13 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 	}
 
 bypass_ret:
-	udev_device_unref(pdev);
+	(void) udev_device_unref(pdev);
 
 	return 0;
 
 error_ret:
 	if (pdev != NULL) {
-		udev_device_unref(pdev);
+		(void) udev_device_unref(pdev);
 	}
 
 	return -1;
@@ -238,7 +240,7 @@ static const char *trimmed_devname(const char* devnode)
 {
 	const char cmpstr[] = "/dev/";
 	const char *pstr = NULL;
-	int cmplen = 0;
+	size_t cmplen = 0;
 
 	cmplen = strlen(cmpstr);
 
@@ -264,10 +266,10 @@ static const char *trimmed_devname(const char* devnode)
 static int device_control_dynamic_udev_create_injection_message(uevent_injection_message_t *uim, uevent_device_info_t *udi, struct udev_list_entry *le)
 {
 	int ret = -1;
-	int usage = 0, remain = 0;
+	ssize_t usage = 0, remain = 0;
 	char *buf = NULL;
 
-	remain = sizeof(uim->message) - 1;
+	remain = (ssize_t)sizeof(uim->message) - 1;
 	buf = &uim->message[0];
 
 	#ifdef _PRINTF_DEBUG_
@@ -276,12 +278,12 @@ static int device_control_dynamic_udev_create_injection_message(uevent_injection
 
 	// add@/devices/pci0000:00/0000:00:08.1/0000:05:00.3/usb4/4-2/4-2:1.0/host3/target3:0:0/3:0:0:0/block/sdb/sdb1
 	ret = snprintf(&buf[usage], remain, "%s@%s", udi->action, udi->devpath);
-	if ((!(ret < remain)) || ret < 0) {
+	if ((!((ssize_t)ret < remain)) || (ret < 0)) {
 		return -1;
 	}
 
-	usage = usage + ret + 1 /*NULL term*/;
-	remain = sizeof(uim->message) - 1 - usage;
+	usage = usage + (ssize_t)ret + 1 /*NULL term*/;
+	remain = ((ssize_t)sizeof(uim->message)) - 1 - usage;
 	if (remain < 0) {
 		return -1;
 	}
@@ -302,12 +304,12 @@ static int device_control_dynamic_udev_create_injection_message(uevent_injection
 			}
 
 			ret = snprintf(&buf[usage], remain, "%s=%s", elem_name, elem_value);
-			if ((!(ret < remain)) || ret < 0) {
+			if ((!((ssize_t)ret < remain)) || (ret < 0)) {
 				return -1;
 			}
 
 			usage = usage + ret + 1 /*NULL term*/;
-			remain = sizeof(uim->message) - 1 - usage;
+			remain = ((ssize_t)sizeof(uim->message)) - 1 - usage;
 			if (remain < 0) {
 				return -1;
 			}
@@ -405,6 +407,8 @@ static int device_control_dynamic_udev_create_info(uevent_device_info_t *udi, lx
 			} else {
 				lddr->dev_minor = value;
 			}
+		} else {
+			;	//skip this data
 		}
 
 		le = udev_list_entry_get_next(le);
@@ -614,7 +618,7 @@ static int device_control_dynamic_udev_rule_judgment(container_config_t *cc, uev
 					}
 				}
 
-				if (udi->checker_func != NULL && result == 1) {
+				if ((udi->checker_func != NULL) && (result == 1)) {
 					// Have a extra rule?
 					if (dl_list_empty(&ddei->rule.extra_list) == 0) {
 						ret = udi->checker_func(&ddei->rule.extra_list, pdev, action_code);
@@ -705,6 +709,8 @@ static int extra_checker_block_device(struct dl_list *extra_list,  struct udev_d
 						result = 1;
 					}
 					break;
+				} else {
+					;	//nop
 				}
 			}
 		}
@@ -782,15 +788,15 @@ int device_control_dynamic_udev_setup(dynamic_device_manager_t *ddm, containers_
 
 err_return:
 	if (pudev_monitor != NULL) {
-		udev_monitor_unref(pudev_monitor);
+		(void) udev_monitor_unref(pudev_monitor);
 	}
 
 	if (pudev != NULL) {
-		udev_unref(pudev);
+		(void) udev_unref(pudev);
 	}
 
 	if (ddu != NULL) {
-		free(ddu);
+		(void) free(ddu);
 	}
 
 	ddm->ddu = NULL;
@@ -814,18 +820,18 @@ int device_control_dynamic_udev_cleanup(dynamic_device_manager_t *ddm)
 	ddu = (struct s_dynamic_device_udev*)ddm->ddu;
 
 	if (ddu->libudev_source != NULL) {
-		(void)sd_event_source_disable_unref(ddu->libudev_source);
+		(void) sd_event_source_disable_unref(ddu->libudev_source);
 	}
 
 	if (ddu->pudev_monitor != NULL) {
-		udev_monitor_unref(ddu->pudev_monitor);
+		(void) udev_monitor_unref(ddu->pudev_monitor);
 	}
 
 	if (ddu->pudev != NULL) {
-		udev_unref(ddu->pudev);
+		(void) udev_unref(ddu->pudev);
 	}
 
-	free(ddu);
+	(void) free(ddu);
 
 	return 0;
 }
