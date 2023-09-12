@@ -302,10 +302,11 @@ int container_workqueue_cleanup(container_workqueue_t *workqueue, int *after_exe
 
 	workqueue->status = CONTAINER_WORKER_INACTIVE;
 
-	if (workqueue->state_after_execute == 1)
+	if (workqueue->state_after_execute == 1) {
 		(*after_execute) = 1;
-	else
+	} else {
 		(*after_execute) = 0;
+	}
 
 	workqueue->state_after_execute = 0;
 
@@ -377,8 +378,9 @@ int container_workqueue_run(container_workqueue_t *workqueue)
 	}
 
 	(void)pthread_mutex_lock(&(workqueue->workqueue_mutex));
-	if (workqueue->status == CONTAINER_WORKER_SCHEDULED)
+	if (workqueue->status == CONTAINER_WORKER_SCHEDULED) {
 		workqueue->status = CONTAINER_WORKER_STARTED;
+	}
 	(void)pthread_mutex_unlock(&(workqueue->workqueue_mutex));
 
 	return 0;
