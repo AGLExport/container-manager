@@ -40,8 +40,9 @@ int cmparser_manager_create_from_file(container_manager_config_t **cm, const cha
 	container_manager_config_t *cmcfg = NULL;
 	int result = -1;
 
-	if (cm == NULL || file == NULL)
+	if ((cm == NULL) || (file == NULL)) {
 		return -1;
+	}
 
 	jsonstring = cmparser_read_jsonstring(file);
 	if (jsonstring == NULL) {
@@ -124,11 +125,13 @@ int cmparser_manager_create_from_file(container_manager_config_t **cm, const cha
 	return 0;
 
 err_ret:
-	if (json != NULL)
+	if (json != NULL) {
 		cJSON_Delete(json);
+	}
 
-	if (jsonstring != NULL)
+	if (jsonstring != NULL) {
 		cmparser_release_jsonstring(jsonstring);
+	}
 
 	cmparser_manager_release_config(cmcfg);
 
@@ -143,8 +146,9 @@ err_ret:
 void cmparser_manager_release_config(container_manager_config_t *cm)
 {
 
-	if (cm == NULL)
+	if (cm == NULL) {
 		return;
+	}
 
 	// base config
 	{
@@ -153,12 +157,12 @@ void cmparser_manager_release_config(container_manager_config_t *cm)
 		while(dl_list_empty(&cm->bridgelist) == 0) {
 			elem = dl_list_last(&cm->bridgelist, container_manager_bridge_config_t, list);
 			dl_list_del(&elem->list);
-			free(elem->name);
-			free(elem);
+			(void) free(elem->name);
+			(void) free(elem);
 		}
 	}
 
 	// global
-	free(cm->configdir);
-	free(cm);
+	(void) free(cm->configdir);
+	(void) free(cm);
 }
