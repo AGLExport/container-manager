@@ -150,7 +150,7 @@ void cm_get_guest_list(int json)
 
 	packet.header.command = CONTAINER_EXTIF_COMMAND_GETGUESTS;
 	sret = write(fd, &packet, sizeof(packet));
-	if (sret < sizeof(packet)) {
+	if (sret < (ssize_t)sizeof(packet)) {
 		(void) fprintf(stderr,"Container manager is confuse.\n");
 		goto error_return;
 	}

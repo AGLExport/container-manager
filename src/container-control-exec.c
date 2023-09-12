@@ -209,7 +209,7 @@ err_ret:
  * @retval  0 Success to change next state.
  * @retval -1 Got undefined state.
  */
-int container_exited(containers_t *cs, container_mngsm_guest_exit_data_t *data)
+int container_exited(containers_t *cs, const container_mngsm_guest_exit_data_t *data)
 {
 	int num = 0, container_num = 0;
 	int result = 0;

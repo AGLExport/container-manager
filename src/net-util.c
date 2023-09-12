@@ -80,7 +80,7 @@ static int sdutil_get_ifname(const struct nlmsghdr *nlh, char *ifname, int size)
 	struct nlattr *attr = NULL;
 	const char *pstr = NULL;
 
-	if (nlh == NULL || ifname == NULL) {
+	if ((nlh == NULL) || (ifname == NULL)) {
 		return -2;
 	}
 
@@ -103,7 +103,7 @@ static int sdutil_get_ifname(const struct nlmsghdr *nlh, char *ifname, int size)
 			break;
 
 		} else {
-			//non operations
+			;	//non operations
 		}
 	}
 
@@ -172,7 +172,7 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 						, nfi->ifname, nfi->ifindex, nfi_new->ifname, nfi_new->ifindex);
 				#endif
 				dl_list_del(&nfi->list);
-				network_interface_info_free(nfi);
+				(void) network_interface_info_free(nfi);
 			}
 		}
 
@@ -193,18 +193,18 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 						, nfi->ifname, nfi->ifindex, nfi_new->ifname, nfi_new->ifindex);
 				#endif
 				dl_list_del(&nfi->list);
-				network_interface_info_free(nfi);
+				(void) network_interface_info_free(nfi);
 			}
 		}
 
-		network_interface_info_free(nfi_new);
+		(void) network_interface_info_free(nfi_new);
 
 		// Update notification
 		(void)cci->netif_updated(cci);
 
 	} else {
 		// No operation. need to free alloced memory
-		network_interface_info_free(nfi_new);
+		(void) network_interface_info_free(nfi_new);
 	}
 
 out:
@@ -232,7 +232,7 @@ static int nml_event_handler(sd_event_source *event, int fd, uint32_t revents, v
 
 	if (userdata == NULL) {
 		// Fail safe - disable udev event
-		sd_event_source_disable_unref(event);
+		(void) sd_event_source_disable_unref(event);
 		return 0;
 	}
 
@@ -242,13 +242,15 @@ static int nml_event_handler(sd_event_source *event, int fd, uint32_t revents, v
 
 	if ((revents & (EPOLLHUP | EPOLLERR)) != 0) {
 		// Fail safe - disable udev event
-		sd_event_source_disable_unref(event);
+		(void) sd_event_source_disable_unref(event);
 	} else if ((revents & EPOLLIN) != 0) {
 		// Receive
 		ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
 		if (ret > 0) {
-			(void)mnl_cb_run(buf, ret, 0, 0, data_cb, ddm);
+			(void) mnl_cb_run(buf, ret, 0, 0, data_cb, ddm);
 		}
+	} else {
+		;	//nop
 	}
 
 	#ifdef _PRINTF_DEBUG_
@@ -278,8 +280,9 @@ static int netifmonitor_listing_existif(dynamic_device_manager_t *ddm)
 	int ret = -1;
 
 	nl = mnl_socket_open2(NETLINK_ROUTE, SOCK_CLOEXEC);
-	if (nl == NULL)
+	if (nl == NULL) {
 		goto errorret;
+	}
 
 	ret = mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID);
 	if (ret < -1)
@@ -303,8 +306,9 @@ static int netifmonitor_listing_existif(dynamic_device_manager_t *ddm)
 	ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
 	while (ret > 0) {
 		ret = mnl_cb_run(buf, ret, seq, portid, data_cb, ddm);
-		if (ret <= MNL_CB_STOP)
+		if (ret <= MNL_CB_STOP) {
 			break;
+		}
 		ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
 	}
 
@@ -312,7 +316,7 @@ static int netifmonitor_listing_existif(dynamic_device_manager_t *ddm)
 		goto errorret;
 	}
 
-	mnl_socket_close(nl);
+	(void) mnl_socket_close(nl);
 
 	#ifdef _PRINTF_DEBUG_
 	print_iflist(&ddm->netif);
@@ -322,7 +326,7 @@ static int netifmonitor_listing_existif(dynamic_device_manager_t *ddm)
 
 errorret:
 	if (nl !=NULL) {
-		mnl_socket_close(nl);
+		(void) mnl_socket_close(nl);
 	}
 
 	return -1;
@@ -348,7 +352,7 @@ int netifmonitor_setup(dynamic_device_manager_t *ddm, container_control_interfac
 	int ret = -1;
 	int fd = -1;
 
-	if (ddm == NULL || cci == NULL || event == NULL) {
+	if ((ddm == NULL) || (cci == NULL) || (event == NULL)) {
 		return -2;
 	}
 
@@ -393,11 +397,11 @@ int netifmonitor_setup(dynamic_device_manager_t *ddm, container_control_interfac
 
 err_return:
 	if (nl != NULL) {
-		mnl_socket_close(nl);
+		(void) mnl_socket_close(nl);
 	}
 
 	if (netifmon != NULL) {
-		free(netifmon);
+		(void) free(netifmon);
 	}
 
 	return -1;
@@ -426,21 +430,21 @@ int netifmonitor_cleanup(dynamic_device_manager_t *ddm)
 
 		dl_list_for_each_safe(nfi, nfi_n, &ddm->netif.nllist, network_interface_info_t, list) {
 			dl_list_del(&nfi->list);
-			network_interface_info_free(nfi);
+			(void) network_interface_info_free(nfi);
 		}
 	}
 
 	netifmon = (struct s_netifmonitor*)ddm->netifmon;
 
 	if (netifmon->ifmonitor_source != NULL) {
-		(void)sd_event_source_disable_unref(netifmon->ifmonitor_source);
+		(void) sd_event_source_disable_unref(netifmon->ifmonitor_source);
 	}
 
 	if (netifmon->nl != NULL) {
-		mnl_socket_close(netifmon->nl);
+		(void) mnl_socket_close(netifmon->nl);
 	}
 
-	free(netifmon);
+	(void) free(netifmon);
 
 	return 0;
 }
@@ -460,7 +464,7 @@ static int network_interface_info_free(network_interface_info_t *nfi)
 		return -2;
 	}
 
-	free(nfi);
+	(void) free(nfi);
 
 	return 0;
 }
@@ -476,7 +480,7 @@ static int network_interface_info_free(network_interface_info_t *nfi)
  */
 int network_interface_info_get(network_interface_manager_t **netif, dynamic_device_manager_t *ddm)
 {
-	if (netif == NULL || ddm == NULL) {
+	if ((netif == NULL) || (ddm == NULL)) {
 		return -1;
 	}
 

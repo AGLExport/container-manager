@@ -39,7 +39,7 @@ static const char abboot_cmdline_key[] = "aglabboot";
  */
 static int container_mngsm_state_machine(containers_t *cs, const uint8_t *buf)
 {
-	container_mngsm_command_header_t *phead;
+	const container_mngsm_command_header_t *phead;
 	uint32_t command = 0;
 
 	phead = (container_mngsm_command_header_t*)buf;
@@ -60,7 +60,7 @@ static int container_mngsm_state_machine(containers_t *cs, const uint8_t *buf)
 		break;
 	case CONTAINER_MNGSM_COMMAND_GUEST_EXIT :
 		{
-			container_mngsm_guest_status_exit_t *p = (container_mngsm_guest_status_exit_t*)buf;
+			const container_mngsm_guest_status_exit_t *p = (const container_mngsm_guest_status_exit_t*)buf;
 
 			(void) container_exited(cs, &p->data);
 		}
