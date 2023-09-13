@@ -1316,15 +1316,17 @@ static int container_cleanup_unmountdisk(const char *path, int64_t timeout_at, i
  */
 static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t timeout)
 {
-	int64_t timeout_time = 0;
+	int64_t timeout_time = 0, timeout_local = 0;
 	int retry_max = 0;
 
 	if (timeout < 0) {
-		timeout = 0;
+		timeout_local = 0;
+	} else {
+		timeout_local = timeout;
 	}
 
-	timeout_time = get_current_time_ms() + timeout;
-	retry_max = (timeout / 50) + 1;
+	timeout_time = get_current_time_ms() + timeout_local;
+	retry_max = (timeout_local / 50) + 1;
 
 	// unmount extradisk
 	if (!dl_list_empty(&bc->extradisk_list)) {

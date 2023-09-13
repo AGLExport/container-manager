@@ -285,8 +285,9 @@ static int netifmonitor_listing_existif(dynamic_device_manager_t *ddm)
 	}
 
 	ret = mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID);
-	if (ret < -1)
+	if (ret < 0) {
 		goto errorret;
+	}
 
 	// listing request
 	nlh = mnl_nlmsg_put_header(buf);
@@ -299,7 +300,7 @@ static int netifmonitor_listing_existif(dynamic_device_manager_t *ddm)
 	portid = mnl_socket_get_portid(nl);
 
 	ret = mnl_socket_sendto(nl, nlh, nlh->nlmsg_len);
-	if (ret < -1) {
+	if (ret < 0) {
 		goto errorret;
 	}
 
@@ -312,7 +313,7 @@ static int netifmonitor_listing_existif(dynamic_device_manager_t *ddm)
 		ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
 	}
 
-	if (ret == -1) {
+	if (ret < 0) {
 		goto errorret;
 	}
 
@@ -369,7 +370,7 @@ int netifmonitor_setup(dynamic_device_manager_t *ddm, container_control_interfac
 	}
 
 	ret = mnl_socket_bind(nl, RTMGRP_LINK, MNL_SOCKET_AUTOPID);
-	if (ret < -1) {
+	if (ret < 0) {
 		goto err_return;
 	}
 

@@ -188,7 +188,7 @@ int uevent_injection_to_pid(pid_t target_pid, uevent_injection_message_t *uim)
 err_return:
 
 	if (net_ns_fd >= 0) {
-		close(net_ns_fd);
+		(void) close(net_ns_fd);
 	}
 
 	return result;

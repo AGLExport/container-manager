@@ -245,8 +245,7 @@ static const char *trimmed_devname(const char* devnode)
 	cmplen = strlen(cmpstr);
 
 	if (strncmp(devnode, cmpstr, cmplen) == 0) {
-		pstr = devnode;
-		pstr += cmplen;
+		pstr = &devnode[cmplen];
 	}
 
 	return pstr;
@@ -278,7 +277,7 @@ static int device_control_dynamic_udev_create_injection_message(uevent_injection
 
 	// add@/devices/pci0000:00/0000:00:08.1/0000:05:00.3/usb4/4-2/4-2:1.0/host3/target3:0:0/3:0:0:0/block/sdb/sdb1
 	ret = snprintf(&buf[usage], remain, "%s@%s", udi->action, udi->devpath);
-	if ((!((ssize_t)ret < remain)) || (ret < 0)) {
+	if (((ssize_t)ret >= remain) || (ret < 0)) {
 		return -1;
 	}
 
@@ -304,7 +303,7 @@ static int device_control_dynamic_udev_create_injection_message(uevent_injection
 			}
 
 			ret = snprintf(&buf[usage], remain, "%s=%s", elem_name, elem_value);
-			if ((!((ssize_t)ret < remain)) || (ret < 0)) {
+			if (((ssize_t)ret >= remain) || (ret < 0)) {
 				return -1;
 			}
 
@@ -503,7 +502,7 @@ static int device_control_dynamic_udev_test_action(const char *actionstr, uevent
 	int ret = DCD_UEVENT_ACTION_NON;
 	int action_code = DCD_UEVENT_ACTION_NON;
 
-	if (actionstr == NULL || action == NULL) {
+	if ((actionstr == NULL) || (action == NULL)) {
 		return ret;
 	}
 
@@ -741,7 +740,7 @@ int device_control_dynamic_udev_setup(dynamic_device_manager_t *ddm, containers_
 	int fd = -1;
 	int ret = -1;
 
-	if (cs == NULL || cs->ddm == NULL || event == NULL) {
+	if ((cs == NULL) || (cs->ddm == NULL) || (event == NULL)) {
 		return -2;
 	}
 

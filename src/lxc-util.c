@@ -103,7 +103,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 
 	// cap - optional
 	if (bc->cap.drop != NULL) {
-		if (strlen(bc->cap.drop) > 0){
+		if (strlen(bc->cap.drop) > 0u){
 			bret = plxc->set_config_item(plxc, "lxc.cap.drop", bc->cap.drop);
 			if (bret == false) {
 				result = -1;
@@ -116,7 +116,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 	}
 
 	if (bc->cap.keep != NULL) {
-		if (strlen(bc->cap.keep) > 0){
+		if (strlen(bc->cap.keep) > 0u){
 			bret = plxc->set_config_item(plxc, "lxc.cap.keep", bc->cap.keep);
 			if (bret == false) {
 				result = -1;
@@ -132,7 +132,7 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 	if (bc->idmaps.enabled == 1) {
 		(void) memset(buf,0,sizeof(buf));
 		ret = snprintf(buf,sizeof(buf),"u %d %d %d", bc->idmaps.uid.guest_root_id, bc->idmaps.uid.host_start_id, bc->idmaps.uid.num_of_id);
-		if (ret >= sizeof(buf)) {
+		if ((ssize_t)ret >= (ssize_t)sizeof(buf)) {
 			result = -2;
 			#ifdef _PRINTF_DEBUG_
 			(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base idmap (uid) too long parameter.\n");
@@ -836,7 +836,7 @@ int lxcutil_create_instance(container_config_t *cc)
 	{
 		char buf[1024];
 
-		snprintf(buf, sizeof(buf)-1u, "/tmp/dbgcfg-%s.txt", cc->name);
+		(void) snprintf(buf, sizeof(buf)-1u, "/tmp/dbgcfg-%s.txt", cc->name);
 		bret = plxc->save_config(cc->runtime_stat.lxc, buf);
 		if (bret == false) {
 			(void) fprintf(stdout,"lxcutil: save_config fail.\n");

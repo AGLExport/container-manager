@@ -42,7 +42,7 @@ static int container_mngsm_state_machine(containers_t *cs, const uint8_t *buf)
 	const container_mngsm_command_header_t *phead;
 	uint32_t command = 0;
 
-	phead = (container_mngsm_command_header_t*)buf;
+	phead = (const container_mngsm_command_header_t*)buf;
 
 	command = phead->command;
 
@@ -77,7 +77,7 @@ static int container_mngsm_state_machine(containers_t *cs, const uint8_t *buf)
 		}
 		break;
 	default:
-		;
+		break;
 	}
 
 	(void) container_exec_internal_event(cs);
