@@ -1330,6 +1330,8 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 						p->rule.action.bind = 1;
 					} else if (strcmp("unbind", actionstr->valuestring) == 0) {
 						p->rule.action.unbind = 1;
+					} else {
+						;	//nop
 					}
 				}
 			}

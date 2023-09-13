@@ -73,7 +73,7 @@ static int cm_worker_set_args(cm_worker_handle_t handle, const char *arg_str, si
 				if (cstr_option_device_length < strlen(substr)) {
 					char *device = &substr[cstr_option_device_length];
 					size_t len = strlen(device);
-					if (len > 0) {
+					if (len > 0u) {
 						permkfs->blkdev_path = strdup(device);
 						result = 0;
 						#ifdef _PRINTF_DEBUG_

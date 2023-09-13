@@ -186,7 +186,7 @@ static int devc_gpionode_scan(container_static_device_t *sdevc)
 		if (ret == -1) {
 			// gpio is not exported, need to export
 			buf[0] = '\0';
-			buflen = (ssize_t)(sizeof(buf) - 1);
+			buflen = (ssize_t)sizeof(buf) - 1;
 
 			slen = (ssize_t)snprintf(buf, buflen, "%d", gpioelem->port);
 			if (slen >= buflen) {

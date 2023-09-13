@@ -103,7 +103,7 @@ static int uevent_injection_child(int net_ns_fd, const char *message, int messag
 	}
 
 	/* There is one single group in kobject over netlink */
-	if (mnl_socket_bind(nl, (1<<0), MNL_SOCKET_AUTOPID) < 0) {
+	if (mnl_socket_bind(nl, 1u, MNL_SOCKET_AUTOPID) < 0) {
 		result = -1;
 		goto err_return;
 	}
