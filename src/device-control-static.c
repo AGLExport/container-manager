@@ -211,7 +211,7 @@ static int devc_gpionode_scan(container_static_device_t *sdevc)
 		// direction setting
 		buf[0] = '\0';
 		directionbuf[0] = '\0';
-		buflen = (ssize_t)(sizeof(buf) - 1);
+		buflen = (ssize_t)sizeof(buf) - 1;
 
 		slen = (ssize_t)snprintf(buf, buflen, "%s/direction", gpioelem->from);
 		if (slen >= buflen) {
