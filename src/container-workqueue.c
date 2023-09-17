@@ -493,9 +493,7 @@ int container_workqueue_remove(container_workqueue_t *workqueue, int *after_exec
  * @retval -1	Already scheduled.
  * @retval -2	Arg. error.
  */
-static const char *cstr_option_device = "device=/dev/mmcblk1p7";
-
-int container_workqueue_schedule(container_workqueue_t *workqueue, const char *key, int launch_after_end)
+int container_workqueue_schedule(container_workqueue_t *workqueue, const char *key, const char *args, int launch_after_end)
 {
 	int ret = -1;
 	int result = -2;
@@ -513,7 +511,7 @@ int container_workqueue_schedule(container_workqueue_t *workqueue, const char *k
 		return -3;
 	}
 
-	ret = container_workqueue_set_args(workqueue, cstr_option_device);
+	ret = container_workqueue_set_args(workqueue, args);
 	if (ret == 0) {
 		workqueue->status = CONTAINER_WORKER_SCHEDULED;
 		workqueue->state_after_execute = launch_after_end;

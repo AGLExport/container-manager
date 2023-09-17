@@ -428,6 +428,8 @@ static int container_external_interface_command_change(cm_external_interface_t *
  * @retval 0	Success to exec command.
  * @retval -1	Internal error.
  */
+static const char *cstr_option_device = "device=/dev/mmcblk1p7";
+
 static int container_external_interface_command_test(cm_external_interface_t *pextif, int fd, void *buf, ssize_t size)
 {
 	container_extif_command_test_trigger_t *pcom_test = (container_extif_command_test_trigger_t*)buf;
@@ -450,7 +452,7 @@ static int container_external_interface_command_test(cm_external_interface_t *pe
 
 			// Container workqueue test
 			if (target > 0) {
-				ret = container_workqueue_schedule(&(cs->containers[target]->workqueue), "fsck", 1);
+				ret = container_workqueue_schedule(&(cs->containers[target]->workqueue), "fsck", cstr_option_device, 1);
 				if (ret == 0) {
 					response.response = 0;
 				} else {
@@ -469,7 +471,7 @@ static int container_external_interface_command_test(cm_external_interface_t *pe
 
 			// Container workqueue test
 			if (target > 0) {
-				ret = container_workqueue_schedule(&(cs->containers[target]->workqueue), "erase", 1);
+				ret = container_workqueue_schedule(&(cs->containers[target]->workqueue), "erase", cstr_option_device, 1);
 				if (ret == 0) {
 					response.response = 0;
 				} else {
