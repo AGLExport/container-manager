@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <limits.h>
 
 /**
  * @struct	s_erase_mkfs_plugin
@@ -92,6 +93,74 @@ static int cm_worker_set_args(cm_worker_handle_t handle, const char *arg_str, si
 
 	return result;
 }
+
+static const char *cstr_block_device_test_base = "/sys/fs/ext4/";
+/**
+ * @brief Function for unmont wait.
+ *
+ * @param [in]	permkfs		Initialized erase_mkfs_plugin_t.
+ * @return Description for return value
+ * @retval 0	Success to execute worker.
+ * @retval -1	Fail to execute worker.
+ */
+static int cm_worker_wait_unmount(erase_mkfs_plugin_t *permkfs)
+{
+	int ret = -1, result = -1;
+	ssize_t slen = 0, buflen = 0;
+	char test_path[PATH_MAX];
+	const char *devname = NULL;
+	int retry_count = (5000 / 100);	//5000ms
+
+	// test to /sys/fs/ext4/block-device-name
+	devname = libcmplug_trimmed_devname(permkfs->blkdev_path);
+
+	test_path[0] = '\0';
+	buflen = (ssize_t)sizeof(test_path) - 1;
+
+	slen = (ssize_t)snprintf(test_path, buflen, "%s%s", cstr_block_device_test_base, devname);
+	if (slen >= buflen) {
+		//May not cause this error.
+		result = -1;
+		goto do_return;
+	}
+
+	#ifdef _PRINTF_DEBUG_
+	(void) fprintf(stdout, "erase-mkfs-plugin: cm_worker_wait_unmount test to %s\n",test_path);
+	#endif
+
+	result = -1;
+	do {
+		ret = libcmplug_node_check(test_path);
+		if (ret == -1) {
+			// Already unmounted
+			result = 0;
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout, "erase-mkfs-plugin: cm_worker_wait_unmount unmounted at %s\n",test_path);
+			#endif
+			break;
+		}
+
+		libcmplug_sleep_ms_time(100ll);
+		retry_count--;
+
+		if (permkfs->cancel_request == 1) {
+			// Got cancel request.
+			result = -1;
+			break;
+		}
+
+	} while(retry_count > 0);
+
+	#ifdef _PRINTF_DEBUG_
+	if (result == -1) {
+		(void) fprintf(stdout, "erase-mkfs-plugin: cm_worker_wait_unmount not unmounted at %s\n",test_path);
+	}
+	#endif
+
+do_return:
+
+	return result;
+}
 /**
  * @var		g_erase_buff
  * @brief	Work buffer for disk erase.
@@ -128,7 +197,7 @@ static int cm_worker_exec_erase(erase_mkfs_plugin_t *permkfs)
 
 		// Finally, sret = -1 and errno = 28(ENOSPC).
 		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"container_worker_test: write end for /dev/mmcblk1p7 ret = %d(%d)\n",(int)sret, errno);
+		(void) fprintf(stdout,"erase-mkfs-plugin: write end for %s ret = %d(%d)\n",permkfs->blkdev_path, (int)sret, errno);
 		#endif
 
 		(void) close(fd);
@@ -177,7 +246,7 @@ static int cm_worker_exec_mkfs(erase_mkfs_plugin_t *permkfs)
 	(void) fprintf(stdout, "erase-mkfs-plugin: cm_worker_exec fork and exec mkfs.ext4 pid=%d\n",(int)child_pid);
 	#endif
 
-	child_fd = cm_pidfd_open(child_pid);
+	child_fd = libcmplug_pidfd_open(child_pid);
 	if (child_fd < 0) {
 		// Fail to fork
 		goto do_return;
@@ -202,7 +271,7 @@ static int cm_worker_exec_mkfs(erase_mkfs_plugin_t *permkfs)
 				#ifdef _PRINTF_DEBUG_
 				(void) fprintf(stdout, "erase-mkfs-plugin: cm_worker_exec got a cancel request.\n");
 				#endif
-				ret = cm_pidfd_send_signal(child_fd, SIGTERM, NULL, 0);
+				ret = libcmplug_pidfd_send_signal(child_fd, SIGTERM, NULL, 0);
 				if (ret < 0) {
 					(void) kill(child_pid, SIGTERM);
 				}
@@ -282,6 +351,19 @@ static int cm_worker_exec(cm_worker_handle_t handle)
 		goto do_return;
 	}
 	permkfs = (erase_mkfs_plugin_t*)handle;
+
+	// unmount wait
+	ret = cm_worker_wait_unmount(permkfs);
+	if (ret < 0) {
+		result = -1;
+		goto do_return;
+	} else if (ret == 1) {
+		// Canceled
+		result = 1;
+		goto do_return;
+	} else {
+		result = 0;
+	}
 
 	// Do erase
 	ret = cm_worker_exec_erase(permkfs);

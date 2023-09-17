@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <limits.h>
 
 /**
  * @struct	s_fsck_plugin
@@ -92,6 +93,73 @@ static int cm_worker_set_args(cm_worker_handle_t handle, const char *arg_str, si
 
 	return result;
 }
+static const char *cstr_block_device_test_base = "/sys/fs/ext4/";
+/**
+ * @brief Function for unmont wait.
+ *
+ * @param [in]	permkfs		Initialized erase_mkfs_plugin_t.
+ * @return Description for return value
+ * @retval 0	Success to execute worker.
+ * @retval -1	Fail to execute worker.
+ */
+static int cm_worker_wait_unmount(fsck_plugin_t *pfsck)
+{
+	int ret = -1, result = -1;
+	ssize_t slen = 0, buflen = 0;
+	char test_path[PATH_MAX];
+	const char *devname = NULL;
+	int retry_count = (5000 / 100);	//5000ms
+
+	// test to /sys/fs/ext4/block-device-name
+	devname = libcmplug_trimmed_devname(pfsck->blkdev_path);
+
+	test_path[0] = '\0';
+	buflen = (ssize_t)sizeof(test_path) - 1;
+
+	slen = (ssize_t)snprintf(test_path, buflen, "%s%s", cstr_block_device_test_base, devname);
+	if (slen >= buflen) {
+		//May not cause this error.
+		result = -1;
+		goto do_return;
+	}
+
+	#ifdef _PRINTF_DEBUG_
+	(void) fprintf(stdout, "erase-mkfs-plugin: cm_worker_wait_unmount test to %s\n",test_path);
+	#endif
+
+	result = -1;
+	do {
+		ret = libcmplug_node_check(test_path);
+		if (ret == -1) {
+			// Already unmounted
+			result = 0;
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout, "erase-mkfs-plugin: cm_worker_wait_unmount unmounted at %s\n",test_path);
+			#endif
+			break;
+		}
+
+		libcmplug_sleep_ms_time(100ll);
+		retry_count--;
+
+		if (pfsck->cancel_request == 1) {
+			// Got cancel request.
+			result = -1;
+			break;
+		}
+
+	} while(retry_count > 0);
+
+	#ifdef _PRINTF_DEBUG_
+	if (result == -1) {
+		(void) fprintf(stdout, "erase-mkfs-plugin: cm_worker_wait_unmount not unmounted at %s\n",test_path);
+	}
+	#endif
+
+do_return:
+
+	return result;
+}
 /**
  * @brief Function pointer for container workqueue execution.
  *
@@ -117,6 +185,13 @@ static int cm_worker_exec(cm_worker_handle_t handle)
 	}
 	pfsck = (fsck_plugin_t*)handle;
 
+	ret = cm_worker_wait_unmount(pfsck);
+	if (ret < 0) {
+		// No unmounted
+		result = -1;
+		goto do_return;
+	}
+
 	child_pid = fork();
 	if (child_pid < 0) {
 		// Fail to fork
@@ -136,7 +211,7 @@ static int cm_worker_exec(cm_worker_handle_t handle)
 	(void) fprintf(stdout, "fsck-plugin: cm_worker_exec fork and exec fsck.ext4 pid=%d\n",(int)child_pid);
 	#endif
 
-	child_fd = cm_pidfd_open(child_pid);
+	child_fd = libcmplug_pidfd_open(child_pid);
 	if (child_fd < 0) {
 		// Fail to fork
 		goto do_return;
@@ -161,7 +236,7 @@ static int cm_worker_exec(cm_worker_handle_t handle)
 				#ifdef _PRINTF_DEBUG_
 				(void) fprintf(stdout, "fsck-plugin: cm_worker_exec got a cancel request.\n");
 				#endif
-				ret = cm_pidfd_send_signal(child_fd, SIGTERM, NULL, 0);
+				ret = libcmplug_pidfd_send_signal(child_fd, SIGTERM, NULL, 0);
 				if (ret < 0) {
 					(void) kill(child_pid, SIGTERM);
 				}
