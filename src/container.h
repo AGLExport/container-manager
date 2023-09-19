@@ -71,6 +71,15 @@ struct s_container_baseconfig_extradisk {
 	int is_mounted;			/**< This extra disk is mounted or not. 0: not mounted. 1: mounted.*/
 };
 typedef struct s_container_baseconfig_extradisk container_baseconfig_extradisk_t;	/**< typedef for struct s_container_baseconfig_extradisk. */
+/**
+ * @struct	s_container_baseconfig_extended
+ * @brief	The data structure for container to use not mandatory options.  It's a list element for extradisk_list of s_container_baseconfig.
+ */
+struct s_container_baseconfig_extended {
+	char *shmounts;	 			/**< Host path for shmounts option. */
+	//--- internal control data
+};
+typedef struct s_container_baseconfig_extended container_baseconfig_extended_t;	/**< typedef for struct s_container_baseconfig_extended. */
 
 /**
  * @struct	s_container_baseconfig_lifecycle
@@ -92,7 +101,15 @@ struct s_container_baseconfig_capability {
 	char *keep;	/**< Keep capabilities. */
 };
 typedef struct s_container_baseconfig_capability container_baseconfig_capability_t;	/**< typedef for struct s_container_baseconfig_capability. */
-
+/**
+ * @struct	s_container_baseconfig_tty
+ * @brief	The data structure for tty setting.  It's a part of s_container_baseconfig.
+ */
+struct s_container_baseconfig_tty {
+	int tty_max;	/**< Max number of tty for guest. */
+	int pty_max;	/**< Max number of pty for guest. */
+};
+typedef struct s_container_baseconfig_tty container_baseconfig_tty_t;	/**< typedef for struct s_container_baseconfig_capability. */
 /**
  * @struct	s_container_baseconfig_idmap
  * @brief	The data structure for id mapping to use unprivileged container.  It's a part of s_container_baseconfig_idmaps.
@@ -134,8 +151,10 @@ struct s_container_baseconfig {
 	int bootpriority;							/**< Bootpriority for this guest container, 1 is highest. container manager select launch order using preferential order of guest containers at boot time. */
 	container_baseconfig_rootfs_t rootfs;		/**< The data structure for container root filesystem. */
 	struct dl_list extradisk_list;				/**< Double link list for s_container_baseconfig_extradisk. */
+	container_baseconfig_extended_t extended;	/**< The data structure for extended infomation for container. */
 	container_baseconfig_lifecycle_t lifecycle;	/**< The data structure for container lifecycle settings. */
 	container_baseconfig_capability_t cap;		/**< The data structure for capabilities setting. */
+	container_baseconfig_tty_t tty;				/**< The data structure for tty setting. */
 	container_baseconfig_idmaps_t idmaps;		/**< The data structure for id mapping to use unprivileged container. */
 	struct dl_list envlist;						/**< Double link list for s_container_baseconfig_env. */
 	//--- internal control data

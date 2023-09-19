@@ -20,6 +20,10 @@
 #include "cm-utils.h"
 #include "uevent_injection.h"
 
+#ifdef _PRINTF_DEBUG_
+#define	PRINTF_DEBUG_CONFIG_OUT	(1)
+#endif
+
 /**
  * Create lxc config from container config baseconfig sub part.
  *
@@ -170,8 +174,38 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 
 	}
 
-	// static setting
-	bret = plxc->set_config_item(plxc, "lxc.tty.max", "1");
+	// mount.auto settings
+	if (bc->extended.shmounts != NULL) {
+		// The shmount option was enabled.
+		buf[0] = '\0';
+		ret = snprintf(buf,sizeof(buf),"cgroup:mixed proc:mixed sys:mixed shmounts:%s", bc->extended.shmounts);
+	} else {
+		// The shmount option was not enabled. Set default options.
+		buf[0] = '\0';
+		ret = snprintf(buf,sizeof(buf),"cgroup:mixed proc:mixed sys:mixed");
+	}
+	bret = plxc->set_config_item(plxc, "lxc.mount.auto", buf);
+	if (bret == false) {
+		result = -1;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base set config %s = %s fail.\n", "lxc.mount.auto", buf);
+		#endif
+		goto err_ret;
+	}
+
+	// tty setting
+	//tty
+	//value or default value is already set parser part.
+	buf[0] = '\0';
+	ret = snprintf(buf,sizeof(buf),"%d", bc->tty.tty_max);
+	if ((ssize_t)ret >= (ssize_t)sizeof(buf)) {
+		result = -2;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base tty max too long parameter.\n");
+		#endif
+		goto err_ret;
+	}
+	bret = plxc->set_config_item(plxc, "lxc.tty.max", buf);
 	if (bret == false) {
 		result = -1;
 		#ifdef _PRINTF_DEBUG_
@@ -180,7 +214,18 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 		goto err_ret;
 	}
 
-	bret = plxc->set_config_item(plxc, "lxc.pty.max", "1");
+	//pty
+	//value or default value is already set parser part.
+	buf[0] = '\0';
+	ret = snprintf(buf,sizeof(buf),"%d", bc->tty.pty_max);
+	if ((ssize_t)ret >= (ssize_t)sizeof(buf)) {
+		result = -2;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_base tty max too long parameter.\n");
+		#endif
+		goto err_ret;
+	}
+	bret = plxc->set_config_item(plxc, "lxc.pty.max", buf);
 	if (bret == false) {
 		result = -1;
 		#ifdef _PRINTF_DEBUG_
@@ -303,16 +348,6 @@ static int lxcutil_set_config_fs(struct lxc_container *plxc, container_fsconfig_
 	container_fsmount_elem_t *melem = NULL;
 
 	(void) memset(buf,0,sizeof(buf));
-
-	// static settings
-	bret = plxc->set_config_item(plxc, "lxc.mount.auto", "cgroup:mixed proc:mixed sys:mixed");
-	if (bret == false) {
-		result = -1;
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_fs set config %s = %s fail.\n", "lxc.mount.auto", "cgroup:mixed proc:mixed sys:mixed");
-		#endif
-		goto err_ret;
-	}
 
 	dl_list_for_each(melem, &fsc->fsmount.mountlist, container_fsmount_elem_t, list) {
 		buflen = (ssize_t)sizeof(buf) - 1;
@@ -832,7 +867,7 @@ int lxcutil_create_instance(container_config_t *cc)
 	cc->runtime_stat.lxc = plxc;
 	cc->runtime_stat.pid = -1;
 
-	#ifdef _PRINTF_DEBUG_
+	#ifdef PRINTF_DEBUG_CONFIG_OUT
 	{
 		char buf[1024];
 
