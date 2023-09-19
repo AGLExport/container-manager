@@ -427,7 +427,45 @@ err_ret:
 
 	return result;
 }
+/**
+ * Sub function for the extended config parser.
+ *
+ * @param [out]	bc	Pointer to pre-allocated container_baseconfig_t.
+ * @param [in]	extended	Pointer to cJSON object of top of extended section.
+ * @return int
+ * @retval  0 Success to parse.
+ * @retval -1 Json file error.
+ * @retval -2 Json file parse error.(Reserve)
+ * @retval -3 Memory allocation error.
+ */
+static int cmparser_parse_base_extended(container_baseconfig_t *bc, const cJSON *extended)
+{
+	cJSON *shmounts = NULL;
 
+	if (extended != NULL) {
+		shmounts = cJSON_GetObjectItemCaseSensitive(extended, "shmounts");
+		if (cJSON_IsString(shmounts) && (shmounts->valuestring != NULL)) {
+			bc->extended.shmounts = strdup(shmounts->valuestring);
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"cmparser: base-extended shmounts = %s\n",bc->extended.shmounts);
+			#endif
+		} else {
+			// Not mandatory value, set default value - disable option.
+			bc->extended.shmounts = NULL;
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"cmparser: base-extended shmounts not set. set default value - disable option.\n");
+			#endif
+		}
+	} else {
+		// Set default value all - disable each option.
+		bc->extended.shmounts = NULL;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"cmparser: base-extended not set. set default value all - disable option.\n");
+		#endif
+	}
+
+	return 0;
+}
 /**
  * parser for base section of container config.
  *
@@ -445,8 +483,10 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 	cJSON *bootpriority = NULL;
 	cJSON *rootfs = NULL;
 	cJSON *extradisk = NULL;
+	cJSON *extended = NULL;
 	cJSON *lifecycle = NULL;
 	cJSON *cap = NULL;
+	cJSON *tty = NULL;
 	cJSON *idmap = NULL;
 	cJSON *environment = NULL;
 	int result = -1;
@@ -505,6 +545,21 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 	extradisk = cJSON_GetObjectItemCaseSensitive(base, "extradisk");
 	if (cJSON_IsArray(extradisk)) {
 		result = cmparser_parse_base_extradisk(bc, extradisk);
+		if (result != 0) {
+			goto err_ret;
+		}
+	}
+
+	// Get extended options - not mandatory
+	extended = cJSON_GetObjectItemCaseSensitive(base, "extended");
+	if (cJSON_IsObject(extended)) {
+		result = cmparser_parse_base_extended(bc, extended);
+		if (result != 0) {
+			goto err_ret;
+		}
+	} else {
+		// This option is not mandatory, set default options.
+		result = cmparser_parse_base_extended(bc, (cJSON*)NULL);
 		if (result != 0) {
 			goto err_ret;
 		}
@@ -579,6 +634,41 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 			#endif
 		}
 	}
+
+	// Get tty data
+	// This setting is not mandatory, initially set default value.
+	bc->tty.tty_max = 1; // Default value is 1
+	bc->tty.pty_max = 1; // Default value is 1
+	tty = cJSON_GetObjectItemCaseSensitive(base, "tty");
+	if (cJSON_IsObject(tty)) {
+		cJSON *tty_max = NULL, *pty_max = NULL;
+
+		// Get tty max
+		tty_max = cJSON_GetObjectItemCaseSensitive(tty, "tty");
+		if (cJSON_IsNumber(tty_max) && (tty_max->valueint > 0)) {
+			bc->tty.tty_max = tty_max->valueint;
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"cmparser: base-tty-tty value = %d\n",bc->tty.tty_max);
+			#endif
+		}
+
+		// Get pty max
+		pty_max = cJSON_GetObjectItemCaseSensitive(tty, "pty");
+		if (cJSON_IsNumber(pty_max) && (pty_max->valueint > 0)) {
+			bc->tty.pty_max = pty_max->valueint;
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"cmparser: base-tty-pty value = %d\n",bc->tty.pty_max);
+			#endif
+		}
+	}
+	#ifdef _PRINTF_DEBUG_
+	if (bc->tty.tty_max == 1) {
+		(void) fprintf(stdout,"cmparser: base-tty-tty set default value = 1\n");
+	}
+	if (bc->tty.pty_max == 1) {
+		(void) fprintf(stdout,"cmparser: base-tty-pty set default value = 1\n");
+	}
+	#endif
 
 	// Get idmap data
 	idmap = cJSON_GetObjectItemCaseSensitive(base, "idmap");
@@ -2189,6 +2279,8 @@ void cmparser_release_config(container_config_t *cc)
 
 		(void) free(cc->baseconfig.lifecycle.halt);
 		(void) free(cc->baseconfig.lifecycle.reboot);
+
+		(void) free(cc->baseconfig.extended.shmounts);
 
 		while(dl_list_empty(&cc->baseconfig.extradisk_list) == 0) {
 			exdisk = dl_list_last(&cc->baseconfig.extradisk_list, container_baseconfig_extradisk_t, list);
