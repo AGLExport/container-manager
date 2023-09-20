@@ -478,6 +478,30 @@ static int container_external_interface_command_test(cm_external_interface_t *pe
 					response.response = -1;
 				}
 			}
+		} else if (pcom_test->code == 2) {
+			containers_t *cs = pextif->cs;
+			int target = -1;
+
+			response.response = -1;
+			for (int i =0; i < cs->num_of_container; i++) {
+				if (strcmp(cs->containers[i]->name, "agl-momi-ivi-demo") == 0) {
+					target = i;
+					break;
+				}
+			}
+
+			// Container workqueue test
+			if (target > 0) {
+				if (cs->containers[target]->runtime_stat.status == CONTAINER_STARTED) {
+					char pssrc[] = "/www";
+					char pstarget[] = "/var/spool";
+
+					ret = lxcutil_dynamic_mount_to_guest(cs->containers[target], pssrc, pstarget);
+					if (ret == 0) {
+						response.response = 0;
+					}
+				}
+			}
 		} else {
 			// other is not support
 			response.response = -1;
