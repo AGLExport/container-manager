@@ -12,6 +12,7 @@ containermanager_SOURCES = \
 	cm-utils.c \
 	block-util.c \
 	lxc-util.c \
+	lxc-util-config.c \
 	net-util.c \
 	signal-util.c \
 	proc-util.c \
