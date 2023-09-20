@@ -13,6 +13,7 @@
 #include <limits.h>
 #include <sys/sysmacros.h>
 #include <sys/stat.h>
+#include <sys/mount.h>
 #include <lxc/lxccontainer.h>
 
 #include "cm-utils.h"
@@ -359,6 +360,45 @@ int lxcutil_dynamic_networkif_add_to_guest(container_config_t *cc, container_dyn
 	}
 
 	if (bret == true) {
+		result = 0;
+	}
+
+	return result;
+}
+/**
+ * Dynamic bind mount from host to guest container.
+ * This function mount host directory to guest container using lxc mount interface.
+ *
+ * @param [in]	cc			Pointer to container_config_t.
+ * @param [in]	host_path	Path for dynamic mount source.
+ * @param [in]	guest_path	Path for dynamic mount target.
+ * @return int
+ * @retval 0	Success to operations.
+ * @retval -1	Got lxc error.
+ */
+int lxcutil_dynamic_mount_to_guest(container_config_t *cc, const char *host_path, const char *guest_path)
+{
+	int ret = -1;
+	int result = -1;
+	struct lxc_mount mnt;
+
+	(void) memset(&mnt, 0, sizeof(mnt));
+	mnt.version = LXC_MOUNT_API_V1;
+
+
+	if ((cc->runtime_stat.lxc != NULL) && (host_path != NULL) && (guest_path != NULL)) {
+		/*	int (*mount)(struct lxc_container *c, const char *source,
+		     const char *target, const char *filesystemtype,
+		     unsigned long mountflags, const void *data,
+		     struct lxc_mount *mnt);
+		*/
+		ret = cc->runtime_stat.lxc->mount(cc->runtime_stat.lxc, host_path, guest_path, NULL, MS_BIND, NULL, &mnt);
+		#ifdef _PRINTF_DEBUG_
+		fprintf(stdout, "lxcutil_dynamic_mount_to_guest: from %s to %s ret = %d\n", host_path, guest_path, ret);
+		#endif
+	}
+
+	if (ret == 0) {
 		result = 0;
 	}
 
