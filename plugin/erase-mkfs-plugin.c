@@ -474,7 +474,10 @@ int cm_worker_delete(cm_worker_instance_t *instance)
 	}
 
 	if (instance->handle != NULL) {
-		(void)free(instance->handle);
+		erase_mkfs_plugin_t *permkfs = NULL;
+		permkfs = (erase_mkfs_plugin_t*)instance->handle;
+		(void)free(permkfs->blkdev_path);
+		(void)free(permkfs);
 	}
 
 	(void)free(instance);

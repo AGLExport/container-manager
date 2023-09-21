@@ -376,7 +376,10 @@ int cm_worker_delete(cm_worker_instance_t *instance)
 	}
 
 	if (instance->handle != NULL) {
-		(void)free(instance->handle);
+		fsck_plugin_t *pfsck = NULL;
+		pfsck = (fsck_plugin_t*)instance->handle;
+		(void)free(pfsck->blkdev_path);
+		(void)free(pfsck);
 	}
 
 	(void)free(instance);
