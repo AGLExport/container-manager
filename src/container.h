@@ -38,7 +38,16 @@
  * @brief	Disk mount redundancy type is AB (Automatically select A or B depend on boot parameter). It use at s_container_baseconfig_extradisk.redundancy.
  */
 #define DISKREDUNDANCY_TYPE_AB	(1)
-
+/**
+ * @def	DISKREDUNDANCY_TYPE_AB
+ * @brief	Disk mount redundancy type is fsck (Automatically run file system check in case of mount fail). It use at s_container_baseconfig_extradisk.redundancy.
+ */
+#define DISKREDUNDANCY_TYPE_FSCK	(2)
+/**
+ * @def	DISKREDUNDANCY_TYPE_AB
+ * @brief	Disk mount redundancy type is AB (Automatically run mkfs in case of mount fail). It use at s_container_baseconfig_extradisk.redundancy.
+ */
+#define DISKREDUNDANCY_TYPE_MKFS	(3)
 /**
  * @struct	s_container_baseconfig_rootfs
  * @brief	The data structure for container root filesystem.  It's a part of s_container_baseconfig.
@@ -51,6 +60,7 @@ struct s_container_baseconfig_rootfs {
 	char *blockdev[2];	/**< block device for rootfs with A/B update. 0=a.1=b */
 	//--- internal control data
 	int is_mounted;		/**< rootfs is mounted or not. 0: not mounted. 1: mounted.*/
+	int error_count;		/**< mount error count of rootfs. That exclude busy error.*/
 };
 typedef struct s_container_baseconfig_rootfs container_baseconfig_rootfs_t;	/**< typedef for struct s_container_baseconfig_rootfs. */
 
@@ -69,6 +79,7 @@ struct s_container_baseconfig_extradisk {
 	char *blockdev[2];		/**< block device for rootfs primary and secondary. */
 	//--- internal control data
 	int is_mounted;			/**< This extra disk is mounted or not. 0: not mounted. 1: mounted.*/
+	int error_count;		/**< mount error count of this extra disk. That exclude busy error.*/
 };
 typedef struct s_container_baseconfig_extradisk container_baseconfig_extradisk_t;	/**< typedef for struct s_container_baseconfig_extradisk. */
 /**

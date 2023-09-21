@@ -19,7 +19,7 @@
 				"to":    "var/nonvolatile",
 				"filesystem":   "ext4",
 				"mode": "rw",
-				"redundancy": "failover",
+				"redundancy": "mkfs",
 				"blockdev": [
 					"/dev/mmcblk1p7",
 					"/dev/mmcblk1p7"

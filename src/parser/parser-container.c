@@ -129,12 +129,18 @@ static int cmparser_parser_get_diskmountfailop(const char *str)
 {
 	static const char failover[] = "failover";
 	static const char ab[] = "ab";
+	static const char fsck[] = "fsck";
+	static const char mkfs[] = "mkfs";
 	int ret = DISKREDUNDANCY_TYPE_FAILOVER;
 
 	if (strncmp(failover, str, sizeof(failover)) == 0) {
 		ret = DISKREDUNDANCY_TYPE_FAILOVER;
 	} else if (strncmp(ab, str, sizeof(ab)) == 0) {
 		ret = DISKREDUNDANCY_TYPE_AB;
+	} else if (strncmp(fsck, str, sizeof(fsck)) == 0) {
+		ret = DISKREDUNDANCY_TYPE_FSCK;
+	} else if (strncmp(mkfs, str, sizeof(mkfs)) == 0) {
+		ret = DISKREDUNDANCY_TYPE_MKFS;
 	} else {
 		// unknow str, select FAILOVER.
 		ret = DISKREDUNDANCY_TYPE_FAILOVER;

@@ -27,6 +27,7 @@
 #include "device-control.h"
 
 static int container_start_preprocess_base(container_baseconfig_t *bc);
+static int container_start_preprocess_base_recovery(container_config_t *cc);
 static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t timeout);
 static int container_get_active_guest_by_role(containers_t *cs, char *role, container_config_t **active_cc);
 static int container_timeout_set(container_config_t *cc);
@@ -870,6 +871,12 @@ int container_start(container_config_t *cc)
 	// run preprocess
 	ret = container_start_preprocess_base(&cc->baseconfig);
 	if (ret < 0) {
+		// When got error from container_start_preprocess_base, try to evaluate recovery.
+
+		ret = container_start_preprocess_base_recovery(cc);
+		// TODO
+
+
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 		(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_start_preprocess_base ret = %d\n", ret);
 		#endif
@@ -1160,8 +1167,65 @@ static int container_start_mountdisk_ab(char **devs, const char *path, const cha
 
 	return 0;
 }
+/**
+ * Disk mount procedure for once.
+ * This function is sub function for container_start_preprocess_base.
+ *
+ * @param [in]	devs	Array of disk block device. only to use primary side = devs[0].
+ * @param [in]	path	Mount path.
+ * @param [in]	fstype	Name of file system. When fstype == NULL, file system is auto.
+ * @param [in]	mntflag	Mount flag.
+ * @param [in]	option	Filesystem specific option.
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 mount error.
+ * @retval -2 Syscall error.
+ * @retval -3 Arg. error.
+ */
+static int container_start_mountdisk_once(char **devs, const char *path, const char *fstype, unsigned long mntflag, char* option)
+{
+	int ret = 1;
+	const char * dev = NULL;
 
+	// Only to use primary side.
+	dev = devs[0];
 
+	ret = mount(dev, path, fstype, mntflag, option);
+	if (ret < 0) {
+		if (errno == EBUSY) {
+			// already mounted
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"container_start_mountdisk_once: %s is already mounted.\n", path);
+			#endif
+			ret = umount2(path, MNT_DETACH);
+			if (ret < 0) {
+				#ifdef _PRINTF_DEBUG_
+				(void) fprintf(stdout,"container_start_mountdisk_once: %s unmount fail.\n", path);
+				#endif
+				return -1;
+			}
+
+			ret = mount(dev, path, fstype, mntflag, option);
+			if (ret < 0) {
+				#ifdef _PRINTF_DEBUG_
+				(void) fprintf(stdout,"container_start_mountdisk_once: %s re-mount fail.\n", path);
+				#endif
+				return -1;
+			}
+		} else {
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"container_start_mountdisk_once: %s mount fail to %s (%d).\n", dev, path, errno);
+			#endif
+			return -1;
+		}
+	}
+
+	#ifdef _PRINTF_DEBUG_
+	(void) fprintf(stdout,"container_start_mountdisk_once: %s mount to %s (%s)\n", dev, path, fstype);
+	#endif
+
+	return 0;
+}
 /**
  * Preprocess for container start.
  * This function exec mount operation a part of base config operation.
@@ -1190,6 +1254,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 											, bc->rootfs.filesystem, mntflag, bc->rootfs.option, bc->abboot);
 		if ( ret < 0) {
 			// root fs mount is mandatory.
+			bc->rootfs.error_count = bc->rootfs.error_count + 1;
 			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 			(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatory disk %s could not mount\n", bc->rootfs.blockdev[bc->abboot]);
 			#endif
@@ -1197,6 +1262,8 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 		} else {
 			// root fs mount is succeed.
 			bc->rootfs.is_mounted = 1;
+			// Clear error count
+			bc->rootfs.error_count = 0;
 		}
 	}
 
@@ -1218,6 +1285,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 					ret = container_start_mountdisk_ab(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, exdisk->option, bc->abboot);
 					if (ret < 0) {
 						// AB disk mount is mandatory function.
+						exdisk->error_count = exdisk->error_count + 1;
 						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 						(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatory disk %s could not mount\n", exdisk->blockdev[bc->abboot]);
 						#endif
@@ -1225,11 +1293,14 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 					} else {
 						// This extra disk mount is succeed.
 						exdisk->is_mounted = 1;
+						// Clear error count
+						exdisk->error_count = 0;
 					}
-				} else {
+				} else if (exdisk->redundancy == DISKREDUNDANCY_TYPE_FAILOVER) {
 					ret = container_start_mountdisk_failover(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, exdisk->option);
 					if (ret < 0) {
 						// Failover disk mount is optional function.
+						exdisk->error_count = exdisk->error_count + 1;
 						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 						(void) fprintf(stderr,"[CM ERROR] container_start_preprocess_base: failover disk %s could not mount\n", exdisk->blockdev[0]);
 						#endif
@@ -1237,7 +1308,88 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 					} else {
 						// This extra disk mount is succeed.
 						exdisk->is_mounted = 1;
+						// Clear error count
+						exdisk->error_count = 0;
 					}
+				} else {
+					// DISKREDUNDANCY_TYPE_FSCK or DISKREDUNDANCY_TYPE_MKFS
+					ret = container_start_mountdisk_once(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, exdisk->option);
+					if (ret < 0) {
+						exdisk->error_count = exdisk->error_count + 1;
+						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+						(void) fprintf(stderr,"[CM ERROR] container_start_preprocess_base: disk %s could not mount. Try to recovery.\n", exdisk->blockdev[0]);
+						#endif
+						return -1;
+					} else {
+						// This extra disk mount is succeed.
+						exdisk->is_mounted = 1;
+						// Clear error count
+						exdisk->error_count = 0;
+					}
+
+				}
+
+			}
+		}
+	}
+
+	return 0;
+}
+/**
+ * Preprocess for container start.
+ * This function exec mount operation a part of base config operation.
+ *
+ * @param [in]	bc	Pointer to container_baseconfig_t.
+ * @return int
+ * @retval  1 Success (recovery queued).
+ * @retval  0 Success (recovery not queued).
+ * @retval -1 operation error.
+ * @retval -2 Syscall error.
+ */
+static int container_start_preprocess_base_recovery(container_config_t *cc)
+{
+	int ret = 1;
+	container_baseconfig_t *bc = NULL;
+
+	bc = &cc->baseconfig;
+
+	// rootfs does not support recovery now.
+
+	// evaluate recovery fot extradisk
+	if (!dl_list_empty(&bc->extradisk_list)) {
+		container_baseconfig_extradisk_t *exdisk = NULL;
+
+		dl_list_for_each(exdisk, &bc->extradisk_list, container_baseconfig_extradisk_t, list) {
+			if (exdisk->is_mounted == 0) {
+				// When already mounted, this disk is valid.
+				if (exdisk->error_count > 0) {
+					char option_str[1024];
+
+					ret = snprintf(option_str, sizeof(option_str), "device=%s", exdisk->blockdev[0]);
+					if (!((size_t)ret < sizeof(option_str)-1u)) {
+						return -1;
+					}
+
+					if (exdisk->redundancy == DISKREDUNDANCY_TYPE_FSCK) {
+						ret = container_workqueue_schedule(&cc->workqueue, "fsck", option_str, 1);
+						if (ret == 0) {
+							#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+							(void) fprintf(stderr,"[CM ERROR] container_start_preprocess_base_recovery: Queued fsck recovery to disk %s.\n", exdisk->blockdev[0]);
+							#endif
+							return 1;
+						}
+					} else if (exdisk->redundancy == DISKREDUNDANCY_TYPE_MKFS) {
+						ret = container_workqueue_schedule(&cc->workqueue, "mkfs", option_str, 1);
+						if (ret == 0) {
+							#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+							(void) fprintf(stderr,"[CM ERROR] container_start_preprocess_base_recovery: Queued mkfs recovery to disk %s.\n", exdisk->blockdev[0]);
+							#endif
+							return 1;
+						}
+					} else {
+						;	//no operation
+					}
+
 				}
 			}
 		}
@@ -1336,7 +1488,10 @@ static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t
 
 			if (exdisk->is_mounted != 0) {
 				(void) container_cleanup_unmountdisk(exdisk->from, timeout_time, retry_max);
+				// Clear mount flasg
 				exdisk->is_mounted = 0;
+				// Clear error count
+				exdisk->error_count = 0;
 			}
 		}
 	}
@@ -1344,7 +1499,10 @@ static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t
 	// unmount rootfs
 	if (bc->rootfs.is_mounted != 0) {
 		(void) container_cleanup_unmountdisk(bc->rootfs.path, timeout_time, retry_max);
+		// Clear mount flasg
 		bc->rootfs.is_mounted = 0;
+		// Clear error count
+		bc->rootfs.error_count = 0;
 	}
 
 	return 0;

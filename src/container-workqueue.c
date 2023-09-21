@@ -35,6 +35,10 @@ static const cm_worker_operation_elem_t g_worker_operation[] = {
 	{
 		.key = "erase",
 		.plugin_module = "cm-worker-erase-mkfs.so",
+	},
+	{
+		.key = "mkfs",
+		.plugin_module = "cm-worker-mkfs.so",
 	}
 };
 static const char *g_plugin_directory = "/usr/lib/container-manager";
