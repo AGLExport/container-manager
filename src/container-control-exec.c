@@ -33,6 +33,12 @@ static int container_get_active_guest_by_role(containers_t *cs, char *role, cont
 static int container_timeout_set(container_config_t *cc);
 
 /**
+ * @def	g_reduced_critical_error
+ * @brief	Error log output rate. The type of mount retry error should be reduced using this parameter.
+ */
+static const int g_reduced_critical_error = 100;
+
+/**
  * The function for timeout calculate and set.
  *
  * @param [in]	cc	Pointer to container_config_t.
@@ -873,13 +879,9 @@ int container_start(container_config_t *cc)
 	if (ret < 0) {
 		// When got error from container_start_preprocess_base, try to evaluate recovery.
 
-		ret = container_start_preprocess_base_recovery(cc);
-		// TODO
+		(void) container_start_preprocess_base_recovery(cc);
+		// Don't care for result. Need to retry container start.
 
-
-		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_start_preprocess_base ret = %d\n", ret);
-		#endif
 		return -1;
 	}
 
@@ -890,7 +892,7 @@ int container_start(container_config_t *cc)
 
 		if (ret == -2) {
 			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start: lxc-start fail %s\n", cc->name);
+			(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start: lxc-start fail %s.\n", cc->name);
 			#endif
 		}
 		return -1;
@@ -1252,11 +1254,16 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 
 		ret = container_start_mountdisk_ab(bc->rootfs.blockdev, bc->rootfs.path
 											, bc->rootfs.filesystem, mntflag, bc->rootfs.option, bc->abboot);
-		if ( ret < 0) {
+		if (ret < 0) {
 			// root fs mount is mandatory.
 			bc->rootfs.error_count = bc->rootfs.error_count + 1;
 			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatory disk %s could not mount\n", bc->rootfs.blockdev[bc->abboot]);
+			if ((bc->rootfs.error_count % g_reduced_critical_error) == 1) {
+				// This log should be reduced to one output per 100 time (default) of error.
+				(void) fprintf(stderr
+								,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatory disk %s could not mount. (count = %d)\n"
+								, bc->rootfs.blockdev[bc->abboot], bc->rootfs.error_count);
+			}
 			#endif
 			return -1;
 		} else {
@@ -1287,7 +1294,12 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 						// AB disk mount is mandatory function.
 						exdisk->error_count = exdisk->error_count + 1;
 						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-						(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatory disk %s could not mount\n", exdisk->blockdev[bc->abboot]);
+						if ((exdisk->error_count % g_reduced_critical_error) == 1) {
+							// This log should be reduced to one output per 100 time of error.
+							(void) fprintf(stderr
+											,"[CM CRITICAL ERROR] container_start_preprocess_base: ab mount disk %s could not mount. (count = %d)\n"
+											, exdisk->blockdev[bc->abboot], exdisk->error_count);
+						}
 						#endif
 						return -1;
 					} else {
@@ -1302,7 +1314,12 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 						// Failover disk mount is optional function.
 						exdisk->error_count = exdisk->error_count + 1;
 						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-						(void) fprintf(stderr,"[CM ERROR] container_start_preprocess_base: failover disk %s could not mount\n", exdisk->blockdev[0]);
+						if ((exdisk->error_count % g_reduced_critical_error) == 1) {
+							// This log should be reduced to one output per 100 time of error.
+							(void) fprintf(stderr
+											,"[CM ERROR] container_start_preprocess_base: failover disk %s could not mount. (count = %d)\n"
+											, exdisk->blockdev[0], exdisk->error_count);
+						}
 						#endif
 						continue;
 					} else {
@@ -1316,8 +1333,14 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 					ret = container_start_mountdisk_once(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, exdisk->option);
 					if (ret < 0) {
 						exdisk->error_count = exdisk->error_count + 1;
-						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-						(void) fprintf(stderr,"[CM ERROR] container_start_preprocess_base: disk %s could not mount. Try to recovery.\n", exdisk->blockdev[0]);
+						// This point is critical error but not out critical error log. This log will out in recovery operation.
+						#ifdef _PRINTF_DEBUG_
+						if ((exdisk->error_count % g_reduced_critical_error) == 1) {
+							// This log should be reduced to one output per 100 time of error.
+							(void) fprintf(stdout
+											,"container_start_preprocess_base: disk %s could not mount. (count = %d)\n"
+											, exdisk->blockdev[0], exdisk->error_count);
+						}
 						#endif
 						return -1;
 					} else {
@@ -1326,9 +1349,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 						// Clear error count
 						exdisk->error_count = 0;
 					}
-
 				}
-
 			}
 		}
 	}
@@ -1374,7 +1395,10 @@ static int container_start_preprocess_base_recovery(container_config_t *cc)
 						ret = container_workqueue_schedule(&cc->workqueue, "fsck", option_str, 1);
 						if (ret == 0) {
 							#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-							(void) fprintf(stderr,"[CM ERROR] container_start_preprocess_base_recovery: Queued fsck recovery to disk %s.\n", exdisk->blockdev[0]);
+							if ((exdisk->error_count % g_reduced_critical_error) == 1) {
+								// This log should be reduced to one output per 100 time (default) of error.
+								(void) fprintf(stderr,"[CM CRITICAL ERROR] Queued fsck recovery to disk %s.\n", exdisk->blockdev[0]);
+							}
 							#endif
 							return 1;
 						}
@@ -1382,14 +1406,14 @@ static int container_start_preprocess_base_recovery(container_config_t *cc)
 						ret = container_workqueue_schedule(&cc->workqueue, "mkfs", option_str, 1);
 						if (ret == 0) {
 							#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-							(void) fprintf(stderr,"[CM ERROR] container_start_preprocess_base_recovery: Queued mkfs recovery to disk %s.\n", exdisk->blockdev[0]);
+							// This log is output every time. Because this operation is force recovery, may not fail cyclic.
+							(void) fprintf(stderr,"[CM CRITICAL ERROR] Queued mkfs recovery to disk %s.\n", exdisk->blockdev[0]);
 							#endif
 							return 1;
 						}
 					} else {
 						;	//no operation
 					}
-
 				}
 			}
 		}
@@ -1488,7 +1512,7 @@ static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t
 
 			if (exdisk->is_mounted != 0) {
 				(void) container_cleanup_unmountdisk(exdisk->from, timeout_time, retry_max);
-				// Clear mount flasg
+				// Clear mount flag
 				exdisk->is_mounted = 0;
 				// Clear error count
 				exdisk->error_count = 0;
@@ -1499,7 +1523,7 @@ static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t
 	// unmount rootfs
 	if (bc->rootfs.is_mounted != 0) {
 		(void) container_cleanup_unmountdisk(bc->rootfs.path, timeout_time, retry_max);
-		// Clear mount flasg
+		// Clear mount flag
 		bc->rootfs.is_mounted = 0;
 		// Clear error count
 		bc->rootfs.error_count = 0;
