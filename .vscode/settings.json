@@ -208,7 +208,8 @@
     "files.associations": {
         "container-control-internal.h": "c",
         "container-control.h": "c",
-        "container-external-interface.h": "c"
+        "container-external-interface.h": "c",
+        "container-workqueue.h": "c"
     },
     "json.schemas": [
         {
