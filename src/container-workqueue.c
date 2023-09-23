@@ -396,9 +396,6 @@ int container_workqueue_run(container_workqueue_t *workqueue)
 	ret = pthread_create(&(workqueue->worker_thread), &thread_attr, container_workqueue_thread, (void*)workqueue);
 	(void) pthread_attr_destroy(&thread_attr);
 	if (ret < 0) {
-		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		(void) fprintf(stderr,"[CM CRITICAL ERROR] container_workqueue_run: Fail to create workqueue thread.\n");
-		#endif
 		return -3;
 	}
 

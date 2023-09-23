@@ -277,7 +277,7 @@ containers_t *create_container_configs(const char *config_file)
 			if (dent != NULL) {
 				if (!(num < GUEST_CONTAINER_LIMIT)) {
 					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-					(void) fprintf(stderr,"[CM CRITICAL ERROR] create_container_configs: Number of guest containers was over to limit.");
+					(void) fprintf(stderr,"[CM CRITICAL ERROR] Number of guest containers was over to limit.");
 					#endif
 					break;
 				}
@@ -310,7 +310,7 @@ containers_t *create_container_configs(const char *config_file)
 
 	if (num <= 0) {
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		(void) fprintf(stderr,"[CM CRITICAL ERROR] create_container_configs: Did not find guest container config at %s.\n", confdir);
+		(void) fprintf(stderr,"[CM CRITICAL ERROR] Did not find guest container config at %s.\n", confdir);
 		#endif
 		goto err_ret;
 	}
