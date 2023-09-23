@@ -33,10 +33,15 @@ static int container_get_active_guest_by_role(containers_t *cs, char *role, cont
 static int container_timeout_set(container_config_t *cc);
 
 /**
- * @def	g_reduced_critical_error
+ * @def	g_reduced_critical_error_mount
  * @brief	Error log output rate. The type of mount retry error should be reduced using this parameter.
  */
-static const int g_reduced_critical_error = 100;
+static const int g_reduced_critical_error_mount = 100;
+/**
+ * @def	g_reduced_critical_error_launch
+ * @brief	Error log output rate. The type of launch retry error should be reduced using this parameter.
+ */
+static const int g_reduced_critical_error_launch = 100;
 
 /**
  * The function for timeout calculate and set.
@@ -891,14 +896,24 @@ int container_start(container_config_t *cc)
 		cc->runtime_stat.status = CONTAINER_DEAD;
 
 		if (ret == -2) {
+			cc->runtime_stat.launch_error_count = cc->runtime_stat.launch_error_count + 1;
 			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start: lxc-start fail %s.\n", cc->name);
+			if ((cc->runtime_stat.launch_error_count %g_reduced_critical_error_launch) == 1) {
+				(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start: lxc-start fail %s.\n", cc->name);
+			}
 			#endif
 		}
 		return -1;
 	}
 
 	cc->runtime_stat.status = CONTAINER_STARTED;
+	#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+	if (cc->runtime_stat.launch_error_count > 0) {
+		// When success to launch after error, out extra log.
+		(void) fprintf(stderr,"[CM CRITICAL INFO] Revival container launch after %d errs.\n", cc->runtime_stat.launch_error_count);
+	}
+	#endif
+	cc->runtime_stat.launch_error_count = 0;
 
 	return 0;
 }
@@ -1258,7 +1273,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 			// root fs mount is mandatory.
 			bc->rootfs.error_count = bc->rootfs.error_count + 1;
 			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			if ((bc->rootfs.error_count % g_reduced_critical_error) == 1) {
+			if ((bc->rootfs.error_count % g_reduced_critical_error_mount) == 1) {
 				// This log should be reduced to one output per 100 time (default) of error.
 				(void) fprintf(stderr
 								,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatory disk %s could not mount. (count = %d)\n"
@@ -1294,7 +1309,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 						// AB disk mount is mandatory function.
 						exdisk->error_count = exdisk->error_count + 1;
 						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-						if ((exdisk->error_count % g_reduced_critical_error) == 1) {
+						if ((exdisk->error_count % g_reduced_critical_error_mount) == 1) {
 							// This log should be reduced to one output per 100 time of error.
 							(void) fprintf(stderr
 											,"[CM CRITICAL ERROR] container_start_preprocess_base: ab mount disk %s could not mount. (count = %d)\n"
@@ -1314,7 +1329,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 						// Failover disk mount is optional function.
 						exdisk->error_count = exdisk->error_count + 1;
 						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-						if ((exdisk->error_count % g_reduced_critical_error) == 1) {
+						if ((exdisk->error_count % g_reduced_critical_error_mount) == 1) {
 							// This log should be reduced to one output per 100 time of error.
 							(void) fprintf(stderr
 											,"[CM ERROR] container_start_preprocess_base: failover disk %s could not mount. (count = %d)\n"
@@ -1335,7 +1350,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 						exdisk->error_count = exdisk->error_count + 1;
 						// This point is critical error but not out critical error log. This log will out in recovery operation.
 						#ifdef _PRINTF_DEBUG_
-						if ((exdisk->error_count % g_reduced_critical_error) == 1) {
+						if ((exdisk->error_count % g_reduced_critical_error_mount) == 1) {
 							// This log should be reduced to one output per 100 time of error.
 							(void) fprintf(stdout
 											,"container_start_preprocess_base: disk %s could not mount. (count = %d)\n"
@@ -1395,7 +1410,7 @@ static int container_start_preprocess_base_recovery(container_config_t *cc)
 						ret = container_workqueue_schedule(&cc->workqueue, "fsck", option_str, 1);
 						if (ret == 0) {
 							#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-							if ((exdisk->error_count % g_reduced_critical_error) == 1) {
+							if ((exdisk->error_count % g_reduced_critical_error_mount) == 1) {
 								// This log should be reduced to one output per 100 time (default) of error.
 								(void) fprintf(stderr,"[CM CRITICAL ERROR] Queued fsck recovery to disk %s.\n", exdisk->blockdev[0]);
 							}

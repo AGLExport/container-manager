@@ -704,6 +704,7 @@ struct s_container_runtime_status {
 	struct lxc_container *lxc;		/**< Pointer to liblxc container instance. */
 	int64_t timeout;				/**< Timeout point of this guest container on shutdown or reboot operation. */
 	int status;						/**< Runtime status of this guest container. */
+	int launch_error_count;			/**< A error counter for launch. */
 	pid_t pid;						/**< A pid of guest container init process. */
 	sd_event_source *pidfd_source;	/**< A pidfd event source for guest container init process. It use guest monitoring. */
 };
