@@ -236,6 +236,11 @@ typedef struct s_container_resourceconfig container_resourceconfig_t;	/**< typed
  * @brief	File system mount configuration is bind mount from host to guest.
  */
 #define FSMOUNT_TYPE_DIRECTORY	(2)
+/**
+ * @def	FSMOUNT_TYPE_DELAYED
+ * @brief	Delayed bind mount configuration from host to guest.
+ */
+#define FSMOUNT_TYPE_DELAYED	(3)
 
 /**
  * @struct	s_container_fsmount_elem
@@ -261,11 +266,35 @@ struct s_container_fsmount {
 typedef struct s_container_fsmount container_fsmount_t;	/**< typedef for struct s_container_fsmount. */
 
 /**
+ * @struct	s_container_delayed_mount_elem
+ * @brief	The data structure for container filesystem level mount setting.  It's a list element for mountlist of s_container_fsmount.
+ */
+struct s_container_delayed_mount_elem {
+	struct dl_list list;			/**< Double link list header. */
+	struct dl_list runtime_list;	/**< Double link list header for runtime list. */
+	int type;						/**< mount type. */
+	char *from;						/**< host side mount entry.  */
+	char *to;						/**< guest side mount entry.  */
+};
+typedef struct s_container_delayed_mount_elem container_delayed_mount_elem_t;	/**< typedef for struct s_container_fsmount_elem. */
+
+/**
+ * @struct	s_container_delayed_mount
+ * @brief	The data structure for delayed mount to container.  It's a part of s_container_fsconfig.
+ */
+struct s_container_delayed_mount {
+	struct dl_list initial_list;	/**< Double link list for s_container_fsmount_elem. It is used to keep the initial settings. */
+	struct dl_list runtime_list;	/**< Double link list for s_container_fsmount_elem. It is used to store runtime status. */
+};
+typedef struct s_container_delayed_mount container_delayed_mount_t;	/**< typedef for struct s_container_fsmount. */
+
+/**
  * @struct	s_container_fsconfig
  * @brief	The data structure for container filesystem level mount settings.  It's including filesystem level mount config for guest container.
  */
 struct s_container_fsconfig {
-	container_fsmount_t fsmount;	/**< Filesystem level mount management data to manage that. */
+	container_fsmount_t fsmount;		/**< Filesystem level mount management data to manage that. */
+	container_delayed_mount_t delayed;	/**< Delayed bind mount management data to manage that. */
 };
 typedef struct s_container_fsconfig container_fsconfig_t;	/**< typedef for struct s_container_fsconfig. */
 //-----------------------------------------------------------------------------

@@ -31,6 +31,9 @@ static int container_start_preprocess_base_recovery(container_config_t *cc);
 static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t timeout);
 static int container_get_active_guest_by_role(containers_t *cs, char *role, container_config_t **active_cc);
 static int container_timeout_set(container_config_t *cc);
+static int container_setup_delayed_operation(container_config_t *cc);
+static int container_do_delayed_operation(container_config_t *cc);
+static int container_cleanup_delayed_operation(container_config_t *cc);
 
 /**
  * @def	g_reduced_critical_error_mount
@@ -748,6 +751,12 @@ int container_exec_internal_event(containers_t *cs)
 			}
 		}
 
+		// Do delayed operation to all container. Only to exec CM_SYSTEM_STATE_RUN.
+		for(int i=0;i < num;i++) {
+			cc = cs->containers[i];
+			(void) container_do_delayed_operation(cc);
+		}
+
 	} else if (cs->sys_state == CM_SYSTEM_STATE_SHUTDOWN) {
 		// internal event for shutdown state
 		int exit_count = 0;
@@ -886,6 +895,16 @@ int container_start(container_config_t *cc)
 
 		(void) container_start_preprocess_base_recovery(cc);
 		// Don't care for result. Need to retry container start.
+
+		return -1;
+	}
+
+	ret = container_setup_delayed_operation(cc);
+	if (ret < 0) {
+		// May not get this error.
+		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+		(void) fprintf(stderr,"[CM CRITICAL ERROR] Delayed operation setup fail in %s.\n", cc->name);
+		#endif
 
 		return -1;
 	}
@@ -1051,6 +1070,7 @@ int container_terminate(container_config_t *cc)
 int container_cleanup(container_config_t *cc, int64_t timeout)
 {
 	(void) container_terminate(cc);
+	(void) container_cleanup_delayed_operation(cc);
 	(void) container_cleanup_preprocess_base(&cc->baseconfig, timeout);
 
 	return 0;
@@ -1543,6 +1563,122 @@ static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t
 		// Clear error count
 		bc->rootfs.error_count = 0;
 	}
+
+	return 0;
+}
+
+/**
+ * Setup for the per container delayed operation.
+ * This function setup for per container delayed operation such as delayed bind mount directory from host to guest.
+ *
+ * @param [in]	cc	Pointer to container_config_t.
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Internal error.
+ * @retval -2 Syscall error.
+ */
+static int container_setup_delayed_operation(container_config_t *cc)
+{
+	container_delayed_mount_elem_t *dmelem = NULL;
+	container_fsconfig_t *fsc = NULL;
+
+	if (cc == NULL) {
+		return -1;
+	}
+
+	// Delayed mount operation
+	fsc = &cc->fsconfig;
+	// Purge runtime list
+	dl_list_init(&fsc->delayed.runtime_list);
+
+	dl_list_for_each(dmelem, &fsc->delayed.initial_list, container_delayed_mount_elem_t, list) {
+		dl_list_init(&dmelem->runtime_list);
+		dl_list_add_tail(&fsc->delayed.runtime_list, &dmelem->runtime_list);
+	}
+
+	return 0;
+}
+/**
+ * Do per container delayed operation.
+ * This function evaluate delayed operation trigger and do delayed operation.
+ *
+ * @param [in]	cc	Pointer to container_config_t.
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Internal error.
+ * @retval -2 Not run on guest.
+ */
+static int container_do_delayed_operation(container_config_t *cc)
+{
+	container_fsconfig_t *fsc = NULL;
+
+	if (cc == NULL) {
+		return -1;
+	}
+
+	if (cc->runtime_stat.status != CONTAINER_STARTED) {
+		return -2;
+	}
+
+	// Delayed mount operation
+	fsc = &cc->fsconfig;
+
+	if (!dl_list_empty(&fsc->delayed.runtime_list)) {
+		// When list has element.
+		container_delayed_mount_elem_t *dmelem = NULL, *dmelem_n = NULL;
+
+		dl_list_for_each_safe(dmelem, dmelem_n, &fsc->delayed.runtime_list, container_delayed_mount_elem_t, runtime_list) {
+			if (dmelem->type == FSMOUNT_TYPE_DELAYED) {
+				int ret = -1;
+
+				ret = node_check(dmelem->from);
+				if (ret == 0) {
+					// Find node.
+					ret = lxcutil_dynamic_mount_to_guest(cc, dmelem->from, dmelem->to);
+					if (ret == 0) {
+						// Success to delayed bind mount. Remove from list.
+						// A runtime_list role is operation queue, shall not free element memory.
+						dl_list_del(&dmelem->runtime_list);
+						dl_list_init(&dmelem->runtime_list);
+						#ifdef _PRINTF_DEBUG_
+						(void) fprintf(stdout,"Delayed bind mount from %s to %s at %s\n", dmelem->from, dmelem->to, cc->name);
+						#endif
+					}
+				}
+			} else {
+				// Delayed mount is only to support FSMOUNT_TYPE_DELAYED.
+				dl_list_del(&dmelem->runtime_list);
+				dl_list_init(&dmelem->runtime_list);
+				#ifdef _PRINTF_DEBUG_
+				(void) fprintf(stdout,"Got a abnormal element in delayed.runtime_list. %s\n", dmelem->from);
+				#endif
+			}
+		}
+	}
+
+	return 0;
+}
+/**
+ * Cleanup for per container delayed operation.
+ *
+ * @param [in]	cc	Pointer to container_config_t.
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Internal error.
+ * @retval -2 Syscall error.
+ */
+static int container_cleanup_delayed_operation(container_config_t *cc)
+{
+	container_fsconfig_t *fsc = NULL;
+
+	if (cc == NULL) {
+		return -1;
+	}
+
+	// Delayed mount operation
+	fsc = &cc->fsconfig;
+	// Purge runtime list
+	dl_list_init(&fsc->delayed.runtime_list);
 
 	return 0;
 }

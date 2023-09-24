@@ -380,6 +380,7 @@ static int lxcutil_set_config_fs(struct lxc_container *plxc, container_fsconfig_
 				goto err_ret;
 			}
 		} else {
+			//　FSMOUNT_TYPE_DELAYED is not set lxc config
 			; //nop
 		}
 	}

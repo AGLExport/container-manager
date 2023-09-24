@@ -870,12 +870,15 @@ static int cmparser_parser_get_fstype(const char *str)
 {
 	static const char cfs[] = "filesystem";
 	static const char cdir[] = "directory";
+	static const char cdelayed[] = "delayed";
 	int ret = 0;
 
 	if (strncmp(cfs, str, sizeof(cfs)) == 0) {
 		ret = FSMOUNT_TYPE_FILESYSTEM;
 	} else if (strncmp(cdir, str, sizeof(cdir)) == 0) {
 		ret = FSMOUNT_TYPE_DIRECTORY;
+	} else if (strncmp(cdelayed, str, sizeof(cdelayed)) == 0) {
+		ret = FSMOUNT_TYPE_DELAYED;
 	} else {
 		//Unknown str, set NON - error
 		ret = 0;
@@ -906,7 +909,8 @@ static int cmparser_parse_fs(container_fsconfig_t *fc, const cJSON *fs)
 		cJSON *elem = NULL;
 		cJSON *type = NULL, *from = NULL, *to = NULL;
 		cJSON *fstype = NULL, *option = NULL;
-		container_fsmount_elem_t *p = NULL;
+		container_fsmount_elem_t *pfs = NULL;
+		container_delayed_mount_elem_t *pdm = NULL;
 		int typeval = -1;
 
 		cJSON_ArrayForEach(elem, mount) {
@@ -934,36 +938,59 @@ static int cmparser_parse_fs(container_fsconfig_t *fc, const cJSON *fs)
 					continue;
 				}
 
-				fstype = cJSON_GetObjectItemCaseSensitive(elem, "fstype");
-				if (!(cJSON_IsString(fstype) && (fstype->valuestring != NULL))) {
-					continue;
+				if ((typeval == FSMOUNT_TYPE_FILESYSTEM) || (typeval == FSMOUNT_TYPE_DIRECTORY)) {
+					// These configuration are supporting for FSMOUNT_TYPE_FILESYSTEM or FSMOUNT_TYPE_DIRECTORY.
+					fstype = cJSON_GetObjectItemCaseSensitive(elem, "fstype");
+					if (!(cJSON_IsString(fstype) && (fstype->valuestring != NULL))) {
+						continue;
+					}
+
+					option = cJSON_GetObjectItemCaseSensitive(elem, "option");
+					if (!(cJSON_IsString(option) && (option->valuestring != NULL))) {
+						continue;
+					}
 				}
 
-				option = cJSON_GetObjectItemCaseSensitive(elem, "option");
-				if (!(cJSON_IsString(option) && (option->valuestring != NULL))) {
-					continue;
+				if ((typeval == FSMOUNT_TYPE_FILESYSTEM) || (typeval == FSMOUNT_TYPE_DIRECTORY)) {
+					// All data available in FSMOUNT_TYPE_FILESYSTEM or FSMOUNT_TYPE_DIRECTORY
+					pfs = (container_fsmount_elem_t*)malloc(sizeof(container_fsmount_elem_t));
+					if (pfs == NULL) {
+						result = -3;
+						goto err_ret;
+					}
+
+					(void) memset(pfs, 0 , sizeof(container_fsmount_elem_t));
+					dl_list_init(&pfs->list);
+					pfs->type = typeval;
+					pfs->from = strdup(from->valuestring);
+					pfs->to = strdup(to->valuestring);
+					pfs->fstype = strdup(fstype->valuestring);
+					pfs->option = strdup(option->valuestring);
+					dl_list_add_tail(&fc->fsmount.mountlist, &pfs->list);
+					#ifdef _PRINTF_DEBUG_
+					(void) fprintf(stdout,"cmparser: fsconfig.fsmount.type = %d, from = %s, to = %s, fstype = %s, option = %s\n",
+								pfs->type, pfs->from, pfs->to, pfs->fstype, pfs->option);
+					#endif
+				} else {
+					// All data available in FSMOUNT_TYPE_DELAYED
+					pdm = (container_delayed_mount_elem_t*)malloc(sizeof(container_delayed_mount_elem_t));
+					if (pdm == NULL) {
+						result = -3;
+						goto err_ret;
+					}
+
+					(void) memset(pdm, 0 , sizeof(container_delayed_mount_elem_t));
+					dl_list_init(&pdm->list);
+					dl_list_init(&pdm->runtime_list);
+					pdm->type = typeval;
+					pdm->from = strdup(from->valuestring);
+					pdm->to = strdup(to->valuestring);
+					dl_list_add_tail(&fc->delayed.initial_list, &pdm->list);
+					#ifdef _PRINTF_DEBUG_
+					(void) fprintf(stdout,"cmparser: fsconfig.fsmount.type = %d, from = %s, to = %s\n",
+								pdm->type, pdm->from, pdm->to);
+					#endif
 				}
-
-				// all data available
-				p = (container_fsmount_elem_t*)malloc(sizeof(container_fsmount_elem_t));
-				if (p == NULL) {
-					result = -3;
-					goto err_ret;
-				}
-
-				(void) memset(p, 0 , sizeof(container_fsmount_elem_t));
-				dl_list_init(&p->list);
-				p->type = typeval;
-				p->from = strdup(from->valuestring);
-				p->to = strdup(to->valuestring);
-				p->fstype = strdup(fstype->valuestring);
-				p->option = strdup(option->valuestring);
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"cmparser: fsconfig.fsmount.type = %d, from = %s, to = %s, fstype = %s, option = %s\n",
-							p->type, p->from, p->to, p->fstype, p->option);
-				#endif
-
-				dl_list_add_tail(&fc->fsmount.mountlist, &p->list);
 			}
 		}
 	}
@@ -973,6 +1000,8 @@ static int cmparser_parse_fs(container_fsconfig_t *fc, const cJSON *fs)
 err_ret:
 	{
 		container_fsmount_elem_t *melem = NULL;
+		container_delayed_mount_elem_t *dmelem = NULL;
+
 		// fs config
 		while(dl_list_empty(&fc->fsmount.mountlist) == 0) {
 			melem = dl_list_last(&fc->fsmount.mountlist, container_fsmount_elem_t, list);
@@ -982,6 +1011,17 @@ err_ret:
 			(void) free(melem->fstype);
 			(void) free(melem->option);
 			(void) free(melem);
+		}
+
+		// Purge runtime list.
+		dl_list_init(&fc->delayed.runtime_list);
+		// Clean initial list.
+		while(dl_list_empty(&fc->delayed.initial_list) == 0) {
+			dmelem = dl_list_last(&fc->delayed.initial_list, container_delayed_mount_elem_t, list);
+			dl_list_del(&dmelem->list);
+			(void) free(dmelem->from);
+			(void) free(dmelem->to);
+			(void) free(dmelem);
 		}
 	}
 
@@ -1987,6 +2027,8 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 	dl_list_init(&ccfg->baseconfig.envlist);
 	dl_list_init(&ccfg->resourceconfig.resource.resourcelist);
 	dl_list_init(&ccfg->fsconfig.fsmount.mountlist);
+	dl_list_init(&ccfg->fsconfig.delayed.initial_list);
+	dl_list_init(&ccfg->fsconfig.delayed.runtime_list);
 	dl_list_init(&ccfg->deviceconfig.static_device.static_devlist);
 	dl_list_init(&ccfg->deviceconfig.static_device.static_gpiolist);
 	dl_list_init(&ccfg->deviceconfig.static_device.static_iiolist);
@@ -2243,6 +2285,7 @@ void cmparser_release_config(container_config_t *cc)
 	// fs config
 	{
 		container_fsmount_elem_t *melem = NULL;
+		container_delayed_mount_elem_t *dmelem = NULL;
 
 		while(dl_list_empty(&cc->fsconfig.fsmount.mountlist) == 0) {
 			melem = dl_list_last(&cc->fsconfig.fsmount.mountlist, container_fsmount_elem_t, list);
@@ -2252,6 +2295,17 @@ void cmparser_release_config(container_config_t *cc)
 			(void) free(melem->fstype);
 			(void) free(melem->option);
 			(void) free(melem);
+		}
+
+		// Purge runtime list.
+		dl_list_init(&cc->fsconfig.delayed.runtime_list);
+		// Clean initial list.
+		while(dl_list_empty(&cc->fsconfig.delayed.initial_list) == 0) {
+			dmelem = dl_list_last(&cc->fsconfig.delayed.initial_list, container_delayed_mount_elem_t, list);
+			dl_list_del(&dmelem->list);
+			(void) free(dmelem->from);
+			(void) free(dmelem->to);
+			(void) free(dmelem);
 		}
 	}
 
