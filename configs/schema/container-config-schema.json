@@ -164,10 +164,12 @@
                             "redundancy": {
                                 "type": "string",
                                 "title": "A disk redundancy mode.",
-                                "description": "A disk redundancy mode for extra disk.  An ab is a/b mount mode it sync root file system side.  When 1st disk mount was failed, container manager change to 2nd disk. ",
+                                "description": "A disk redundancy mode for extra disk.  An ab is a/b mount mode it sync root file system side.  When 1st disk mount was failed, in case of failover container manager change to 2nd disk.  When 1st disk mount was failed, in case of fsck or mkfs container manager run fsck or mkfs using plugin.",
                                 "enum": [
                                     "ab",
-                                    "failover"
+                                    "failover",
+                                    "fsck",
+                                    "mkfs"
                                 ]
                             },
                             "blockdev": {
@@ -388,7 +390,8 @@
                                 "description": "When you want to mount tmpfs, this property shall be set filesystem.  When you want to mount host directory to guest directory, this property shall be set directory.",
                                 "enum": [
                                     "filesystem",
-                                    "directory"
+                                    "directory",
+                                    "delayed"
                                 ]
                             },
                             "from": {
@@ -414,12 +417,12 @@
                             "fstype": {
                                 "type": "string",
                                 "title": "The property of filesystem type.",
-                                "description": "When you want to mount tmpfs, this property shall be set tmpfs.  When you want to mount host directory to guest directory, this property shall be set none."
+                                "description": "When you want to mount tmpfs, this property shall be set tmpfs.  When you want to mount host directory to guest directory, this property shall be set none.  In case of type=delayed, this property shall not set."
                             },
                             "option": {
                                 "type": "string",
                                 "title": "The property of mount options.",
-                                "description": "The property set mount options for each mount operations.  More detail of mount options refer to example."
+                                "description": "The property set mount options for each mount operations.  More detail of mount options refer to example.    In case of type=delayed, this property shall not set."
                             }
                         },
                         "dependencies": {
