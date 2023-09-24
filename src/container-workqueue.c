@@ -393,17 +393,18 @@ int container_workqueue_run(container_workqueue_t *workqueue)
 
 	(void) pthread_attr_init(&thread_attr);
 	(void) pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED);
+
+	(void) pthread_mutex_lock(&(workqueue->workqueue_mutex));
+	workqueue->status = CONTAINER_WORKER_STARTED;
+	(void) pthread_mutex_unlock(&(workqueue->workqueue_mutex));
+
 	ret = pthread_create(&(workqueue->worker_thread), &thread_attr, container_workqueue_thread, (void*)workqueue);
 	(void) pthread_attr_destroy(&thread_attr);
 	if (ret < 0) {
+		// Fail back status.
+		workqueue->status = CONTAINER_WORKER_SCHEDULED;
 		return -3;
 	}
-
-	(void) pthread_mutex_lock(&(workqueue->workqueue_mutex));
-	if (workqueue->status == CONTAINER_WORKER_SCHEDULED) {
-		workqueue->status = CONTAINER_WORKER_STARTED;
-	}
-	(void) pthread_mutex_unlock(&(workqueue->workqueue_mutex));
 
 	return 0;
 }
@@ -590,11 +591,24 @@ err_ret:
  * @return int
  * @retval 0	Success to deinitialize.
  * @retval -1	Fail to deinitialize.
+ * @retval -2	Not stopped workqueue.
  */
 int container_workqueue_deinitialize(container_workqueue_t *workqueue)
 {
+	int status = CONTAINER_WORKER_DISABLE;
+
 	if (workqueue == NULL) {
 		return -1;
+	}
+
+	(void) pthread_mutex_lock(&(workqueue->workqueue_mutex));
+	status = workqueue->status;
+	(void) pthread_mutex_unlock(&(workqueue->workqueue_mutex));
+
+	if (status == CONTAINER_WORKER_STARTED) {
+		// Not stopped workqueue. Have a crash risk.
+		// For crash safe, some resources shall leak.
+		return -2;
 	}
 
 	workqueue->status = CONTAINER_WORKER_DISABLE;
