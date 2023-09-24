@@ -165,7 +165,7 @@ do_return:
  * @var		g_erase_buff
  * @brief	Work buffer for disk erase.
  */
-static const uint64_t g_erase_buff[1024u*1024u/sizeof(uint64_t)];	// 1MByte buffer
+#define ERASE_BUFFER_SIZE	(8u*1024u*1024u)	// 8MByte buffer
 /**
  * @brief Function for disk erase execution.
  *
@@ -178,6 +178,10 @@ static int cm_worker_exec_erase(erase_mkfs_plugin_t *permkfs)
 {
 	int fd = -1;
 	int ret = -1;
+	uint64_t *erase_buff = NULL;
+
+	erase_buff = (uint64_t*)malloc(ERASE_BUFFER_SIZE);
+	(void) memset(erase_buff, 0, ERASE_BUFFER_SIZE);
 
 	fd = open(permkfs->blkdev_path, O_CLOEXEC | O_SYNC | O_WRONLY);
 	#ifdef _PRINTF_DEBUG_
@@ -192,7 +196,7 @@ static int cm_worker_exec_erase(erase_mkfs_plugin_t *permkfs)
 				ret = 1;
 				goto do_return;
 			}
-			sret = write(fd, g_erase_buff, sizeof(g_erase_buff));
+			sret = write(fd, erase_buff, ERASE_BUFFER_SIZE);
 		} while((sret > 0) && (errno != EINTR));
 
 		// Finally, sret = -1 and errno = 28(ENOSPC).
@@ -206,6 +210,7 @@ static int cm_worker_exec_erase(erase_mkfs_plugin_t *permkfs)
 	}
 
 do_return:
+	(void) free(erase_buff);
 
 	return ret;
 }
