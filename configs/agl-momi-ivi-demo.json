@@ -97,6 +97,11 @@
 				"to":		"etc/systemd/system.conf.d/10-environment.conf",
 				"fstype":	"none",
 				"option": 	"bind,optional,create=file"
+			},
+			{
+				"type": 	"delayed",
+				"from": 	"/var/nvlog/guest/agl-momi-ivi-demo",
+				"to":		"/var/nvlog"
 			}
 		]
 	},
