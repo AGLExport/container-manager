@@ -38,7 +38,16 @@
  * @brief	Disk mount redundancy type is AB (Automatically select A or B depend on boot parameter). It use at s_container_baseconfig_extradisk.redundancy.
  */
 #define DISKREDUNDANCY_TYPE_AB	(1)
-
+/**
+ * @def	DISKREDUNDANCY_TYPE_AB
+ * @brief	Disk mount redundancy type is fsck (Automatically run file system check in case of mount fail). It use at s_container_baseconfig_extradisk.redundancy.
+ */
+#define DISKREDUNDANCY_TYPE_FSCK	(2)
+/**
+ * @def	DISKREDUNDANCY_TYPE_AB
+ * @brief	Disk mount redundancy type is AB (Automatically run mkfs in case of mount fail). It use at s_container_baseconfig_extradisk.redundancy.
+ */
+#define DISKREDUNDANCY_TYPE_MKFS	(3)
 /**
  * @struct	s_container_baseconfig_rootfs
  * @brief	The data structure for container root filesystem.  It's a part of s_container_baseconfig.
@@ -51,6 +60,7 @@ struct s_container_baseconfig_rootfs {
 	char *blockdev[2];	/**< block device for rootfs with A/B update. 0=a.1=b */
 	//--- internal control data
 	int is_mounted;		/**< rootfs is mounted or not. 0: not mounted. 1: mounted.*/
+	int error_count;		/**< mount error count of rootfs. That exclude busy error.*/
 };
 typedef struct s_container_baseconfig_rootfs container_baseconfig_rootfs_t;	/**< typedef for struct s_container_baseconfig_rootfs. */
 
@@ -69,8 +79,18 @@ struct s_container_baseconfig_extradisk {
 	char *blockdev[2];		/**< block device for rootfs primary and secondary. */
 	//--- internal control data
 	int is_mounted;			/**< This extra disk is mounted or not. 0: not mounted. 1: mounted.*/
+	int error_count;		/**< mount error count of this extra disk. That exclude busy error.*/
 };
 typedef struct s_container_baseconfig_extradisk container_baseconfig_extradisk_t;	/**< typedef for struct s_container_baseconfig_extradisk. */
+/**
+ * @struct	s_container_baseconfig_extended
+ * @brief	The data structure for container to use not mandatory options.  It's a list element for extradisk_list of s_container_baseconfig.
+ */
+struct s_container_baseconfig_extended {
+	char *shmounts;	 			/**< Host path for shmounts option. */
+	//--- internal control data
+};
+typedef struct s_container_baseconfig_extended container_baseconfig_extended_t;	/**< typedef for struct s_container_baseconfig_extended. */
 
 /**
  * @struct	s_container_baseconfig_lifecycle
@@ -92,7 +112,15 @@ struct s_container_baseconfig_capability {
 	char *keep;	/**< Keep capabilities. */
 };
 typedef struct s_container_baseconfig_capability container_baseconfig_capability_t;	/**< typedef for struct s_container_baseconfig_capability. */
-
+/**
+ * @struct	s_container_baseconfig_tty
+ * @brief	The data structure for tty setting.  It's a part of s_container_baseconfig.
+ */
+struct s_container_baseconfig_tty {
+	int tty_max;	/**< Max number of tty for guest. */
+	int pty_max;	/**< Max number of pty for guest. */
+};
+typedef struct s_container_baseconfig_tty container_baseconfig_tty_t;	/**< typedef for struct s_container_baseconfig_capability. */
 /**
  * @struct	s_container_baseconfig_idmap
  * @brief	The data structure for id mapping to use unprivileged container.  It's a part of s_container_baseconfig_idmaps.
@@ -134,8 +162,10 @@ struct s_container_baseconfig {
 	int bootpriority;							/**< Bootpriority for this guest container, 1 is highest. container manager select launch order using preferential order of guest containers at boot time. */
 	container_baseconfig_rootfs_t rootfs;		/**< The data structure for container root filesystem. */
 	struct dl_list extradisk_list;				/**< Double link list for s_container_baseconfig_extradisk. */
+	container_baseconfig_extended_t extended;	/**< The data structure for extended infomation for container. */
 	container_baseconfig_lifecycle_t lifecycle;	/**< The data structure for container lifecycle settings. */
 	container_baseconfig_capability_t cap;		/**< The data structure for capabilities setting. */
+	container_baseconfig_tty_t tty;				/**< The data structure for tty setting. */
 	container_baseconfig_idmaps_t idmaps;		/**< The data structure for id mapping to use unprivileged container. */
 	struct dl_list envlist;						/**< Double link list for s_container_baseconfig_env. */
 	//--- internal control data
@@ -206,6 +236,11 @@ typedef struct s_container_resourceconfig container_resourceconfig_t;	/**< typed
  * @brief	File system mount configuration is bind mount from host to guest.
  */
 #define FSMOUNT_TYPE_DIRECTORY	(2)
+/**
+ * @def	FSMOUNT_TYPE_DELAYED
+ * @brief	Delayed bind mount configuration from host to guest.
+ */
+#define FSMOUNT_TYPE_DELAYED	(3)
 
 /**
  * @struct	s_container_fsmount_elem
@@ -231,11 +266,35 @@ struct s_container_fsmount {
 typedef struct s_container_fsmount container_fsmount_t;	/**< typedef for struct s_container_fsmount. */
 
 /**
+ * @struct	s_container_delayed_mount_elem
+ * @brief	The data structure for container filesystem level mount setting.  It's a list element for mountlist of s_container_fsmount.
+ */
+struct s_container_delayed_mount_elem {
+	struct dl_list list;			/**< Double link list header. */
+	struct dl_list runtime_list;	/**< Double link list header for runtime list. */
+	int type;						/**< mount type. */
+	char *from;						/**< host side mount entry.  */
+	char *to;						/**< guest side mount entry.  */
+};
+typedef struct s_container_delayed_mount_elem container_delayed_mount_elem_t;	/**< typedef for struct s_container_fsmount_elem. */
+
+/**
+ * @struct	s_container_delayed_mount
+ * @brief	The data structure for delayed mount to container.  It's a part of s_container_fsconfig.
+ */
+struct s_container_delayed_mount {
+	struct dl_list initial_list;	/**< Double link list for s_container_fsmount_elem. It is used to keep the initial settings. */
+	struct dl_list runtime_list;	/**< Double link list for s_container_fsmount_elem. It is used to store runtime status. */
+};
+typedef struct s_container_delayed_mount container_delayed_mount_t;	/**< typedef for struct s_container_fsmount. */
+
+/**
  * @struct	s_container_fsconfig
  * @brief	The data structure for container filesystem level mount settings.  It's including filesystem level mount config for guest container.
  */
 struct s_container_fsconfig {
-	container_fsmount_t fsmount;	/**< Filesystem level mount management data to manage that. */
+	container_fsmount_t fsmount;		/**< Filesystem level mount management data to manage that. */
+	container_delayed_mount_t delayed;	/**< Delayed bind mount management data to manage that. */
 };
 typedef struct s_container_fsconfig container_fsconfig_t;	/**< typedef for struct s_container_fsconfig. */
 //-----------------------------------------------------------------------------
@@ -674,6 +733,7 @@ struct s_container_runtime_status {
 	struct lxc_container *lxc;		/**< Pointer to liblxc container instance. */
 	int64_t timeout;				/**< Timeout point of this guest container on shutdown or reboot operation. */
 	int status;						/**< Runtime status of this guest container. */
+	int launch_error_count;			/**< A error counter for launch. */
 	pid_t pid;						/**< A pid of guest container init process. */
 	sd_event_source *pidfd_source;	/**< A pidfd event source for guest container init process. It use guest monitoring. */
 };

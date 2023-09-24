@@ -27,9 +27,24 @@
 #include "device-control.h"
 
 static int container_start_preprocess_base(container_baseconfig_t *bc);
+static int container_start_preprocess_base_recovery(container_config_t *cc);
 static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t timeout);
 static int container_get_active_guest_by_role(containers_t *cs, char *role, container_config_t **active_cc);
 static int container_timeout_set(container_config_t *cc);
+static int container_setup_delayed_operation(container_config_t *cc);
+static int container_do_delayed_operation(container_config_t *cc);
+static int container_cleanup_delayed_operation(container_config_t *cc);
+
+/**
+ * @def	g_reduced_critical_error_mount
+ * @brief	Error log output rate. The type of mount retry error should be reduced using this parameter.
+ */
+static const int g_reduced_critical_error_mount = 100;
+/**
+ * @def	g_reduced_critical_error_launch
+ * @brief	Error log output rate. The type of launch retry error should be reduced using this parameter.
+ */
+static const int g_reduced_critical_error_launch = 100;
 
 /**
  * The function for timeout calculate and set.
@@ -236,7 +251,7 @@ int container_exited(containers_t *cs, const container_mngsm_guest_exit_data_t *
 			cc->runtime_stat.status = CONTAINER_DEAD;
 
 			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			(void) fprintf(stderr,"[CM CRITICAL ERROR] container %s was dead.\n", cc->name);
+			(void) fprintf(stderr,"[CM CRITICAL INFO] container %s was dead.\n", cc->name);
 			#endif
 		} else if (cc->runtime_stat.status == CONTAINER_REBOOT) {
 			// Current status is reboot, guest status change to dead
@@ -325,7 +340,7 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 				(void) container_terminate(cc);
 				cc->runtime_stat.status = CONTAINER_NOT_STARTED; // guest is force dead
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				(void) fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
+				(void) fprintf(stderr,"[CM CRITICAL ERROR] At container_request_shutdown fourcekill to %s.\n", cc->name);
 				#endif
 			} else {
 				(void) container_timeout_set(cc);
@@ -367,7 +382,7 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 				(void) container_terminate(cc);
 				cc->runtime_stat.status = CONTAINER_EXIT; // guest is force exit
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				(void) fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
+				(void) fprintf(stderr,"[CM CRITICAL ERROR] At container_request_shutdown fourcekill to %s.\n", cc->name);
 				#endif
 			} else {
 				(void) container_timeout_set(cc);
@@ -437,7 +452,7 @@ int container_request_reboot(container_config_t *cc, int sys_state)
 				(void) container_terminate(cc);
 				cc->runtime_stat.status = CONTAINER_DEAD; // guest is force dead
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				(void) fprintf(stderr,"[CM CRITICAL ERROR] container_request_reboot fourcekill to %s.\n", cc->name);
+				(void) fprintf(stderr,"[CM CRITICAL ERROR] At container_request_reboot fourcekill to %s.\n", cc->name);
 				#endif
 			} else {
 				//Requested, wait to exit.
@@ -481,7 +496,7 @@ int container_request_reboot(container_config_t *cc, int sys_state)
 				(void) container_terminate(cc);
 				cc->runtime_stat.status = CONTAINER_EXIT; // guest is force exit
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				(void) fprintf(stderr,"[CM CRITICAL ERROR] container_request_shutdown fourcekill to %s.\n", cc->name);
+				(void) fprintf(stderr,"[CM CRITICAL ERROR] At container_request_shutdown fourcekill to %s.\n", cc->name);
 				#endif
 			} else {
 				// Set timeout
@@ -592,7 +607,7 @@ int container_exec_internal_event(containers_t *cs)
 				ret = container_start(cc);
 				if (ret == 0) {
 					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-					(void) fprintf(stderr,"[CM CRITICAL ERROR] container %s relaunched.\n", cc->name);
+					(void) fprintf(stderr,"[CM CRITICAL INFO] container %s relaunched.\n", cc->name);
 					#endif
 
 					ret = container_monitor_addguest(cs, cc);
@@ -632,7 +647,7 @@ int container_exec_internal_event(containers_t *cs)
 							if (ret < 0) {
 								// Can run guest with out monitor, critical log only.
 								#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-								(void) fprintf(stderr,"[CM CRITICAL ERROR] container_exec_internal_event: container_monitor_addguest ret = %d\n", ret);
+								(void) fprintf(stderr,"[CM CRITICAL ERROR] Fail container_monitoring to %s ret = %d\n", active_cc->name, ret);
 								#endif
 							}
 							// re-assign dynamic device
@@ -652,7 +667,7 @@ int container_exec_internal_event(containers_t *cs)
 								if ((ret == -2) || (ret == -3)) {
 									// Remove work queue
 									#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-									(void) fprintf(stderr,"[CM CRITICAL ERROR] container_exec_internal_event: container_workqueue_run fail ret = %d at %s\n", ret, cc->name);
+									(void) fprintf(stderr,"[CM CRITICAL ERROR] Fail to container workqueue run ret = %d at %s\n", ret, cc->name);
 									#endif
 
 									ret = container_workqueue_cancel(&cc->workqueue);
@@ -730,10 +745,16 @@ int container_exec_internal_event(containers_t *cs)
 						cc->runtime_stat.status = CONTAINER_NOT_STARTED; // Guest status change to not started. (For switching or stop)
 					}
 					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-					(void) fprintf(stderr,"[CM CRITICAL ERROR] container %s was shutdown/reboot timeout, fourcekill.\n", cc->name);
+					(void) fprintf(stderr,"[CM CRITICAL INFO] container %s was shutdown/reboot timeout, fourcekill.\n", cc->name);
 					#endif
 				}
 			}
+		}
+
+		// Do delayed operation to all container. Only to exec CM_SYSTEM_STATE_RUN.
+		for(int i=0;i < num;i++) {
+			cc = cs->containers[i];
+			(void) container_do_delayed_operation(cc);
 		}
 
 	} else if (cs->sys_state == CM_SYSTEM_STATE_SHUTDOWN) {
@@ -782,7 +803,7 @@ int container_exec_internal_event(containers_t *cs)
 					(void) container_terminate(cc);
 					cc->runtime_stat.status = CONTAINER_EXIT; // guest is force dead
 					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-					(void) fprintf(stderr,"[CM CRITICAL ERROR] container %s was shutdown timeout at sys shutdown, fourcekill.\n", cc->name);
+					(void) fprintf(stderr,"[CM CRITICAL INFO] container %s was shutdown timeout at sys shutdown, fourcekill.\n", cc->name);
 					#endif
 				}
 			} else if (cc->runtime_stat.status == CONTAINER_RUN_WORKER) {
@@ -822,7 +843,7 @@ static int container_launch(container_config_t *cc)
 		cc->runtime_stat.status = CONTAINER_DEAD;
 
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		(void) fprintf(stderr,"[CM CRITICAL ERROR] container_launch: lxcutil_create_instance ret = %d\n", ret);
+		(void) fprintf(stderr,"[CM CRITICAL ERROR] lxcutil_create_instance ret = %d\n", ret);
 		#endif
 		return -1;
 	}
@@ -870,9 +891,21 @@ int container_start(container_config_t *cc)
 	// run preprocess
 	ret = container_start_preprocess_base(&cc->baseconfig);
 	if (ret < 0) {
+		// When got error from container_start_preprocess_base, try to evaluate recovery.
+
+		(void) container_start_preprocess_base_recovery(cc);
+		// Don't care for result. Need to retry container start.
+
+		return -1;
+	}
+
+	ret = container_setup_delayed_operation(cc);
+	if (ret < 0) {
+		// May not get this error.
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_start_preprocess_base ret = %d\n", ret);
+		(void) fprintf(stderr,"[CM CRITICAL ERROR] Delayed operation setup fail in %s.\n", cc->name);
 		#endif
+
 		return -1;
 	}
 
@@ -882,14 +915,24 @@ int container_start(container_config_t *cc)
 		cc->runtime_stat.status = CONTAINER_DEAD;
 
 		if (ret == -2) {
+			cc->runtime_stat.launch_error_count = cc->runtime_stat.launch_error_count + 1;
 			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start: lxc-start fail %s\n", cc->name);
+			if ((cc->runtime_stat.launch_error_count %g_reduced_critical_error_launch) == 1) {
+				(void) fprintf(stderr,"[CM CRITICAL ERROR] container %s start fail.\n", cc->name);
+			}
 			#endif
 		}
 		return -1;
 	}
 
 	cc->runtime_stat.status = CONTAINER_STARTED;
+	#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+	if (cc->runtime_stat.launch_error_count > 0) {
+		// When success to launch after error, out extra log.
+		(void) fprintf(stderr,"[CM CRITICAL INFO] Revival container launch after %d errs.\n", cc->runtime_stat.launch_error_count);
+	}
+	#endif
+	cc->runtime_stat.launch_error_count = 0;
 
 	return 0;
 }
@@ -960,7 +1003,7 @@ int container_start_by_role(containers_t *cs, char *role)
 			if (ret < 0) {
 				// Can run guest with out monitor, critical log only.
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start: container_monitor_addguest ret = %d\n", ret);
+				(void) fprintf(stderr,"[CM CRITICAL ERROR] Fail container_monitoring to %s ret = %d\n", cc->name, ret);
 				#endif
 			}
 			result = 0;
@@ -1027,6 +1070,7 @@ int container_terminate(container_config_t *cc)
 int container_cleanup(container_config_t *cc, int64_t timeout)
 {
 	(void) container_terminate(cc);
+	(void) container_cleanup_delayed_operation(cc);
 	(void) container_cleanup_preprocess_base(&cc->baseconfig, timeout);
 
 	return 0;
@@ -1160,8 +1204,65 @@ static int container_start_mountdisk_ab(char **devs, const char *path, const cha
 
 	return 0;
 }
+/**
+ * Disk mount procedure for once.
+ * This function is sub function for container_start_preprocess_base.
+ *
+ * @param [in]	devs	Array of disk block device. only to use primary side = devs[0].
+ * @param [in]	path	Mount path.
+ * @param [in]	fstype	Name of file system. When fstype == NULL, file system is auto.
+ * @param [in]	mntflag	Mount flag.
+ * @param [in]	option	Filesystem specific option.
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 mount error.
+ * @retval -2 Syscall error.
+ * @retval -3 Arg. error.
+ */
+static int container_start_mountdisk_once(char **devs, const char *path, const char *fstype, unsigned long mntflag, char* option)
+{
+	int ret = 1;
+	const char * dev = NULL;
 
+	// Only to use primary side.
+	dev = devs[0];
 
+	ret = mount(dev, path, fstype, mntflag, option);
+	if (ret < 0) {
+		if (errno == EBUSY) {
+			// already mounted
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"container_start_mountdisk_once: %s is already mounted.\n", path);
+			#endif
+			ret = umount2(path, MNT_DETACH);
+			if (ret < 0) {
+				#ifdef _PRINTF_DEBUG_
+				(void) fprintf(stdout,"container_start_mountdisk_once: %s unmount fail.\n", path);
+				#endif
+				return -1;
+			}
+
+			ret = mount(dev, path, fstype, mntflag, option);
+			if (ret < 0) {
+				#ifdef _PRINTF_DEBUG_
+				(void) fprintf(stdout,"container_start_mountdisk_once: %s re-mount fail.\n", path);
+				#endif
+				return -1;
+			}
+		} else {
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"container_start_mountdisk_once: %s mount fail to %s (%d).\n", dev, path, errno);
+			#endif
+			return -1;
+		}
+	}
+
+	#ifdef _PRINTF_DEBUG_
+	(void) fprintf(stdout,"container_start_mountdisk_once: %s mount to %s (%s)\n", dev, path, fstype);
+	#endif
+
+	return 0;
+}
 /**
  * Preprocess for container start.
  * This function exec mount operation a part of base config operation.
@@ -1188,15 +1289,23 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 
 		ret = container_start_mountdisk_ab(bc->rootfs.blockdev, bc->rootfs.path
 											, bc->rootfs.filesystem, mntflag, bc->rootfs.option, bc->abboot);
-		if ( ret < 0) {
+		if (ret < 0) {
 			// root fs mount is mandatory.
+			bc->rootfs.error_count = bc->rootfs.error_count + 1;
 			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatory disk %s could not mount\n", bc->rootfs.blockdev[bc->abboot]);
+			if ((bc->rootfs.error_count % g_reduced_critical_error_mount) == 1) {
+				// This log should be reduced to one output per 100 time (default) of error.
+				(void) fprintf(stderr
+								,"[CM CRITICAL ERROR] Mandatory disk %s could not mount. (count = %d)\n"
+								, bc->rootfs.blockdev[bc->abboot], bc->rootfs.error_count);
+			}
 			#endif
 			return -1;
 		} else {
 			// root fs mount is succeed.
 			bc->rootfs.is_mounted = 1;
+			// Clear error count
+			bc->rootfs.error_count = 0;
 		}
 	}
 
@@ -1218,25 +1327,127 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 					ret = container_start_mountdisk_ab(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, exdisk->option, bc->abboot);
 					if (ret < 0) {
 						// AB disk mount is mandatory function.
+						exdisk->error_count = exdisk->error_count + 1;
 						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-						(void) fprintf(stderr,"[CM CRITICAL ERROR] container_start_preprocess_base: mandatory disk %s could not mount\n", exdisk->blockdev[bc->abboot]);
+						if ((exdisk->error_count % g_reduced_critical_error_mount) == 1) {
+							// This log should be reduced to one output per 100 time of error.
+							(void) fprintf(stderr
+											,"[CM CRITICAL ERROR] Extra ab mount disk %s could not mount. (count = %d)\n"
+											, exdisk->blockdev[bc->abboot], exdisk->error_count);
+						}
 						#endif
 						return -1;
 					} else {
 						// This extra disk mount is succeed.
 						exdisk->is_mounted = 1;
+						// Clear error count
+						exdisk->error_count = 0;
 					}
-				} else {
+				} else if (exdisk->redundancy == DISKREDUNDANCY_TYPE_FAILOVER) {
 					ret = container_start_mountdisk_failover(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, exdisk->option);
 					if (ret < 0) {
 						// Failover disk mount is optional function.
+						exdisk->error_count = exdisk->error_count + 1;
 						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-						(void) fprintf(stderr,"[CM ERROR] container_start_preprocess_base: failover disk %s could not mount\n", exdisk->blockdev[0]);
+						if ((exdisk->error_count % g_reduced_critical_error_mount) == 1) {
+							// This log should be reduced to one output per 100 time of error.
+							(void) fprintf(stderr
+											,"[CM CRITICAL ERROR] Extra failover disk %s could not mount. (count = %d)\n"
+											, exdisk->blockdev[0], exdisk->error_count);
+						}
 						#endif
 						continue;
 					} else {
 						// This extra disk mount is succeed.
 						exdisk->is_mounted = 1;
+						// Clear error count
+						exdisk->error_count = 0;
+					}
+				} else {
+					// DISKREDUNDANCY_TYPE_FSCK or DISKREDUNDANCY_TYPE_MKFS
+					ret = container_start_mountdisk_once(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, exdisk->option);
+					if (ret < 0) {
+						exdisk->error_count = exdisk->error_count + 1;
+						// This point is critical error but not out critical error log. This log will out in recovery operation.
+						#ifdef _PRINTF_DEBUG_
+						if ((exdisk->error_count % g_reduced_critical_error_mount) == 1) {
+							// This log should be reduced to one output per 100 time of error.
+							(void) fprintf(stdout
+											,"container_start_preprocess_base: disk %s could not mount. (count = %d)\n"
+											, exdisk->blockdev[0], exdisk->error_count);
+						}
+						#endif
+						return -1;
+					} else {
+						// This extra disk mount is succeed.
+						exdisk->is_mounted = 1;
+						// Clear error count
+						exdisk->error_count = 0;
+					}
+				}
+			}
+		}
+	}
+
+	return 0;
+}
+/**
+ * Preprocess for container start.
+ * This function exec mount operation a part of base config operation.
+ *
+ * @param [in]	bc	Pointer to container_baseconfig_t.
+ * @return int
+ * @retval  1 Success (recovery queued).
+ * @retval  0 Success (recovery not queued).
+ * @retval -1 operation error.
+ * @retval -2 Syscall error.
+ */
+static int container_start_preprocess_base_recovery(container_config_t *cc)
+{
+	int ret = 1;
+	container_baseconfig_t *bc = NULL;
+
+	bc = &cc->baseconfig;
+
+	// rootfs does not support recovery now.
+
+	// evaluate recovery fot extradisk
+	if (!dl_list_empty(&bc->extradisk_list)) {
+		container_baseconfig_extradisk_t *exdisk = NULL;
+
+		dl_list_for_each(exdisk, &bc->extradisk_list, container_baseconfig_extradisk_t, list) {
+			if (exdisk->is_mounted == 0) {
+				// When already mounted, this disk is valid.
+				if (exdisk->error_count > 0) {
+					char option_str[1024];
+
+					ret = snprintf(option_str, sizeof(option_str), "device=%s", exdisk->blockdev[0]);
+					if (!((size_t)ret < sizeof(option_str)-1u)) {
+						return -1;
+					}
+
+					if (exdisk->redundancy == DISKREDUNDANCY_TYPE_FSCK) {
+						ret = container_workqueue_schedule(&cc->workqueue, "fsck", option_str, 1);
+						if (ret == 0) {
+							#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+							if ((exdisk->error_count % g_reduced_critical_error_mount) == 1) {
+								// This log should be reduced to one output per 100 time (default) of error.
+								(void) fprintf(stderr,"[CM CRITICAL ERROR] Queued fsck recovery to disk %s.\n", exdisk->blockdev[0]);
+							}
+							#endif
+							return 1;
+						}
+					} else if (exdisk->redundancy == DISKREDUNDANCY_TYPE_MKFS) {
+						ret = container_workqueue_schedule(&cc->workqueue, "mkfs", option_str, 1);
+						if (ret == 0) {
+							#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+							// This log is output every time. Because this operation is force recovery, may not fail cyclic.
+							(void) fprintf(stderr,"[CM CRITICAL ERROR] Queued mkfs recovery to disk %s.\n", exdisk->blockdev[0]);
+							#endif
+							return 1;
+						}
+					} else {
+						;	//no operation
 					}
 				}
 			}
@@ -1336,7 +1547,10 @@ static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t
 
 			if (exdisk->is_mounted != 0) {
 				(void) container_cleanup_unmountdisk(exdisk->from, timeout_time, retry_max);
+				// Clear mount flag
 				exdisk->is_mounted = 0;
+				// Clear error count
+				exdisk->error_count = 0;
 			}
 		}
 	}
@@ -1344,8 +1558,127 @@ static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t
 	// unmount rootfs
 	if (bc->rootfs.is_mounted != 0) {
 		(void) container_cleanup_unmountdisk(bc->rootfs.path, timeout_time, retry_max);
+		// Clear mount flag
 		bc->rootfs.is_mounted = 0;
+		// Clear error count
+		bc->rootfs.error_count = 0;
 	}
+
+	return 0;
+}
+
+/**
+ * Setup for the per container delayed operation.
+ * This function setup for per container delayed operation such as delayed bind mount directory from host to guest.
+ *
+ * @param [in]	cc	Pointer to container_config_t.
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Internal error.
+ * @retval -2 Syscall error.
+ */
+static int container_setup_delayed_operation(container_config_t *cc)
+{
+	container_delayed_mount_elem_t *dmelem = NULL;
+	container_fsconfig_t *fsc = NULL;
+
+	if (cc == NULL) {
+		return -1;
+	}
+
+	// Delayed mount operation
+	fsc = &cc->fsconfig;
+	// Purge runtime list
+	dl_list_init(&fsc->delayed.runtime_list);
+
+	dl_list_for_each(dmelem, &fsc->delayed.initial_list, container_delayed_mount_elem_t, list) {
+		dl_list_init(&dmelem->runtime_list);
+		dl_list_add_tail(&fsc->delayed.runtime_list, &dmelem->runtime_list);
+	}
+
+	return 0;
+}
+/**
+ * Do per container delayed operation.
+ * This function evaluate delayed operation trigger and do delayed operation.
+ *
+ * @param [in]	cc	Pointer to container_config_t.
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Internal error.
+ * @retval -2 Not run on guest.
+ */
+static int container_do_delayed_operation(container_config_t *cc)
+{
+	container_fsconfig_t *fsc = NULL;
+
+	if (cc == NULL) {
+		return -1;
+	}
+
+	if (cc->runtime_stat.status != CONTAINER_STARTED) {
+		return -2;
+	}
+
+	// Delayed mount operation
+	fsc = &cc->fsconfig;
+
+	if (!dl_list_empty(&fsc->delayed.runtime_list)) {
+		// When list has element.
+		container_delayed_mount_elem_t *dmelem = NULL, *dmelem_n = NULL;
+
+		dl_list_for_each_safe(dmelem, dmelem_n, &fsc->delayed.runtime_list, container_delayed_mount_elem_t, runtime_list) {
+			if (dmelem->type == FSMOUNT_TYPE_DELAYED) {
+				int ret = -1;
+
+				ret = node_check(dmelem->from);
+				if (ret == 0) {
+					// Find node.
+					ret = lxcutil_dynamic_mount_to_guest(cc, dmelem->from, dmelem->to);
+					if (ret == 0) {
+						// Success to delayed bind mount. Remove from list.
+						// A runtime_list role is operation queue, shall not free element memory.
+						dl_list_del(&dmelem->runtime_list);
+						dl_list_init(&dmelem->runtime_list);
+						#ifdef _PRINTF_DEBUG_
+						(void) fprintf(stdout,"Delayed bind mount from %s to %s at %s\n", dmelem->from, dmelem->to, cc->name);
+						#endif
+					}
+				}
+			} else {
+				// Delayed mount is only to support FSMOUNT_TYPE_DELAYED.
+				dl_list_del(&dmelem->runtime_list);
+				dl_list_init(&dmelem->runtime_list);
+				#ifdef _PRINTF_DEBUG_
+				(void) fprintf(stdout,"Got a abnormal element in delayed.runtime_list. %s\n", dmelem->from);
+				#endif
+			}
+		}
+	}
+
+	return 0;
+}
+/**
+ * Cleanup for per container delayed operation.
+ *
+ * @param [in]	cc	Pointer to container_config_t.
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Internal error.
+ * @retval -2 Syscall error.
+ */
+static int container_cleanup_delayed_operation(container_config_t *cc)
+{
+	container_fsconfig_t *fsc = NULL;
+
+	if (cc == NULL) {
+		return -1;
+	}
+
+	// Delayed mount operation
+	fsc = &cc->fsconfig;
+	// Purge runtime list
+	dl_list_init(&fsc->delayed.runtime_list);
 
 	return 0;
 }

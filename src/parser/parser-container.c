@@ -129,12 +129,18 @@ static int cmparser_parser_get_diskmountfailop(const char *str)
 {
 	static const char failover[] = "failover";
 	static const char ab[] = "ab";
+	static const char fsck[] = "fsck";
+	static const char mkfs[] = "mkfs";
 	int ret = DISKREDUNDANCY_TYPE_FAILOVER;
 
 	if (strncmp(failover, str, sizeof(failover)) == 0) {
 		ret = DISKREDUNDANCY_TYPE_FAILOVER;
 	} else if (strncmp(ab, str, sizeof(ab)) == 0) {
 		ret = DISKREDUNDANCY_TYPE_AB;
+	} else if (strncmp(fsck, str, sizeof(fsck)) == 0) {
+		ret = DISKREDUNDANCY_TYPE_FSCK;
+	} else if (strncmp(mkfs, str, sizeof(mkfs)) == 0) {
+		ret = DISKREDUNDANCY_TYPE_MKFS;
 	} else {
 		// unknow str, select FAILOVER.
 		ret = DISKREDUNDANCY_TYPE_FAILOVER;
@@ -427,7 +433,45 @@ err_ret:
 
 	return result;
 }
+/**
+ * Sub function for the extended config parser.
+ *
+ * @param [out]	bc	Pointer to pre-allocated container_baseconfig_t.
+ * @param [in]	extended	Pointer to cJSON object of top of extended section.
+ * @return int
+ * @retval  0 Success to parse.
+ * @retval -1 Json file error.
+ * @retval -2 Json file parse error.(Reserve)
+ * @retval -3 Memory allocation error.
+ */
+static int cmparser_parse_base_extended(container_baseconfig_t *bc, const cJSON *extended)
+{
+	cJSON *shmounts = NULL;
 
+	if (extended != NULL) {
+		shmounts = cJSON_GetObjectItemCaseSensitive(extended, "shmounts");
+		if (cJSON_IsString(shmounts) && (shmounts->valuestring != NULL)) {
+			bc->extended.shmounts = strdup(shmounts->valuestring);
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"cmparser: base-extended shmounts = %s\n",bc->extended.shmounts);
+			#endif
+		} else {
+			// Not mandatory value, set default value - disable option.
+			bc->extended.shmounts = NULL;
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"cmparser: base-extended shmounts not set. set default value - disable option.\n");
+			#endif
+		}
+	} else {
+		// Set default value all - disable each option.
+		bc->extended.shmounts = NULL;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"cmparser: base-extended not set. set default value all - disable option.\n");
+		#endif
+	}
+
+	return 0;
+}
 /**
  * parser for base section of container config.
  *
@@ -445,8 +489,10 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 	cJSON *bootpriority = NULL;
 	cJSON *rootfs = NULL;
 	cJSON *extradisk = NULL;
+	cJSON *extended = NULL;
 	cJSON *lifecycle = NULL;
 	cJSON *cap = NULL;
+	cJSON *tty = NULL;
 	cJSON *idmap = NULL;
 	cJSON *environment = NULL;
 	int result = -1;
@@ -505,6 +551,21 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 	extradisk = cJSON_GetObjectItemCaseSensitive(base, "extradisk");
 	if (cJSON_IsArray(extradisk)) {
 		result = cmparser_parse_base_extradisk(bc, extradisk);
+		if (result != 0) {
+			goto err_ret;
+		}
+	}
+
+	// Get extended options - not mandatory
+	extended = cJSON_GetObjectItemCaseSensitive(base, "extended");
+	if (cJSON_IsObject(extended)) {
+		result = cmparser_parse_base_extended(bc, extended);
+		if (result != 0) {
+			goto err_ret;
+		}
+	} else {
+		// This option is not mandatory, set default options.
+		result = cmparser_parse_base_extended(bc, (cJSON*)NULL);
 		if (result != 0) {
 			goto err_ret;
 		}
@@ -579,6 +640,41 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 			#endif
 		}
 	}
+
+	// Get tty data
+	// This setting is not mandatory, initially set default value.
+	bc->tty.tty_max = 1; // Default value is 1
+	bc->tty.pty_max = 1; // Default value is 1
+	tty = cJSON_GetObjectItemCaseSensitive(base, "tty");
+	if (cJSON_IsObject(tty)) {
+		cJSON *tty_max = NULL, *pty_max = NULL;
+
+		// Get tty max
+		tty_max = cJSON_GetObjectItemCaseSensitive(tty, "tty");
+		if (cJSON_IsNumber(tty_max) && (tty_max->valueint > 0)) {
+			bc->tty.tty_max = tty_max->valueint;
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"cmparser: base-tty-tty value = %d\n",bc->tty.tty_max);
+			#endif
+		}
+
+		// Get pty max
+		pty_max = cJSON_GetObjectItemCaseSensitive(tty, "pty");
+		if (cJSON_IsNumber(pty_max) && (pty_max->valueint > 0)) {
+			bc->tty.pty_max = pty_max->valueint;
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"cmparser: base-tty-pty value = %d\n",bc->tty.pty_max);
+			#endif
+		}
+	}
+	#ifdef _PRINTF_DEBUG_
+	if (bc->tty.tty_max == 1) {
+		(void) fprintf(stdout,"cmparser: base-tty-tty set default value = 1\n");
+	}
+	if (bc->tty.pty_max == 1) {
+		(void) fprintf(stdout,"cmparser: base-tty-pty set default value = 1\n");
+	}
+	#endif
 
 	// Get idmap data
 	idmap = cJSON_GetObjectItemCaseSensitive(base, "idmap");
@@ -774,12 +870,15 @@ static int cmparser_parser_get_fstype(const char *str)
 {
 	static const char cfs[] = "filesystem";
 	static const char cdir[] = "directory";
+	static const char cdelayed[] = "delayed";
 	int ret = 0;
 
 	if (strncmp(cfs, str, sizeof(cfs)) == 0) {
 		ret = FSMOUNT_TYPE_FILESYSTEM;
 	} else if (strncmp(cdir, str, sizeof(cdir)) == 0) {
 		ret = FSMOUNT_TYPE_DIRECTORY;
+	} else if (strncmp(cdelayed, str, sizeof(cdelayed)) == 0) {
+		ret = FSMOUNT_TYPE_DELAYED;
 	} else {
 		//Unknown str, set NON - error
 		ret = 0;
@@ -810,7 +909,8 @@ static int cmparser_parse_fs(container_fsconfig_t *fc, const cJSON *fs)
 		cJSON *elem = NULL;
 		cJSON *type = NULL, *from = NULL, *to = NULL;
 		cJSON *fstype = NULL, *option = NULL;
-		container_fsmount_elem_t *p = NULL;
+		container_fsmount_elem_t *pfs = NULL;
+		container_delayed_mount_elem_t *pdm = NULL;
 		int typeval = -1;
 
 		cJSON_ArrayForEach(elem, mount) {
@@ -838,36 +938,59 @@ static int cmparser_parse_fs(container_fsconfig_t *fc, const cJSON *fs)
 					continue;
 				}
 
-				fstype = cJSON_GetObjectItemCaseSensitive(elem, "fstype");
-				if (!(cJSON_IsString(fstype) && (fstype->valuestring != NULL))) {
-					continue;
+				if ((typeval == FSMOUNT_TYPE_FILESYSTEM) || (typeval == FSMOUNT_TYPE_DIRECTORY)) {
+					// These configuration are supporting for FSMOUNT_TYPE_FILESYSTEM or FSMOUNT_TYPE_DIRECTORY.
+					fstype = cJSON_GetObjectItemCaseSensitive(elem, "fstype");
+					if (!(cJSON_IsString(fstype) && (fstype->valuestring != NULL))) {
+						continue;
+					}
+
+					option = cJSON_GetObjectItemCaseSensitive(elem, "option");
+					if (!(cJSON_IsString(option) && (option->valuestring != NULL))) {
+						continue;
+					}
 				}
 
-				option = cJSON_GetObjectItemCaseSensitive(elem, "option");
-				if (!(cJSON_IsString(option) && (option->valuestring != NULL))) {
-					continue;
+				if ((typeval == FSMOUNT_TYPE_FILESYSTEM) || (typeval == FSMOUNT_TYPE_DIRECTORY)) {
+					// All data available in FSMOUNT_TYPE_FILESYSTEM or FSMOUNT_TYPE_DIRECTORY
+					pfs = (container_fsmount_elem_t*)malloc(sizeof(container_fsmount_elem_t));
+					if (pfs == NULL) {
+						result = -3;
+						goto err_ret;
+					}
+
+					(void) memset(pfs, 0 , sizeof(container_fsmount_elem_t));
+					dl_list_init(&pfs->list);
+					pfs->type = typeval;
+					pfs->from = strdup(from->valuestring);
+					pfs->to = strdup(to->valuestring);
+					pfs->fstype = strdup(fstype->valuestring);
+					pfs->option = strdup(option->valuestring);
+					dl_list_add_tail(&fc->fsmount.mountlist, &pfs->list);
+					#ifdef _PRINTF_DEBUG_
+					(void) fprintf(stdout,"cmparser: fsconfig.fsmount.type = %d, from = %s, to = %s, fstype = %s, option = %s\n",
+								pfs->type, pfs->from, pfs->to, pfs->fstype, pfs->option);
+					#endif
+				} else {
+					// All data available in FSMOUNT_TYPE_DELAYED
+					pdm = (container_delayed_mount_elem_t*)malloc(sizeof(container_delayed_mount_elem_t));
+					if (pdm == NULL) {
+						result = -3;
+						goto err_ret;
+					}
+
+					(void) memset(pdm, 0 , sizeof(container_delayed_mount_elem_t));
+					dl_list_init(&pdm->list);
+					dl_list_init(&pdm->runtime_list);
+					pdm->type = typeval;
+					pdm->from = strdup(from->valuestring);
+					pdm->to = strdup(to->valuestring);
+					dl_list_add_tail(&fc->delayed.initial_list, &pdm->list);
+					#ifdef _PRINTF_DEBUG_
+					(void) fprintf(stdout,"cmparser: fsconfig.fsmount.type = %d, from = %s, to = %s\n",
+								pdm->type, pdm->from, pdm->to);
+					#endif
 				}
-
-				// all data available
-				p = (container_fsmount_elem_t*)malloc(sizeof(container_fsmount_elem_t));
-				if (p == NULL) {
-					result = -3;
-					goto err_ret;
-				}
-
-				(void) memset(p, 0 , sizeof(container_fsmount_elem_t));
-				dl_list_init(&p->list);
-				p->type = typeval;
-				p->from = strdup(from->valuestring);
-				p->to = strdup(to->valuestring);
-				p->fstype = strdup(fstype->valuestring);
-				p->option = strdup(option->valuestring);
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"cmparser: fsconfig.fsmount.type = %d, from = %s, to = %s, fstype = %s, option = %s\n",
-							p->type, p->from, p->to, p->fstype, p->option);
-				#endif
-
-				dl_list_add_tail(&fc->fsmount.mountlist, &p->list);
 			}
 		}
 	}
@@ -877,6 +1000,8 @@ static int cmparser_parse_fs(container_fsconfig_t *fc, const cJSON *fs)
 err_ret:
 	{
 		container_fsmount_elem_t *melem = NULL;
+		container_delayed_mount_elem_t *dmelem = NULL;
+
 		// fs config
 		while(dl_list_empty(&fc->fsmount.mountlist) == 0) {
 			melem = dl_list_last(&fc->fsmount.mountlist, container_fsmount_elem_t, list);
@@ -886,6 +1011,17 @@ err_ret:
 			(void) free(melem->fstype);
 			(void) free(melem->option);
 			(void) free(melem);
+		}
+
+		// Purge runtime list.
+		dl_list_init(&fc->delayed.runtime_list);
+		// Clean initial list.
+		while(dl_list_empty(&fc->delayed.initial_list) == 0) {
+			dmelem = dl_list_last(&fc->delayed.initial_list, container_delayed_mount_elem_t, list);
+			dl_list_del(&dmelem->list);
+			(void) free(dmelem->from);
+			(void) free(dmelem->to);
+			(void) free(dmelem);
 		}
 	}
 
@@ -1891,6 +2027,8 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 	dl_list_init(&ccfg->baseconfig.envlist);
 	dl_list_init(&ccfg->resourceconfig.resource.resourcelist);
 	dl_list_init(&ccfg->fsconfig.fsmount.mountlist);
+	dl_list_init(&ccfg->fsconfig.delayed.initial_list);
+	dl_list_init(&ccfg->fsconfig.delayed.runtime_list);
 	dl_list_init(&ccfg->deviceconfig.static_device.static_devlist);
 	dl_list_init(&ccfg->deviceconfig.static_device.static_gpiolist);
 	dl_list_init(&ccfg->deviceconfig.static_device.static_iiolist);
@@ -2147,6 +2285,7 @@ void cmparser_release_config(container_config_t *cc)
 	// fs config
 	{
 		container_fsmount_elem_t *melem = NULL;
+		container_delayed_mount_elem_t *dmelem = NULL;
 
 		while(dl_list_empty(&cc->fsconfig.fsmount.mountlist) == 0) {
 			melem = dl_list_last(&cc->fsconfig.fsmount.mountlist, container_fsmount_elem_t, list);
@@ -2156,6 +2295,17 @@ void cmparser_release_config(container_config_t *cc)
 			(void) free(melem->fstype);
 			(void) free(melem->option);
 			(void) free(melem);
+		}
+
+		// Purge runtime list.
+		dl_list_init(&cc->fsconfig.delayed.runtime_list);
+		// Clean initial list.
+		while(dl_list_empty(&cc->fsconfig.delayed.initial_list) == 0) {
+			dmelem = dl_list_last(&cc->fsconfig.delayed.initial_list, container_delayed_mount_elem_t, list);
+			dl_list_del(&dmelem->list);
+			(void) free(dmelem->from);
+			(void) free(dmelem->to);
+			(void) free(dmelem);
 		}
 	}
 
@@ -2189,6 +2339,8 @@ void cmparser_release_config(container_config_t *cc)
 
 		(void) free(cc->baseconfig.lifecycle.halt);
 		(void) free(cc->baseconfig.lifecycle.reboot);
+
+		(void) free(cc->baseconfig.extended.shmounts);
 
 		while(dl_list_empty(&cc->baseconfig.extradisk_list) == 0) {
 			exdisk = dl_list_last(&cc->baseconfig.extradisk_list, container_baseconfig_extradisk_t, list);

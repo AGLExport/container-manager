@@ -277,7 +277,7 @@ containers_t *create_container_configs(const char *config_file)
 			if (dent != NULL) {
 				if (!(num < GUEST_CONTAINER_LIMIT)) {
 					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-					(void) fprintf(stderr,"[CM CRITICAL ERROR] create_container_configs: Number of guest containers was over to limit.");
+					(void) fprintf(stderr,"[CM CRITICAL ERROR] Number of guest containers was over to limit.");
 					#endif
 					break;
 				}
@@ -310,7 +310,7 @@ containers_t *create_container_configs(const char *config_file)
 
 	if (num <= 0) {
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		(void) fprintf(stderr,"[CM CRITICAL ERROR] create_container_configs: Did not find guest container config at %s.\n", confdir);
+		(void) fprintf(stderr,"[CM CRITICAL ERROR] Did not find guest container config at %s.\n", confdir);
 		#endif
 		goto err_ret;
 	}
@@ -387,8 +387,14 @@ int release_container_configs(containers_t *cs)
 	num = cs->num_of_container;
 
 	for(int i=0; i<num;i++) {
-		(void)container_workqueue_deinitialize(&(cs->containers[i]->workqueue));
-		cmparser_release_config(cs->containers[i]);
+		int ret = -1;
+		ret = container_workqueue_deinitialize(&(cs->containers[i]->workqueue));
+		if (ret != -2) {
+			cmparser_release_config(cs->containers[i]);
+		} else {
+			//For crash safe, some resources shall leak.
+			;	//nop
+		}
 	}
 
 	(void) free(cs->containers);

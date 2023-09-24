@@ -38,5 +38,6 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 
 int lxcutil_dynamic_networkif_add_to_guest(container_config_t *cc, container_dynamic_netif_elem_t *cdne);
 
+int lxcutil_dynamic_mount_to_guest(container_config_t *cc, const char *host_path, const char *guest_path);
 //-----------------------------------------------------------------------------
 #endif //#ifndef LXC_UTIL_H
