@@ -387,8 +387,14 @@ int release_container_configs(containers_t *cs)
 	num = cs->num_of_container;
 
 	for(int i=0; i<num;i++) {
-		(void)container_workqueue_deinitialize(&(cs->containers[i]->workqueue));
-		cmparser_release_config(cs->containers[i]);
+		int ret = -1;
+		ret = container_workqueue_deinitialize(&(cs->containers[i]->workqueue));
+		if (ret != -2) {
+			cmparser_release_config(cs->containers[i]);
+		} else {
+			//For crash safe, some resources shall leak.
+			;	//nop
+		}
 	}
 
 	(void) free(cs->containers);
