@@ -757,6 +757,9 @@ int container_exec_internal_event(containers_t *cs)
 			(void) container_do_delayed_operation(cc);
 		}
 
+		// Do cyclic operation for manager.
+		(void) container_mngsm_do_cyclic_operation(cs);
+
 	} else if (cs->sys_state == CM_SYSTEM_STATE_SHUTDOWN) {
 		// internal event for shutdown state
 		int exit_count = 0;
@@ -789,7 +792,23 @@ int container_exec_internal_event(containers_t *cs)
 
 		if (exit_count == num) {
 			// All guest exited
-			(void) container_mngsm_exit(cs);
+			// Do manager terminate operation.
+			ret = container_mngsm_exec_delayed_operation(cs, 1);
+			if (ret == -1) {
+				// Now run. wait worker complete.
+				ret = container_mngsm_do_cyclic_operation(cs);
+				if (ret == 1) {
+					//Complete worker.
+					(void) container_mngsm_exit(cs);
+				}
+			} else if (ret == 0) {
+				;	//nop
+			} else {
+				(void) container_mngsm_exit(cs);
+				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+				(void) fprintf(stderr,"[CM CRITICAL ERROR] Fail to container mngsm worker execution.\n");
+				#endif
+			}
 			goto out;
 		}
 

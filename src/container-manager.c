@@ -60,7 +60,7 @@ static signal_util_t util_array[1] = {
  */
 int main(int argc, char *argv[])
 {
-	int ret = -1;
+	int ret = -1, result = 0;
 	sd_event *event = NULL;
 	containers_t *cs = NULL;
 	container_control_interface_t *cci = NULL;
@@ -75,6 +75,7 @@ int main(int argc, char *argv[])
 		#ifdef _PRINTF_DEBUG_
 		(void) fprintf(stdout,"container_mngsm_setup: fail %d\n", ret);
 		#endif
+		result = -1;
 		goto finish;
 	}
 
@@ -83,6 +84,7 @@ int main(int argc, char *argv[])
 		#ifdef _PRINTF_DEBUG_
 		(void) fprintf(stdout,"container_mngsm_interface_create: fail %d\n", ret);
 		#endif
+		result = -1;
 		goto finish;
 	}
 
@@ -91,29 +93,34 @@ int main(int argc, char *argv[])
 		#ifdef _PRINTF_DEBUG_
 		(void) fprintf(stdout,"devc_device_manager_setup: fail %d\n", ret);
 		#endif
+		result = -1;
 		goto finish;
 	}
 
 	// early device setup: setup all containers, for static device, gpio,
 	ret = devc_early_device_setup(cs);
 	if (ret < 0) {
+		result = -1;
 		goto finish;
 	}
 
 	util_array[0].userdata = (void*)cci;
 	ret = signal_setup(event, util_array, 1);
 	if (ret < 0) {
+		result = -1;
 		goto finish;
 	}
 
 	// Enable automatic service watchdog support
 	ret = sd_event_set_watchdog(event, 1);
 	if (ret < 0) {
+		result = -1;
 		goto finish;
 	}
 
 	ret = container_mngsm_start(cs);
 	if (ret < 0) {
+		result = -1;
 		goto finish;
 	}
 
@@ -122,7 +129,16 @@ int main(int argc, char *argv[])
 		"READY=1\n"
 		"STATUS=Daemon startup completed, processing events.");
 
+	ret = container_mngsm_exec_delayed_operation(cs, 0);
+	if (ret < 0) {
+		result = -1;
+		goto finish;
+	}
+
 	ret = sd_event_loop(event);
+	if (ret < 0) {
+		result = ret;
+	}
 
 finish:
 	if (cs != NULL) {
@@ -132,5 +148,5 @@ finish:
 	}
 	event = sd_event_unref(event);
 
-	return 0;
+	return result;
 }

@@ -4,5 +4,31 @@
 		{
 			"name": "lxcbr0"
 		}
-	]
+	],
+	"operation": {
+		"mount": [
+			{
+				"type": "delayed",
+				"to": "/var/nvlog/guest",
+				"filesystem":   "ext4",
+				"mode": "rw",
+				"redundancy": "mkfs",
+				"blockdev": [
+					"/dev/mmcblk1p8",
+					"/dev/mmcblk1p8"
+				]
+			},
+			{
+				"type": "delayed",
+				"to": "/media",
+				"filesystem":   "ext4",
+				"mode": "rw",
+				"redundancy": "mkfs",
+				"blockdev": [
+					"/dev/mmcblk0p2",
+					"/dev/mmcblk0p2"
+				]
+			}
+		]
+	}
 }
