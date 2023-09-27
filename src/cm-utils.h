@@ -10,8 +10,12 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <sys/types.h>
+#include <signal.h>
 
 //-----------------------------------------------------------------------------
+int pidfd_open_syscall_wrapper(pid_t pid);
+int pidfd_send_signal_syscall_wrapper(int pidfd, int sig, siginfo_t *info, unsigned int flags);
+int intr_safe_write(int fd, const void* data, size_t size);
 int once_write(const char *path, const void* data, size_t size);
 int once_read(const char *path, void* data, size_t size);
 int node_check(const char *path);

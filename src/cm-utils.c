@@ -8,6 +8,7 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/syscall.h>
 #include <sys/stat.h>
 #include <sys/mount.h>
 #include <errno.h>
@@ -17,6 +18,35 @@
 #include <stdio.h>
 #include <string.h>
 
+int pidfd_open_syscall_wrapper(pid_t pid)
+{
+	return syscall(SYS_pidfd_open, pid, 0);
+}
+int pidfd_send_signal_syscall_wrapper(int pidfd, int sig, siginfo_t *info, unsigned int flags)
+{
+	return syscall(SYS_pidfd_send_signal, pidfd, sig, info, flags);
+}
+/**
+ * INTR safe write util.
+ * This function support only to less than 4KByte (atomic op limit size) operation.
+ *
+ * @param [in]	fd		File descriptor.
+ * @param [in]	data	Pointer to write data buffer.
+ * @param [in]	size	Write data size.
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Write error.
+ */
+int intr_safe_write(int fd, const void* data, size_t size)
+{
+	ssize_t ret = -1;
+
+	do {
+		ret = write(fd, data, size);
+	} while ((ret == -1) && (errno == EINTR));
+
+	return (int)ret;
+}
 /**
  * Once write util.
  * This function do three operation by one call. 'open, write and close'

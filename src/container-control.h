@@ -25,5 +25,7 @@ int container_mngsm_update_timertick(containers_t *cs);
 int container_mngsm_interface_get(container_control_interface_t **pcci, containers_t *cs);
 int container_mngsm_interface_free(containers_t *cs);
 
+int container_mngsm_exec_delayed_operation(containers_t *cs, int role);
+int container_mngsm_do_cyclic_operation(containers_t *cs);
 //-----------------------------------------------------------------------------
 #endif //#ifndef CONTAINER_CONTROL_H
