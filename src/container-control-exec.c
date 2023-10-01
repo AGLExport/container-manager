@@ -1076,194 +1076,6 @@ int container_cleanup(container_config_t *cc, int64_t timeout)
 	return 0;
 }
 /**
- * Disk mount procedure for failover.
- * This function is sub function for container_start_preprocess_base.
- *
- * @param [in]	devs	Array of disk block device. A and B.
- * @param [in]	path	Mount path.
- * @param [in]	fstype	Name of file system. When fstype == NULL, file system is auto.
- * @param [in]	mntflag	Mount flag.
- * @param [in]	option	Filesystem specific option.
- * @return int
- * @retval  1 Success - secondary.
- * @retval  0 Success - primary.
- * @retval -1 mount error.
- * @retval -2 Syscall error.
- * @retval -3 Arg. error.
- */
-static int container_start_mountdisk_failover(char **devs, const char *path, const char *fstype, unsigned long mntflag, char* option)
-{
-	int ret = -1;
-	int mntdisk = -1;
-	const char * dev = NULL;
-
-	for (int i=0; i < 2; i++) {
-		dev = devs[i];
-
-		ret = mount(dev, path, fstype, mntflag, option);
-		if (ret < 0) {
-			if (errno == EBUSY) {
-				// already mounted
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"container_start_preprocess_base: %s is already mounted.\n", path);
-				#endif
-				ret = umount2(path, MNT_DETACH);
-				if (ret < 0) {
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"container_start_preprocess_base: %s unmount fail.\n", path);
-					#endif
-					continue;
-				}
-
-				ret = mount(dev, path, fstype, mntflag, option);
-				if (ret < 0) {
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"container_start_preprocess_base: %s re-mount fail.\n", path);
-					#endif
-					continue;
-				}
-				mntdisk = i;
-				break;
-			} else {
-				//error - try to mount secondary disk
-				;
-			}
-		} else {
-			// success to mount
-			mntdisk = i;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"container_start_mountdisk_failover: mounted %s to %s.\n", dev, path);
-			#endif
-			break;
-		}
-	}
-
-	return mntdisk;
-}
-/**
- * Disk mount procedure for a/b.
- * This function is sub function for container_start_preprocess_base.
- *
- * @param [in]	devs	Array of disk block device. A and B.
- * @param [in]	path	Mount path.
- * @param [in]	fstype	Name of file system. When fstype == NULL, file system is auto.
- * @param [in]	mntflag	Mount flag.
- * @param [in]	option	Filesystem specific option.
- * @param [in]	side	Mount side a(=0) or b(=1).
- * @return int
- * @retval  0 Success.
- * @retval -1 mount error.
- * @retval -2 Syscall error.
- * @retval -3 Arg. error.
- */
-static int container_start_mountdisk_ab(char **devs, const char *path, const char *fstype, unsigned long mntflag, char* option, int side)
-{
-	int ret = 1;
-	const char * dev = NULL;
-
-	if (side < 0 || side >= 2) {
-		//side is 0 or 1 only
-		return -3;
-	}
-
-	dev = devs[side];
-
-	ret = mount(dev, path, fstype, mntflag, option);
-	if (ret < 0) {
-		if (errno == EBUSY) {
-			// already mounted
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"container_start_mountdisk_ab: %s is already mounted.\n", path);
-			#endif
-			ret = umount2(path, MNT_DETACH);
-			if (ret < 0) {
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"container_start_mountdisk_ab: %s unmount fail.\n", path);
-				#endif
-				return -1;
-			}
-
-			ret = mount(dev, path, fstype, mntflag, option);
-			if (ret < 0) {
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"container_start_mountdisk_ab: %s re-mount fail.\n", path);
-				#endif
-				return -1;
-			}
-		} else {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"container_start_mountdisk_ab: %s mount fail to %s (%d).\n", dev, path, errno);
-			#endif
-			return -1;
-		}
-	}
-
-	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout,"container_start_mountdisk_ab(%d): %s mount to %s (%s)\n", side, dev, path, fstype);
-	#endif
-
-	return 0;
-}
-/**
- * Disk mount procedure for once.
- * This function is sub function for container_start_preprocess_base.
- *
- * @param [in]	devs	Array of disk block device. only to use primary side = devs[0].
- * @param [in]	path	Mount path.
- * @param [in]	fstype	Name of file system. When fstype == NULL, file system is auto.
- * @param [in]	mntflag	Mount flag.
- * @param [in]	option	Filesystem specific option.
- * @return int
- * @retval  0 Success.
- * @retval -1 mount error.
- * @retval -2 Syscall error.
- * @retval -3 Arg. error.
- */
-static int container_start_mountdisk_once(char **devs, const char *path, const char *fstype, unsigned long mntflag, char* option)
-{
-	int ret = 1;
-	const char * dev = NULL;
-
-	// Only to use primary side.
-	dev = devs[0];
-
-	ret = mount(dev, path, fstype, mntflag, option);
-	if (ret < 0) {
-		if (errno == EBUSY) {
-			// already mounted
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"container_start_mountdisk_once: %s is already mounted.\n", path);
-			#endif
-			ret = umount2(path, MNT_DETACH);
-			if (ret < 0) {
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"container_start_mountdisk_once: %s unmount fail.\n", path);
-				#endif
-				return -1;
-			}
-
-			ret = mount(dev, path, fstype, mntflag, option);
-			if (ret < 0) {
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"container_start_mountdisk_once: %s re-mount fail.\n", path);
-				#endif
-				return -1;
-			}
-		} else {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"container_start_mountdisk_once: %s mount fail to %s (%d).\n", dev, path, errno);
-			#endif
-			return -1;
-		}
-	}
-
-	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout,"container_start_mountdisk_once: %s mount to %s (%s)\n", dev, path, fstype);
-	#endif
-
-	return 0;
-}
-/**
  * Preprocess for container start.
  * This function exec mount operation a part of base config operation.
  *
@@ -1287,8 +1099,8 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 			mntflag = MS_NOATIME | MS_RDONLY;
 		}
 
-		ret = container_start_mountdisk_ab(bc->rootfs.blockdev, bc->rootfs.path
-											, bc->rootfs.filesystem, mntflag, bc->rootfs.option, bc->abboot);
+		ret = mount_disk_ab(bc->rootfs.blockdev, bc->rootfs.path
+							, bc->rootfs.filesystem, mntflag, bc->rootfs.option, bc->abboot);
 		if (ret < 0) {
 			// root fs mount is mandatory.
 			bc->rootfs.error_count = bc->rootfs.error_count + 1;
@@ -1324,7 +1136,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 
 				if (exdisk->redundancy == DISKREDUNDANCY_TYPE_AB)
 				{
-					ret = container_start_mountdisk_ab(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, exdisk->option, bc->abboot);
+					ret = mount_disk_ab(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, exdisk->option, bc->abboot);
 					if (ret < 0) {
 						// AB disk mount is mandatory function.
 						exdisk->error_count = exdisk->error_count + 1;
@@ -1344,7 +1156,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 						exdisk->error_count = 0;
 					}
 				} else if (exdisk->redundancy == DISKREDUNDANCY_TYPE_FAILOVER) {
-					ret = container_start_mountdisk_failover(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, exdisk->option);
+					ret = mount_disk_failover(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, exdisk->option);
 					if (ret < 0) {
 						// Failover disk mount is optional function.
 						exdisk->error_count = exdisk->error_count + 1;
@@ -1365,7 +1177,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 					}
 				} else {
 					// DISKREDUNDANCY_TYPE_FSCK or DISKREDUNDANCY_TYPE_MKFS
-					ret = container_start_mountdisk_once(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, exdisk->option);
+					ret = mount_disk_once(exdisk->blockdev, exdisk->from, exdisk->filesystem, mntflag, exdisk->option);
 					if (ret < 0) {
 						exdisk->error_count = exdisk->error_count + 1;
 						// This point is critical error but not out critical error log. This log will out in recovery operation.
@@ -1456,64 +1268,7 @@ static int container_start_preprocess_base_recovery(container_config_t *cc)
 
 	return 0;
 }
-/**
- * Cleanup for container start base preprocess.
- * This function exec unmount operation a part of base config cleanup operation.
- *
- * @param [in]	path		Unmount path.
- * @param [in]	timeout_at	The timeout (ms) -  relative.  When timeout is less than 1, it will not do internal retry.
- * @param [in]	retry_max	Max etry count to avoid no return.
- * @return int
- * @retval  0 Success.
- * @retval -1 unmount error.(Reserve)
- * @retval -2 Syscall error.(Reserve)
- */
-static int container_cleanup_unmountdisk(const char *path, int64_t timeout_at, int retry_max)
-{
-	int ret = -1;
-	int umount_complete = 0;
-	int retry_count = 0;
 
-	// unmount rootfs
-	umount_complete = 0;
-
-	for (retry_count = 0; retry_count < retry_max; retry_count++) {
-		ret = umount(path);
-		if (ret < 0) {
-			if (errno == EBUSY) {
-				// need to retry.
-				if (timeout_at < get_current_time_ms()) {
-					// retry timeout
-					umount_complete = 0;
-					break;
-				}
-				sleep_ms_time(50);	//wait
-				continue;
-			} else {
-				// not mounted at mount point
-				umount_complete = 1;
-				break;
-			}
-		}
-		// Success to unmount
-		umount_complete = 1;
-		break;
-	}
-
-	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout,"container_cleanup_unmountdisk: retry = %d for unmount at %s.\n", retry_count, path);
-	#endif
-
-	if (umount_complete == 0) {
-		// In case of unmount time out -> lazy unmount
-		(void) umount2(path, MNT_DETACH);
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"container_cleanup_unmountdisk: lazy unmount at %s.\n", path);
-		#endif
-	}
-
-	return 0;
-}
 /**
  * Cleanup for container start base preprocess.
  * This function exec unmount operation a part of base config cleanup operation.
@@ -1546,7 +1301,7 @@ static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t
 		dl_list_for_each(exdisk, &bc->extradisk_list, container_baseconfig_extradisk_t, list) {
 
 			if (exdisk->is_mounted != 0) {
-				(void) container_cleanup_unmountdisk(exdisk->from, timeout_time, retry_max);
+				(void) unmount_disk(exdisk->from, timeout_time, retry_max);
 				// Clear mount flag
 				exdisk->is_mounted = 0;
 				// Clear error count
@@ -1557,7 +1312,7 @@ static int container_cleanup_preprocess_base(container_baseconfig_t *bc, int64_t
 
 	// unmount rootfs
 	if (bc->rootfs.is_mounted != 0) {
-		(void) container_cleanup_unmountdisk(bc->rootfs.path, timeout_time, retry_max);
+		(void) unmount_disk(bc->rootfs.path, timeout_time, retry_max);
 		// Clear mount flag
 		bc->rootfs.is_mounted = 0;
 		// Clear error count
