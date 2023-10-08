@@ -284,10 +284,13 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 				(void) fprintf(stdout, "lxc set_cgroup_item: %s = %s\n", "devices.allow", buf);
 				#endif
 			} else if (lddr->operation == DCD_UEVENT_ACTION_REMOVE) {
-				bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.deny", buf);
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout, "lxc set_cgroup_item: %s = %s\n", "devices.deny", buf);
-				#endif
+				// In case of block device, guest must be unmount device. In this case need to access capability.
+				if (lddr->devtype != DEVNODE_TYPE_BLK) {
+					bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.deny", buf);
+					#ifdef _PRINTF_DEBUG_
+					(void) fprintf(stdout, "lxc set_cgroup_item: %s = %s\n", "devices.deny", buf);
+					#endif
+				}
 			} else {
 				// May not use this path
 				bret = false;

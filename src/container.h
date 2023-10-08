@@ -553,6 +553,7 @@ typedef struct s_container_dynamic_device container_dynamic_device_t;	/**< typed
  * @brief	The data structure for all device management settings.  It's including device management config and current status for guest container.
  */
 struct s_container_deviceconfig {
+	int enable_protection;						/**< Enable cgroup device based access protection. 1: enable, 0: disable.*/
 	container_static_device_t static_device;	/**< Static device management data to manage that. */
 	container_dynamic_device_t dynamic_device;	/**< Dynamic device management data to manage that. */
 };
