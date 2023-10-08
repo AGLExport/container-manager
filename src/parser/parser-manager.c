@@ -426,6 +426,23 @@ void cmparser_manager_release_config(container_manager_config_t *cm)
 	if (cm == NULL) {
 		return;
 	}
+	// operation config
+	{
+		container_manager_operation_mount_t *cmom = NULL;
+		container_manager_operation_mount_elem_t *elem = NULL;
+
+		cmom = &cm->operation.mount;
+		while(dl_list_empty(&cmom->mount_list) == 0) {
+			elem = dl_list_last(&cmom->mount_list, container_manager_operation_mount_elem_t, list);
+			dl_list_del(&elem->list);
+			(void) free(elem->to);
+			(void) free(elem->filesystem);
+			(void) free(elem->option);
+			(void) free(elem->blockdev[0]);
+			(void) free(elem->blockdev[1]);
+			(void) free(elem);
+		}
+	}
 
 	// base config
 	{
