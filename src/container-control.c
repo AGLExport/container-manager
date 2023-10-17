@@ -8,6 +8,7 @@
 #include "container-control.h"
 #include "container-control-internal.h"
 #include "container-external-interface.h"
+#include "container-manager-operations.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -678,4 +679,72 @@ int container_mngsm_cleanup(containers_t *cs)
 	(void)release_container_configs(cs);
 
 	return 0;
+}
+/**
+ * Execute delayed operation for system wide delayed operation for guest.
+ *
+ * @param [in]	cs	Instance of containers_t
+ * @param [in]	role	Execution role 0: startup, 1: terminate.
+ * @return int
+ * @retval	0	Success to exec.
+ * @retval	-1	Now executing.
+ * @retval	-2	Argument error.
+ * @retval	-3	Internal error.
+ */
+int container_mngsm_exec_delayed_operation(containers_t *cs, int role)
+{
+	int ret = -1, result = -3;
+
+	if (cs == NULL) {
+		return -2;
+	}
+
+	if (role == 0) {
+		ret = manager_operation_delayed_launch(cs);
+		if (ret == 0) {
+			result = 0;
+		} else if (ret == -1) {
+			result = -1;
+		} else {
+			result = -3;
+		}
+	} else if (role == 1) {
+		ret = manager_operation_delayed_terminate(cs);
+		if (ret == 0) {
+			result = 0;
+		} else if (ret == -1) {
+			result = -1;
+		} else {
+			result = -3;
+		}
+	} else {
+		result = -3;
+	}
+
+	return result;
+}
+/**
+ * Do container manager operation.
+ * Typically this function is called by cyclic handler.
+ *
+ * @param [in]	cs	Instance of containers_t
+ * @return int
+ * @retval	1	Cyclic operation is completed.
+ * @retval	0	Cyclic operation is running.
+ * @retval	-1	Cyclic operation is not running.
+ * @retval	-2	Argument error.
+ * @retval	-3	Internal error.
+ */
+int container_mngsm_do_cyclic_operation(containers_t *cs)
+{
+	int ret = -1;
+
+	if (cs == NULL) {
+		return -2;
+	}
+
+	// eval container manager operations
+	ret = manager_operation_delayed_poll(cs);
+
+	return ret;
 }

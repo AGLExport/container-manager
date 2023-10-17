@@ -106,6 +106,7 @@
 		]
 	},
 	"device": {
+		"protection": "enable",
 		"static": [
 			{
 				"type": 		"devdir",

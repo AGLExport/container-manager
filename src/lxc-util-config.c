@@ -392,6 +392,86 @@ err_ret:
 	return result;
 }
 /**
+ * Create lxc config from container config deviceconfig sub part for set default.
+ *
+ * @param [in]	plxc	The lxc container instance to set config.
+ * @return int
+ * @retval 0	Success to set lxc config from devc.
+ * @retval -1	Got lxc error.
+ * @retval -2	A bytes of config string is larger than buffer size. Critical case only.
+ */
+static int lxcutil_set_config_static_device_default(struct lxc_container *plxc)
+{
+	int result = 0;
+	bool bret = false;
+
+	// Set all devices are deny
+	bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.deny", "a");
+	if (bret == false) {
+		result = -1;
+		goto err_ret;
+	}
+
+	// /dev/null
+	bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", "c 1:3 rwm");
+	if (bret == false) {
+		result = -1;
+		goto err_ret;
+	}
+
+	// /dev/zero
+	bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", "c 1:5 rwm");
+	if (bret == false) {
+		result = -1;
+		goto err_ret;
+	}
+
+	// /dev/full
+	bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", "c 1:7 rwm");
+	if (bret == false) {
+		result = -1;
+		goto err_ret;
+	}
+
+	// /dev/tty
+	bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", "c 5:0 rwm");
+	if (bret == false) {
+		result = -1;
+		goto err_ret;
+	}
+
+	// /dev/ptmx
+	bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", "c 5:2 rwm");
+	if (bret == false) {
+		result = -1;
+		goto err_ret;
+	}
+
+	// /dev/random
+	bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", "c 1:8 rwm");
+	if (bret == false) {
+		result = -1;
+		goto err_ret;
+	}
+
+	// /dev/urandom
+	bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", "c 1:9 rwm");
+	if (bret == false) {
+		result = -1;
+		goto err_ret;
+	}
+	// /dev/pts/x
+	bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", "c 136:* rwm");
+	if (bret == false) {
+		result = -1;
+		goto err_ret;
+	}
+
+err_ret:
+
+	return result;
+}
+/**
  * Create lxc config from container config deviceconfig sub part.
  *
  * @param [in]	plxc	The lxc container instance to set config.
@@ -403,7 +483,7 @@ err_ret:
  */
 static int lxcutil_set_config_static_device(struct lxc_container *plxc, container_deviceconfig_t *devc)
 {
-	int result = -1;
+	int result = -1, ret = -1;
 	bool bret = false;
 	char buf[1024];
 	ssize_t slen = 0, buflen = 0;
@@ -414,6 +494,14 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 	container_static_iio_elem_t *iioelem = NULL;
 
 	(void) memset(buf,0,sizeof(buf));
+
+	if (devc->enable_protection == 1) {
+		ret = lxcutil_set_config_static_device_default(plxc);
+		if (ret < 0) {
+			result = -1;
+			goto err_ret;
+		}
+	}
 
 	// static device node
 	dl_list_for_each(develem, &devc->static_device.static_devlist, container_static_device_elem_t, list) {

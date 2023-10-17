@@ -1655,8 +1655,22 @@ err_ret:
  */
 int cmparser_parse_device(container_deviceconfig_t *dc, const cJSON *dev)
 {
+	cJSON *protection = NULL;
 	cJSON *static_device = NULL;
 	cJSON *dynamic_device = NULL;
+
+	// Enable or disable cgroup device based protection
+	protection = cJSON_GetObjectItemCaseSensitive(dev, "protection");
+	if (cJSON_IsString(protection) && (protection->valuestring != NULL)) {
+		if (strcmp(protection->valuestring, "disable") == 0) {
+			dc->enable_protection = 0;
+		} else {
+			dc->enable_protection = 1;
+		}
+	} else {
+		// Force enable
+		dc->enable_protection = 1;
+	}
 
 	// Get static device data
 	static_device = cJSON_GetObjectItemCaseSensitive(dev, "static");
