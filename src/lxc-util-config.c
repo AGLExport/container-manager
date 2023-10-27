@@ -169,11 +169,11 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 	if (bc->extended.shmounts != NULL) {
 		// The shmount option was enabled.
 		buf[0] = '\0';
-		ret = snprintf(buf,sizeof(buf),"cgroup:mixed proc:mixed sys:mixed shmounts:%s", bc->extended.shmounts);
+		ret = snprintf(buf,sizeof(buf),"cgroup:ro proc:mixed sys:mixed shmounts:%s", bc->extended.shmounts);
 	} else {
 		// The shmount option was not enabled. Set default options.
 		buf[0] = '\0';
-		ret = snprintf(buf,sizeof(buf),"cgroup:mixed proc:mixed sys:mixed");
+		ret = snprintf(buf,sizeof(buf),"cgroup:ro proc:mixed sys:mixed");
 	}
 	bret = plxc->set_config_item(plxc, "lxc.mount.auto", buf);
 	if (bret == false) {
