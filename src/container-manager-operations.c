@@ -489,6 +489,11 @@ int manager_operation_delayed_launch(containers_t *cs)
 			container_manager_operation_mount_elem_t *cmom_elem_worker = NULL;
 
 			cmom_elem_worker = (container_manager_operation_mount_elem_t*)malloc(sizeof(container_manager_operation_mount_elem_t));
+			if (cmom_elem_worker == NULL) {
+				// malloc error
+				result = -3;
+				goto err_return;
+			}
 			(void) memset(cmom_elem_worker, 0, sizeof(container_manager_operation_mount_elem_t));
 
 			cmom_elem->is_dispatched = 1;
@@ -548,6 +553,12 @@ err_return:
 	}
 	free(wos);
 	free(cmos);
+	if (pairfd[0] != -1) {
+		(void) close(pairfd[0]);
+	}
+	if (pairfd[1] != -1) {
+		(void) close(pairfd[1]);
+	}
 
 	return result;
 }
@@ -706,6 +717,11 @@ int manager_operation_delayed_terminate(containers_t *cs)
 			container_manager_operation_mount_elem_t *cmom_elem_worker = NULL;
 
 			cmom_elem_worker = (container_manager_operation_mount_elem_t*)malloc(sizeof(container_manager_operation_mount_elem_t));
+			if (cmom_elem_worker == NULL) {
+				// malloc error
+				result = -3;
+				goto err_return;
+			}
 			(void) memset(cmom_elem_worker, 0, sizeof(container_manager_operation_mount_elem_t));
 
 			cmom_elem->is_dispatched = 1;
@@ -765,6 +781,12 @@ err_return:
 	}
 	free(wos);
 	free(cmos);
+	if (pairfd[0] != -1) {
+		(void) close(pairfd[0]);
+	}
+	if (pairfd[1] != -1) {
+		(void) close(pairfd[1]);
+	}
 
 	return result;
 }
