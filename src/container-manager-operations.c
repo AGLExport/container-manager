@@ -440,6 +440,7 @@ static int manager_operation_thread_dispatch(container_manager_operation_storage
  *
  * @param [in]	workqueue	Pointer to initialized container_workqueue_t.
  * @return int
+ * @retval 1	Success to schedule (No operation).
  * @retval 0	Success to schedule.
  * @retval -1	Is not scheduled workqueue.
  * @retval -2	Arg. error.
@@ -522,7 +523,7 @@ int manager_operation_delayed_launch(containers_t *cs)
 
 	if (dl_list_empty(&wos->mount_list)) {
 		// No need operations. Success this, but need to free memory.
-		result = 0;
+		result = 1;
 		goto err_return;
 	}
 
@@ -668,6 +669,7 @@ do_return:
  *
  * @param [in]	workqueue	Pointer to initialized container_workqueue_t.
  * @return int
+ * @retval 1	Success to schedule (No operation).
  * @retval 0	Success to schedule.
  * @retval -1	Already executed.
  * @retval -2	Internal error.
@@ -750,7 +752,7 @@ int manager_operation_delayed_terminate(containers_t *cs)
 
 	if (dl_list_empty(&wos->mount_list)) {
 		// No need operations. Success this, but need to free memory.
-		result = 0;
+		result = 1;
 		goto err_return;
 	}
 
