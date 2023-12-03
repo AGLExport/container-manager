@@ -686,6 +686,7 @@ int container_mngsm_cleanup(containers_t *cs)
  * @param [in]	cs	Instance of containers_t
  * @param [in]	role	Execution role 0: startup, 1: terminate.
  * @return int
+ * @retval	1	Operation is not required.
  * @retval	0	Success to exec.
  * @retval	-1	Now executing.
  * @retval	-2	Argument error.
@@ -703,6 +704,8 @@ int container_mngsm_exec_delayed_operation(containers_t *cs, int role)
 		ret = manager_operation_delayed_launch(cs);
 		if (ret == 0) {
 			result = 0;
+		} else if (ret == 1) {
+			result = 1;
 		} else if (ret == -1) {
 			result = -1;
 		} else {
@@ -712,6 +715,8 @@ int container_mngsm_exec_delayed_operation(containers_t *cs, int role)
 		ret = manager_operation_delayed_terminate(cs);
 		if (ret == 0) {
 			result = 0;
+		} else if (ret == 1) {
+			result = 1;
 		} else if (ret == -1) {
 			result = -1;
 		} else {

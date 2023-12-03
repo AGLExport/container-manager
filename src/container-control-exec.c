@@ -801,8 +801,11 @@ int container_exec_internal_event(containers_t *cs)
 					//Complete worker.
 					(void) container_mngsm_exit(cs);
 				}
+			} else if (ret == 1) {
+				// Operation is not required.
+				(void) container_mngsm_exit(cs);
 			} else if (ret == 0) {
-				;	//nop
+				;	//nop, now started
 			} else {
 				(void) container_mngsm_exit(cs);
 				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
