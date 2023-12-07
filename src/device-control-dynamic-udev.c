@@ -371,7 +371,7 @@ static int device_control_dynamic_udev_create_info(uevent_device_info_t *udi, lx
 			if (strcmp(elem_value, dev_subsys_block) == 0) {
 				lddr->devtype = DEVNODE_TYPE_BLK;
 				udi->checker_func = extra_checker_block_device;
-			} if (strcmp(elem_value, dev_subsys_net) == 0) {
+			} else if (strcmp(elem_value, dev_subsys_net) == 0) {
 				lddr->devtype = DEVNODE_TYPE_NET;
 			} else {
 				lddr->devtype = DEVNODE_TYPE_CHR;

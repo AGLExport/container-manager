@@ -290,6 +290,8 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 					#ifdef _PRINTF_DEBUG_
 					(void) fprintf(stdout, "lxc set_cgroup_item: %s = %s\n", "devices.deny", buf);
 					#endif
+				} else {
+					bret = true;
 				}
 			} else {
 				// May not use this path
