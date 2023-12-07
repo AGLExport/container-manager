@@ -535,9 +535,11 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 		if (develem->type == DEVICE_TYPE_DEVNODE) {
 			(void) strncpy(&buf[slen], ",create=file", buflen);
 			slen = slen + (ssize_t)sizeof(",create=file") - 1;
-		} if (develem->type == DEVICE_TYPE_DEVDIR) {
+		} else if (develem->type == DEVICE_TYPE_DEVDIR) {
 			(void) strncpy(&buf[slen], ",create=dir", buflen);
 			slen = slen + (ssize_t)sizeof(",create=dir") - 1;
+		} else {
+			;//nop
 		}
 
 		bret = plxc->set_config_item(plxc, "lxc.mount.entry", buf);
