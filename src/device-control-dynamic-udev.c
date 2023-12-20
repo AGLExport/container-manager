@@ -300,6 +300,10 @@ static int device_control_dynamic_udev_create_injection_message(uevent_injection
 		} else {
 			if (strcmp(elem_name, "DEVNAME") == 0) {
 				elem_value = trimmed_devname(elem_value);
+				if (elem_value == NULL) {
+					// It is not device name. This udev entry must drop
+					return -1;
+				}
 			}
 
 			ret = snprintf(&buf[usage], remain, "%s=%s", elem_name, elem_value);
