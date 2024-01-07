@@ -71,26 +71,6 @@ int lxcutil_container_forcekill(container_config_t *cc)
 	return 0;
 }
 /**
- * Release lxc instance in container_config_t.
- *
- * @param [in]	cc 	container_config_t
- * @return int
- * @retval 0	Success to remove lxc container instance.
- * @retval -1	Got lxc error.
- */
-int lxcutil_release_instance(container_config_t *cc)
-{
-
-	if (cc->runtime_stat.lxc != NULL) {
-		(void) lxc_container_put(cc->runtime_stat.lxc);
-	}
-
-	cc->runtime_stat.lxc = NULL;
-	cc->runtime_stat.pid = -1;
-
-	return 0;
-}
-/**
  * Get pid of guest init by container_config_t.
  *
  * @param [in]	cc 	container_config_t
@@ -223,6 +203,81 @@ static int lxcutil_add_remove_guest_node(pid_t target_pid, const char *path, int
 	return 0;
 }
 /**
+ * The function of cgroup device group operation.
+ * Device allow/deny setting by cgroup.
+ *
+ * @param [in]	cc		Pointer to container_config_t of target container.
+ * @param [in]	is_add	This operation is add or remove? remove: ==0, add: !=0.
+ * @param [in]	value	The value for device allow/deny setting.
+ * @return int
+ * @retval 0	Success to operations.
+ * @retval -1	Critical error.
+ */
+static const char *cgroup_fs_devices_base_path = "/sys/fs/cgroup/devices";
+int lxcutil_cgroup_device_operation(container_config_t *cc, int is_add, const char *value)
+{
+	int ret = -1;
+	int result = -1;
+	size_t value_length = 0;
+	char *operation_node = NULL;
+	char buf[PATH_MAX];
+
+	// Device allow/deny setting using cgroup.
+	value_length = strlen(value);
+	if (value_length == 0) {
+		// Can't operate this value.
+		result = -1;
+		goto err_ret;
+	}
+
+	if (is_add == 0) {
+		operation_node = "devices.deny";
+	} else {
+		operation_node = "devices.allow";
+	}
+
+	// Path for intermediate group
+	ret = snprintf(buf, sizeof(buf), "%s/%s/%s", cgroup_fs_devices_base_path
+					, cc->resourceconfig.cgroup_path_container, operation_node);
+	if (((size_t)ret) >= sizeof(buf)) {
+		// Too long path. Error.
+		result = -1;
+		goto err_ret;
+	}
+	// Write value to ptah.
+	(void) once_write(buf, value, value_length);
+
+	// Path for guest group
+	ret = snprintf(buf, sizeof(buf), "%s/%s/%s/%s", cgroup_fs_devices_base_path
+					, cc->resourceconfig.cgroup_path_container, cc->resourceconfig.cgroup_subpath_container_inner
+					, operation_node);
+	if (((size_t)ret) >= sizeof(buf)) {
+		// Too long path. Error.
+		result = -1;
+		goto err_ret;
+	}
+	// Write value to ptah.
+	(void) once_write(buf, value, value_length);
+
+	// Option for systemd.  Add value to system.slice.
+	ret = snprintf(buf, sizeof(buf), "%s/%s/%s/%s/%s", cgroup_fs_devices_base_path
+					, cc->resourceconfig.cgroup_path_container, cc->resourceconfig.cgroup_subpath_container_inner
+					, "system.slice", operation_node);
+	if (((size_t)ret) >= sizeof(buf)) {
+		// Too long path. Error.
+		result = -1;
+		goto err_ret;
+	}
+	// Write value to ptah.
+	(void) once_write(buf, value, value_length);
+
+	return 0;
+
+err_ret:
+
+	return result;
+}
+/**
  * The function of dynamic device operation.
  * Device allow/deny setting by cgroup.
  * Device node creation and remove.
@@ -279,25 +334,26 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 			}
 
 			if (lddr->operation == DCD_UEVENT_ACTION_ADD) {
-				bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.allow", buf);
+				ret = lxcutil_cgroup_device_operation(cc, 1, buf);
 				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout, "lxc set_cgroup_item: %s = %s\n", "devices.allow", buf);
+				(void) fprintf(stdout, "lxcutil_cgroup_device_operation: %s = %s\n", "devices.allow", buf);
 				#endif
 			} else if (lddr->operation == DCD_UEVENT_ACTION_REMOVE) {
 				// In case of block device, guest must be unmount device. In this case need to access capability.
 				if (lddr->devtype != DEVNODE_TYPE_BLK) {
-					bret = cc->runtime_stat.lxc->set_cgroup_item(cc->runtime_stat.lxc, "devices.deny", buf);
+					ret = lxcutil_cgroup_device_operation(cc, 0, buf);
 					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout, "lxc set_cgroup_item: %s = %s\n", "devices.deny", buf);
+					(void) fprintf(stdout, "lxcutil_cgroup_device_operation: %s = %s\n", "devices.deny", buf);
 					#endif
 				} else {
-					bret = true;
+					ret = 0;
 				}
 			} else {
 				// May not use this path
-				bret = false;
+				ret = -1;
 			}
-			if (bret == false) {
+
+			if (ret < 0) {
 				#ifdef _PRINTF_DEBUG_
 				(void) fprintf(stdout, "lxcutil_dynamic_device_operation: fail set_cgroup_item %s\n", buf);
 				#endif
