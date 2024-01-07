@@ -6,6 +6,7 @@
  */
 
 #include "lxc-util.h"
+#include "cm-utils.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -232,24 +233,170 @@ err_ret:
 	return result;
 }
 /**
+ * Create the per container cgroup setting to avoid overwrite from guest.
+ *
+ * @param [in]	plxc	The lxc container instance to set config.
+ * @param [in]	rsc		Pointer to container_resourceconfig_t.
+ * @param [in]	name	String for guest name.
+ * @return int
+ * @retval 0	Success to set lxc config.
+ * @retval -1	Got lxc error.
+ * @retval -2	A bytes of config string is larger than buffer size. Critical case only.
+ */
+static int lxcutil_create_per_guest_cgroup(struct lxc_container *plxc, container_resourceconfig_t *rsc, const char *name)
+{
+	int result = -1;
+	bool bret = false;
+	char buf[1024];
+	char *tmp_str = NULL;
+	ssize_t slen = 0, buflen = 0;
+	int64_t ms_time = 0;
+
+	(void) memset(buf,0,sizeof(buf));
+
+	// When guest was crash, cgroup node will not delete.
+	// To avoid name conflict, add monotonic ms time to directory name.
+	ms_time = get_current_time_ms();
+
+	//create per container cgroup
+	//lxc.cgroup.dir.container
+	buflen = (ssize_t)sizeof(buf) - 1;
+	slen = (ssize_t)snprintf(buf, buflen, "%s-container-%lx", name, ms_time);
+	if (slen >= buflen) {
+		result = -2;
+		goto err_ret;
+	}
+	bret = plxc->set_config_item(plxc, "lxc.cgroup.dir.container", buf);
+	if (bret == false) {
+		result = -1;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_resource set config %s = %s fail.\n", "lxc.cgroup.dir.container", buf);
+		#endif
+		goto err_ret;
+	}
+	tmp_str = strdup(buf);
+	if (tmp_str == NULL) {
+		result = -2;
+		goto err_ret;
+	}
+	rsc->cgroup_path_container = tmp_str;
+
+	//lxc.cgroup.dir.container
+	slen = (ssize_t)snprintf(buf, buflen, "%s-monitor-%lx", name, ms_time);
+	if (slen >= buflen) {
+		result = -2;
+		goto err_ret;
+	}
+	bret = plxc->set_config_item(plxc, "lxc.cgroup.dir.monitor", buf);
+	if (bret == false) {
+		result = -1;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_resource set config %s = %s fail.\n", "lxc.cgroup.dir.monitor", buf);
+		#endif
+		goto err_ret;
+	}
+	tmp_str = strdup(buf);
+	if (tmp_str == NULL) {
+		result = -2;
+		goto err_ret;
+	}
+	rsc->cgroup_path_monitor = tmp_str;
+
+	//lxc.cgroup.dir.container.inner
+	slen = (ssize_t)snprintf(buf, buflen, "%s-ns", name);
+	if (slen >= buflen) {
+		result = -2;
+		goto err_ret;
+	}
+	bret = plxc->set_config_item(plxc, "lxc.cgroup.dir.container.inner", buf);
+	if (bret == false) {
+		result = -1;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_resource set config %s = %s fail.\n", "lxc.cgroup.dir.container.inner", buf);
+		#endif
+		goto err_ret;
+	}
+	tmp_str = strdup(buf);
+	if (tmp_str == NULL) {
+		result = -2;
+		goto err_ret;
+	}
+	rsc->cgroup_subpath_container_inner = tmp_str;
+
+	//lxc.cgroup.relative
+	bret = plxc->set_config_item(plxc, "lxc.cgroup.relative", "0");
+	if (bret == false) {
+		result = -1;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_resource set config %s = %s fail.\n", "lxc.cgroup.relative", "1");
+		#endif
+		goto err_ret;
+	}
+
+	return 0;
+
+err_ret:
+	(void) free(rsc->cgroup_subpath_container_inner);
+	rsc->cgroup_subpath_container_inner = NULL;
+
+	(void) free(rsc->cgroup_path_monitor);
+	rsc->cgroup_path_monitor = NULL;
+
+	(void) free(rsc->cgroup_path_container);
+	rsc->cgroup_path_container = NULL;
+
+	return result;
+}
+/**
+ * Release runtime data for the per container cgroup setting.
+ *
+ * @param [in]	rsc		Pointer to container_resourceconfig_t.
+ * @return int
+ * @retval 0	Success to release runtime data.
+ */
+static int lxcutil_release_per_guest_cgroup_runtime_data(container_resourceconfig_t *rsc)
+{
+	(void) free(rsc->cgroup_subpath_container_inner);
+	rsc->cgroup_subpath_container_inner = NULL;
+
+	(void) free(rsc->cgroup_path_monitor);
+	rsc->cgroup_path_monitor = NULL;
+
+	(void) free(rsc->cgroup_path_container);
+	rsc->cgroup_path_container = NULL;
+
+	return 0;
+}
+/**
  * Create lxc config from container config resourceconfig sub part.
  *
  * @param [in]	plxc	The lxc container instance to set config.
  * @param [in]	rsc		Pointer to container_resourceconfig_t.
+ * @param [in]	name	String for guest name.
  * @return int
  * @retval 0	Success to set lxc config from rsc.
  * @retval -1	Got lxc error.
  * @retval -2	A bytes of config string is larger than buffer size. Critical case only.
  */
-static int lxcutil_set_config_resource(struct lxc_container *plxc, container_resourceconfig_t *rsc)
+static int lxcutil_set_config_resource(struct lxc_container *plxc, container_resourceconfig_t *rsc, const char *name)
 {
-	int result = -1;
+	int ret = -1, result = -1;
 	bool bret = false;
 	char buf[1024];
 	ssize_t slen = 0, buflen = 0;
 	container_resource_elem_t *melem = NULL;
 
 	(void) memset(buf,0,sizeof(buf));
+
+	ret = lxcutil_create_per_guest_cgroup(plxc, rsc, name);
+	if (ret < 0) {
+		if (ret == -1) {
+			result = -1;
+		} else {
+			result = -2;
+		}
+		goto err_ret;
+	}
 
 	dl_list_for_each(melem, &rsc->resource.resourcelist, container_resource_elem_t, list) {
 		buflen = (ssize_t)sizeof(buf) - 1;
@@ -319,6 +466,19 @@ static int lxcutil_set_config_resource(struct lxc_container *plxc, container_res
 err_ret:
 
 	return result;
+}
+/**
+ * Release runtime data of resourceconfig sub part.
+ *
+ * @param [in]	rsc		Pointer to container_resourceconfig_t.
+ * @return int
+ * @retval 0	Success to release runtime data for the resourceconfig.
+ */
+static int lxcutil_release_config_runtime_data_resource(container_resourceconfig_t *rsc)
+{
+	(void) lxcutil_release_per_guest_cgroup_runtime_data(rsc);
+
+	return 0;
 }
 /**
  * Create lxc config from container config fsconfig sub part.
@@ -916,7 +1076,7 @@ int lxcutil_create_instance(container_config_t *cc)
 		goto err_ret;
 	}
 
-	ret = lxcutil_set_config_resource(plxc, &cc->resourceconfig);
+	ret = lxcutil_set_config_resource(plxc, &cc->resourceconfig, cc->name);
 	if (ret < 0) {
 		result = -1;
 		goto err_ret;
@@ -947,6 +1107,7 @@ int lxcutil_create_instance(container_config_t *cc)
 	}
 
 	cc->runtime_stat.lxc = plxc;
+	plxc = NULL;
 	cc->runtime_stat.pid = -1;
 
 	#ifdef PRINTF_DEBUG_CONFIG_OUT
@@ -954,7 +1115,7 @@ int lxcutil_create_instance(container_config_t *cc)
 		char buf[1024];
 
 		(void) snprintf(buf, sizeof(buf)-1u, "/tmp/dbgcfg-%s.txt", cc->name);
-		bret = plxc->save_config(cc->runtime_stat.lxc, buf);
+		bret = cc->runtime_stat.lxc->save_config(cc->runtime_stat.lxc, buf);
 		if (bret == false) {
 			(void) fprintf(stdout,"lxcutil: save_config fail.\n");
 		}
@@ -969,5 +1130,29 @@ err_ret:
 		(void) lxc_container_put(plxc);
 	}
 
+	(void) lxcutil_release_instance(cc);
+
 	return result;
+}
+/**
+ * Release lxc instance in container_config_t.
+ *
+ * @param [in]	cc 	container_config_t
+ * @return int
+ * @retval 0	Success to remove lxc container instance.
+ * @retval -1	Got lxc error.
+ */
+int lxcutil_release_instance(container_config_t *cc)
+{
+
+	if (cc->runtime_stat.lxc != NULL) {
+		(void) lxc_container_put(cc->runtime_stat.lxc);
+	}
+
+	(void) lxcutil_release_config_runtime_data_resource(&cc->resourceconfig);
+
+	cc->runtime_stat.lxc = NULL;
+	cc->runtime_stat.pid = -1;
+
+	return 0;
 }
