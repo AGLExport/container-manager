@@ -793,6 +793,7 @@ typedef struct s_container_control_interface container_control_interface_t;
  */
 struct s_containers {
 	container_manager_config_t *cmcfg;	/**< Global config for container manager*/
+	container_manager_operation_t cmop;	/**< The manager operations. */
 
 	int num_of_container;				/**< Num of container data */
 	int sys_state;						/**< Container manager state, that is following at system state. */

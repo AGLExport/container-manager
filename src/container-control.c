@@ -701,7 +701,7 @@ int container_mngsm_exec_delayed_operation(containers_t *cs, int role)
 	}
 
 	if (role == 0) {
-		ret = manager_operation_delayed_launch(cs);
+		ret = manager_operation_delayed_launch(cs, MANAGER_WORKER_OPERATION_TYPE_START);
 		if (ret == 0) {
 			result = 0;
 		} else if (ret == 1) {
@@ -712,7 +712,7 @@ int container_mngsm_exec_delayed_operation(containers_t *cs, int role)
 			result = -3;
 		}
 	} else if (role == 1) {
-		ret = manager_operation_delayed_terminate(cs);
+		ret = manager_operation_delayed_launch(cs, (MANAGER_WORKER_OPERATION_TYPE_TERMINATE /*| MANAGER_WORKER_OPERATION_TYPE_TERMINATE_EXT*/));
 		if (ret == 0) {
 			result = 0;
 		} else if (ret == 1) {

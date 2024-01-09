@@ -248,6 +248,29 @@ void sleep_ms_time(int64_t wait_time)
 }
 
 /**
+ * Get point to /dev/ trimmed devname.
+ *
+ * @param [in]	devnode	String to devname with "/dev/" prefix.
+ * @return int
+ * @retval	!=NULL	Pointer to trimmed devname.
+ * @retval	==NULL	Is not devname.
+ */
+const char *trimmed_devname(const char* devnode)
+{
+	const char cmpstr[] = "/dev/";
+	const char *pstr = NULL;
+	size_t cmplen = 0;
+
+	cmplen = strlen(cmpstr);
+
+	if (strncmp(devnode, cmpstr, cmplen) == 0) {
+		pstr = &devnode[cmplen];
+	}
+
+	return pstr;
+}
+
+/**
  * Disk mount procedure for failover.
  *
  * @param [in]	devs	Array of disk block device. A and B.

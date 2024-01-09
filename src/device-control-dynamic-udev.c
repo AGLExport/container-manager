@@ -18,6 +18,7 @@
 #include "lxc-util.h"
 #include "block-util.h"
 #include "uevent_injection.h"
+#include "cm-utils.h"
 
 #undef _PRINTF_DEBUG_
 
@@ -228,28 +229,6 @@ error_ret:
 	return -1;
 }
 
-/**
- * Get point to /dev/ trimmed devname.
- *
- * @param [in]	devnode	String to devname with "/dev/" prefix.
- * @return int
- * @retval	!=NULL	Pointer to trimmed devname.
- * @retval	==NULL	Is not devname.
- */
-static const char *trimmed_devname(const char* devnode)
-{
-	const char cmpstr[] = "/dev/";
-	const char *pstr = NULL;
-	size_t cmplen = 0;
-
-	cmplen = strlen(cmpstr);
-
-	if (strncmp(devnode, cmpstr, cmplen) == 0) {
-		pstr = &devnode[cmplen];
-	}
-
-	return pstr;
-}
 /**
  * Sub function for uevent monitor.
  * This function create uevent from udev properties list.
