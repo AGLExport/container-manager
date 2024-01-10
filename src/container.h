@@ -732,6 +732,19 @@ typedef struct s_container_workqueue container_workqueue_t;	/**< typedef for str
 #define CONTAINER_RUN_WORKER	(7)
 
 /**
+ * @def	CONTAINER_RESOURCE_INACTIVE
+ * @brief	Container runtime status is not started and run worker.
+ */
+#define CONTAINER_RESOURCE_INACTIVE	(0)
+/**
+ * @def	CONTAINER_RESOURCE_ACTIVE
+ * @brief	Container runtime status is not started and run worker.
+ */
+#define CONTAINER_RESOURCE_ACTIVE	(1)
+
+
+
+/**
  * @struct	s_container_runtime_status
  * @brief	The runtime data of this guest container.
  */
@@ -740,6 +753,7 @@ struct s_container_runtime_status {
 	int64_t timeout;				/**< Timeout point of this guest container on shutdown or reboot operation. */
 	int status;						/**< Runtime status of this guest container. */
 	int launch_error_count;			/**< A error counter for launch. */
+	int resource_state;				/**< Runtime resource state. CONTAINER_RESOURCE_INACTIVE or CONTAINER_RESOURCE_ACTIVE*/
 	pid_t pid;						/**< A pid of guest container init process. */
 	sd_event_source *pidfd_source;	/**< A pidfd event source for guest container init process. It use guest monitoring. */
 };

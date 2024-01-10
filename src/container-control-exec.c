@@ -768,6 +768,7 @@ int container_exec_internal_event(containers_t *cs)
 		for(int i=0;i < num;i++) {
 			cc = cs->containers[i];
 			if ((cc->runtime_stat.status == CONTAINER_EXIT) || (cc->runtime_stat.status == CONTAINER_DISABLE)) {
+				(void) container_cleanup(cc, 500);	// Clean resource - This function will test active before do in inside.
 				exit_count++;
 			} else if (cc->runtime_stat.status == CONTAINER_RUN_WORKER) {
 				// Now run worker
@@ -909,6 +910,8 @@ int container_start(container_config_t *cc)
 	#ifdef _PRINTF_DEBUG_
 	(void) fprintf(stdout, "container_start %s\n", cc->name);
 	#endif
+
+	cc->runtime_stat.resource_state = CONTAINER_RESOURCE_ACTIVE;	// Change resource state to active.
 
 	// run preprocess
 	ret = container_start_preprocess_base(&cc->baseconfig);
@@ -1091,9 +1094,13 @@ int container_terminate(container_config_t *cc)
  */
 int container_cleanup(container_config_t *cc, int64_t timeout)
 {
-	(void) container_terminate(cc);
-	(void) container_cleanup_delayed_operation(cc);
-	(void) container_cleanup_preprocess_base(&cc->baseconfig, timeout);
+	if (cc->runtime_stat.resource_state == CONTAINER_RESOURCE_ACTIVE) {
+		(void) container_terminate(cc);
+		(void) container_cleanup_delayed_operation(cc);
+		(void) container_cleanup_preprocess_base(&cc->baseconfig, timeout);
+	}
+
+	cc->runtime_stat.resource_state = CONTAINER_RESOURCE_INACTIVE;	// Change resource state to inactive.
 
 	return 0;
 }
