@@ -89,13 +89,19 @@ typedef struct s_worker_response worker_response_t;	/**< typedef for struct s_wo
  */
 #define MANAGER_WORKER_RUNTIME_STATE_COMPLETED		(0)
 
+struct s_worker_task_elem;
+typedef void (*manager_worker_event_hook_t)(const struct s_worker_task_elem *own);
+
 struct s_worker_task_elem {
-	int task_type;				/* MANAGER_WORKER_TASK_* */
-	unsigned int op_type;				/* MANAGER_WORKER_OPERATION_TYPE_* */
-	char *device;				/* for ALL operation */
-	char *mount_point;			/* for mount operation */
-	char *fs_option_str;
-	unsigned long mount_flag;	/* for mount operation */
+	int task_type;							/* MANAGER_WORKER_TASK_* */
+	unsigned int op_type;					/* MANAGER_WORKER_OPERATION_TYPE_* */
+	char *device;							/* for ALL operation */
+	char *mount_point;						/* for mount operation */
+	char *fs_option_str;					/* */
+	unsigned long mount_flag;				/* for mount operation */
+	manager_worker_event_hook_t	pre_hook;	/* A hook routine at pre operation.*/
+	manager_worker_event_hook_t	post_hook;	/* A hook routine at post operation.*/
+	void* user_data;						/* User data for hook routine. */
 
 	//-- runtime use. Shall not set const table.
 	int state;
@@ -115,6 +121,9 @@ struct s_worker_operation_storage {
 };
 typedef struct s_worker_operation_storage worker_operation_storage_t;	/**< typedef for struct s_worker_operation_storage. */
 
+static void event_hook_post_mount(const struct s_worker_task_elem *own);
+static void event_hook_pre_unmount(const struct s_worker_task_elem *own);
+
 static const worker_task_elem_t g_worker_task_elems[5] = {
 	[0] = {
 		.task_type = MANAGER_WORKER_TASK_MOUNT_FSCK,
@@ -123,6 +132,9 @@ static const worker_task_elem_t g_worker_task_elems[5] = {
 		.mount_point = "/var/nv1",
 		.fs_option_str = NULL,
 		.mount_flag = (MS_DIRSYNC | MS_NOATIME | MS_NODEV | MS_NOEXEC | MS_SYNCHRONOUS),
+		.pre_hook = NULL,
+		.post_hook = event_hook_post_mount,
+		.user_data = NULL,
 	},
 	[1] = {
 		.task_type = MANAGER_WORKER_TASK_MOUNT_MKFS,
@@ -131,6 +143,9 @@ static const worker_task_elem_t g_worker_task_elems[5] = {
 		.mount_point = "/var/nv2",
 		.fs_option_str = NULL,
 		.mount_flag = (MS_DIRSYNC | MS_NOATIME | MS_NODEV | MS_NOEXEC | MS_SYNCHRONOUS),
+		.pre_hook = NULL,
+		.post_hook = NULL,
+		.user_data = NULL,
 	},
 	[2] = {
 		.task_type = MANAGER_WORKER_TASK_UNMOUNT,
@@ -139,6 +154,9 @@ static const worker_task_elem_t g_worker_task_elems[5] = {
 		.mount_point = "/var/nv1",
 		.fs_option_str = NULL,
 		.mount_flag = 0,
+		.pre_hook = NULL,
+		.post_hook = NULL,
+		.user_data = NULL,
 	},
 	[3] = {
 		.task_type = MANAGER_WORKER_TASK_UNMOUNT,
@@ -147,6 +165,9 @@ static const worker_task_elem_t g_worker_task_elems[5] = {
 		.mount_point = "/var/nv2",
 		.fs_option_str = NULL,
 		.mount_flag = 0,
+		.pre_hook = event_hook_pre_unmount,
+		.post_hook = NULL,
+		.user_data = NULL,
 	},
 	[4] = {
 		.task_type = MANAGER_WORKER_TASK_ERASE,
@@ -155,11 +176,29 @@ static const worker_task_elem_t g_worker_task_elems[5] = {
 		.mount_point = NULL,
 		.fs_option_str = NULL,
 		.mount_flag = 0,
+		.pre_hook = NULL,
+		.post_hook = NULL,
+		.user_data = NULL,
 	},
 };
 #define NUM_OF_WORKER_TASK_TABLE	(sizeof(g_worker_task_elems) / sizeof(g_worker_task_elems[0]))
 
 static int manager_operation_delayed_storage_table(worker_operation_storage_t *wos);
+
+
+static void event_hook_post_mount(const struct s_worker_task_elem *own)
+{
+	(void) fprintf(stderr, "post mount hook: %s\n", own->device);
+
+	return;
+}
+
+static void event_hook_pre_unmount(const struct s_worker_task_elem *own)
+{
+	(void) fprintf(stderr, "pre unmount hook: %s\n", own->device);
+
+	return;
+}
 
 /**
  * @brief Function for fsck operation.
@@ -305,6 +344,20 @@ static int manager_mount_operation(worker_operation_storage_t *wos)
 {
 	int result = 0, ret = -1;
 
+	// do pre hook.
+	for (size_t i=0; i < wos->num_of_elem; i++) {
+		worker_task_elem_t *wte = wos->task_states[i];
+		if (wte != NULL) {
+			if (wte->state == MANAGER_WORKER_RUNTIME_STATE_DISPATCHED) {
+				if ((wte->task_type == MANAGER_WORKER_TASK_MOUNT_FSCK) || (wte->task_type == MANAGER_WORKER_TASK_MOUNT_MKFS) ){
+					if (wte->pre_hook != NULL) {
+						wte->pre_hook((const struct s_worker_task_elem*)wte);
+					}
+				}
+			}
+		}
+	}
+
 	// 1st mount try.
 	for (size_t i=0; i < wos->num_of_elem; i++) {
 		worker_task_elem_t *wte = wos->task_states[i];
@@ -319,6 +372,10 @@ static int manager_mount_operation(worker_operation_storage_t *wos)
 					if (ret == 0){
 						// Success to mount
 						wte->state = MANAGER_WORKER_RUNTIME_STATE_COMPLETED;
+						// do post hook
+						if (wte->post_hook != NULL) {
+							wte->post_hook((const struct s_worker_task_elem*)wte);
+						}
 					} else {
 						wte->error_count++;
 					}
@@ -364,6 +421,9 @@ static int manager_mount_operation(worker_operation_storage_t *wos)
 					if (ret == 0){
 						// Success to mount
 						wte->state = MANAGER_WORKER_RUNTIME_STATE_COMPLETED;
+						if (wte->post_hook != NULL) {
+							wte->post_hook((const struct s_worker_task_elem*)wte);
+						}
 					} else {
 						wte->error_count++;
 						// Stop exec.
@@ -391,6 +451,20 @@ static int manager_unmount_operation(worker_operation_storage_t *wos)
 {
 	int result = 0, ret = -1;
 
+	// do pre hook.
+	for (size_t i=0; i < wos->num_of_elem; i++) {
+		worker_task_elem_t *wte = wos->task_states[i];
+		if (wte != NULL) {
+			if (wte->state == MANAGER_WORKER_RUNTIME_STATE_DISPATCHED) {
+				if (wte->task_type == MANAGER_WORKER_TASK_UNMOUNT) {
+					if (wte->pre_hook != NULL) {
+						wte->pre_hook((const struct s_worker_task_elem*)wte);
+					}
+				}
+			}
+		}
+	}
+
 	// unmount try.
 	for (size_t i=0; i < wos->num_of_elem; i++) {
 		worker_task_elem_t *wte = wos->task_states[i];
@@ -408,6 +482,9 @@ static int manager_unmount_operation(worker_operation_storage_t *wos)
 					if (ret == 0){
 						// Success to unmount
 						wte->state = MANAGER_WORKER_RUNTIME_STATE_COMPLETED;
+						if (wte->post_hook != NULL) {
+							wte->post_hook((const struct s_worker_task_elem*)wte);
+						}
 					} else {
 						wte->error_count++;
 						// Stop exec.
@@ -552,7 +629,23 @@ static int manager_erase_operation(worker_operation_storage_t *wos)
 {
 	int result = 0, ret = -1;
 
-	// unmount try.
+	// erase try.
+	for (size_t i=0; i < wos->num_of_elem; i++) {
+		worker_task_elem_t *wte = wos->task_states[i];
+		if (wte != NULL) {
+			if (wte->state == MANAGER_WORKER_RUNTIME_STATE_DISPATCHED) {
+				if (wte->task_type == MANAGER_WORKER_TASK_ERASE) {
+					if (wte->pre_hook != NULL) {
+						wte->pre_hook((const struct s_worker_task_elem*)wte);
+					}
+				}
+			}
+		}
+	}
+	// erase try completed.
+
+
+	// erase try.
 	for (size_t i=0; i < wos->num_of_elem; i++) {
 		worker_task_elem_t *wte = wos->task_states[i];
 		if (wte != NULL) {
@@ -580,6 +673,9 @@ static int manager_erase_operation(worker_operation_storage_t *wos)
 					ret = manager_worker_child_exec(wos->worker_fd, 1, wte->device);
 					if (ret == 0) {
 						wte->state = MANAGER_WORKER_RUNTIME_STATE_NO_EXECUTE;
+						if (wte->post_hook != NULL) {
+							wte->post_hook((const struct s_worker_task_elem*)wte);
+						}
 						result = 1;
 					} else if (ret < 0) {
 						wte->error_count++;
@@ -595,7 +691,7 @@ static int manager_erase_operation(worker_operation_storage_t *wos)
 			}
 		}
 	}
-	// unmount try completed.
+	// erase try completed.
 
 	return result;
 }
@@ -743,6 +839,9 @@ int manager_operation_delayed_launch(containers_t *cs, unsigned int op_type)
 		wte->mount_point = g_worker_task_elems[i].mount_point;
 		wte->fs_option_str = g_worker_task_elems[i].fs_option_str;
 		wte->mount_flag = g_worker_task_elems[i].mount_flag;
+		wte->pre_hook = g_worker_task_elems[i].pre_hook;
+		wte->post_hook = g_worker_task_elems[i].post_hook;
+		wte->user_data = g_worker_task_elems[i].user_data;
 
 		// Set runtime data
 		if ((wte->op_type & op_type) != 0) {
