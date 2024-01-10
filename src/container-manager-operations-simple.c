@@ -696,7 +696,7 @@ int manager_operation_delayed_launch(containers_t *cs, unsigned int op_type)
 
 	cmop = &cs->cmop;	//cmop is not NULL everywhere.
 	if (cmop->storage != NULL) {
-		// Already executed (why??)
+		// Already executed.
 		result = -1;
 		return result;
 	}
