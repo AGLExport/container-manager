@@ -1745,10 +1745,13 @@ int cmparser_parse_device(container_deviceconfig_t *dc, const cJSON *dev)
 static int cmparser_parser_get_netiftype(const char *str)
 {
 	static const char veth[] = "veth";
+	static const char vxcan[] = "vxcan";
 	int ret = 0;
 
 	if (strncmp(veth, str, sizeof(veth)) == 0) {
 		ret = STATICNETIF_VETH;
+	} else if (strncmp(vxcan, str, sizeof(vxcan)) == 0) {
+		ret = STATICNETIF_VXCAN;
 	}
 
 	return ret;
@@ -1857,6 +1860,86 @@ static int cmparser_parse_static_netif_veth_free(void *p)
 	return 0;
 }
 /**
+ * Sub function for the static vxcan if configuration.
+ * Shall not call from other than cmparser_parse_static_netif.
+ *
+ * @param [in]	param		Pointer to cJSON object of top of vxcan param section.
+ * @return void*
+ * @retval !=NULL	Pointer to memory object for netif_elem_vxcan_t.
+ * @retval NULL		Json file parse error or memory allocation error.
+ */
+static void* cmparser_parse_static_netif_vxcan_create(cJSON *param)
+{
+	cJSON *name = NULL, *upstream = NULL;
+	char *pname = NULL, *pupstream = NULL;
+	netif_elem_vxcan_t *pvxcan = NULL;
+	void *vp = NULL;
+
+	pvxcan = (netif_elem_vxcan_t*)malloc(sizeof(netif_elem_vxcan_t));
+	if (pvxcan == NULL) {
+		return NULL;
+	}
+
+	name = cJSON_GetObjectItemCaseSensitive(param, "name");
+	if (cJSON_IsString(name) && (name->valuestring != NULL)) {
+		pname = strdup(name->valuestring);
+	} else {
+		//link is mandatory
+		goto error_return;
+	}
+
+	upstream = cJSON_GetObjectItemCaseSensitive(param, "upstream");
+	if (cJSON_IsString(upstream) && (upstream->valuestring != NULL)) {
+		pupstream = strdup(upstream->valuestring);
+	} else {
+		//link is mandatory
+		goto error_return;
+	}
+
+	#ifdef _PRINTF_DEBUG_
+	(void) fprintf(stdout,"cmparser: dcmparser_parse_static_netif_vxcan_create: name = %s, upstream = %s\n", pname, pupstream);
+	#endif
+	pvxcan->name = pname;
+	pvxcan->upstream = pupstream;
+
+	vp = (void*)pvxcan;
+
+	return vp;
+
+error_return:
+	(void) free(pupstream);
+	(void) free(pname);
+	(void) free(pvxcan);
+
+	return NULL;
+}
+/**
+ * Memory free function for the static vxcan if configuration.
+ *
+ * @param [in]	p	Pointer to memory object for netif_elem_vxcan_t.
+ * @return int
+ * @retval 0	Success to memory free.
+ * @retval -1	Misc error. (Reserve)
+ */
+static int cmparser_parse_static_netif_vxcan_free(void *p)
+{
+	netif_elem_vxcan_t *pvxcan = NULL;
+
+	if (p == NULL) {
+		return 0;
+	}
+
+	pvxcan = (netif_elem_vxcan_t*)p;
+	(void) free(pvxcan->upstream);
+	(void) free(pvxcan->name);
+	(void) free(pvxcan);
+	#ifdef _PRINTF_DEBUG_
+	(void) fprintf(stdout,"cmparser: cmparser_parse_static_netif_vxcan_free\n");
+	#endif
+
+	return 0;
+}
+/**
  * parser for static netif section of container config.
  *
  * @param [out]	snif	Pointer to pre-allocated container_static_netif_t.
@@ -1897,12 +1980,26 @@ static int cmparser_parse_static_netif(container_static_netif_t *snif, const cJS
 						if (vp == NULL) {
 							continue;
 						}
+					} else if (iftype == STATICNETIF_VXCAN) {
+						vp = cmparser_parse_static_netif_vxcan_create(param);
+						if (vp == NULL) {
+							continue;
+						}
+					} else {
+						continue;
 					}
 
 					// all data available
 					p = (container_static_netif_elem_t*)malloc(sizeof(container_static_netif_elem_t));
 					if (p == NULL) {
-						(void) cmparser_parse_static_netif_veth_free(vp);
+						if (iftype == STATICNETIF_VETH) {
+							(void) cmparser_parse_static_netif_veth_free(vp);
+						} else if (iftype == STATICNETIF_VXCAN) {
+							(void) cmparser_parse_static_netif_vxcan_free(vp);
+						} else {
+							; //nop
+						}
+
 						goto err_ret;
 					}
 
@@ -1926,6 +2023,10 @@ err_ret:
 			dl_list_del(&selem->list);
 			if (selem->type == STATICNETIF_VETH) {
 				(void) cmparser_parse_static_netif_veth_free((void *)selem->setting);
+			} else if (selem->type == STATICNETIF_VXCAN) {
+				(void) cmparser_parse_static_netif_vxcan_free((void *)selem->setting);
+			} else {
+				; //nop
 			}
 
 			(void) free(selem);
@@ -2317,6 +2418,10 @@ void cmparser_release_config(container_config_t *cc)
 			dl_list_del(&selem->list);
 			if (selem->type == STATICNETIF_VETH) {
 				(void) cmparser_parse_static_netif_veth_free((void *)selem->setting);
+			} else if (selem->type == STATICNETIF_VXCAN) {
+				(void) cmparser_parse_static_netif_vxcan_free((void *)selem->setting);
+			} else {
+				; //nop
 			}
 
 			(void) free(selem);

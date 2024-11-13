@@ -590,6 +590,12 @@ typedef struct s_container_deviceconfig container_deviceconfig_t;	/**< typedef f
 #define STATICNETIF_VETH	(1)
 
 /**
+ * @def	STATICNETIF_VXCAN
+ * @brief	Static network interface type is Virtual CAN Tunnel for cross namespace communication.  It use in static network interface setting.
+ */
+#define STATICNETIF_VXCAN	(2)
+
+/**
  * @struct	s_netif_elem_veth
  * @brief	The data structure for veth setting.  It's assign to s_container_static_netif_elem.setting in case of type is STATICNETIF_VETH.
  */
@@ -603,6 +609,19 @@ struct s_netif_elem_veth {
 	char *gateway;	/**< Initial default gateway setting for veth. - ipv4. */
 };
 typedef struct s_netif_elem_veth netif_elem_veth_t;	/**< typedef for struct s_netif_elem_veth. */
+
+/**
+ * @struct	s_netif_elem_vxcan
+ * @brief	The data structure for vxcan setting.  It's assign to s_container_static_netif_elem.setting in case of type is STATICNETIF_VXCAN.
+ */
+struct s_netif_elem_vxcan {
+	char *name;		/**< The name of vxcan. */
+	char *upstream;		/**< Upstream CAN interface. */
+	//--- internal control data
+	char *peer_host;	/**< The vxcan name of host */
+	char *peer_guest;	/**< The vxcan name of guest */
+};
+typedef struct s_netif_elem_vxcan netif_elem_vxcan_t;	/**< typedef for struct s_netif_elem_vxcan. */
 
 /**
  * @struct	s_container_static_netif_elem

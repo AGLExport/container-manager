@@ -78,6 +78,7 @@ AC_CONFIG_FILES([Makefile
         src/command/Makefile
         plugin/Makefile
         plugin/libs/Makefile
+        3rdparty/libsocketcangw/Makefile
 				test/unit/Makefile ])
 AC_OUTPUT
 
