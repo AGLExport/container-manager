@@ -15,6 +15,7 @@ containermanager_SOURCES = \
 	lxc-util.c \
 	lxc-util-config.c \
 	net-util.c \
+	socketcan-util.c \
 	signal-util.c \
 	proc-util.c \
 	uevent_injection.c \
@@ -36,6 +37,7 @@ containermanager_SOURCES = \
 # Additional library
 containermanager_LDADD = \
 	-lrt -lpthread \
+	$(top_builddir)/3rdparty/libsocketcangw/libsocketcangw.a \
 	@LIBSYSTEMD_LIBS@ \
 	@LIBUDEV_LIBS@ \
 	@LIBMNL_LIBS@ \
@@ -47,6 +49,7 @@ containermanager_LDADD = \
 containermanager_CFLAGS = \
 	-g -Wall -Wno-unused-but-set-variable \
 	-I$(top_srcdir)/3rdparty/wpa-supplicant \
+	-I$(top_srcdir)/3rdparty/libsocketcangw \
 	-I$(top_srcdir)/include \
 	@LIBSYSTEMD_CFLAGS@ \
 	@LIBUDEV_CFLAGS@ \
@@ -60,6 +63,7 @@ containermanager_CFLAGS = \
 containermanager_CXXFLAGS = \
 	-g -Wall -Wno-unused-but-set-variable \
 	-I$(top_srcdir)/3rdparty/wpa-supplicant \
+	-I$(top_srcdir)/3rdparty/libsocketcangw \
 	-I$(top_srcdir)/include \
 	@LIBSYSTEMD_CFLAGS@ \
 	@LIBUDEV_CFLAGS@ \

@@ -9,6 +9,8 @@
 #include "cm-utils.h"
 #include "cgroup-utils.h"
 
+#include "socketcan-util.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <lxc/lxccontainer.h>
@@ -997,133 +999,123 @@ err_ret:
 	return result;
 }
 /**
- * Create lxc config from container config netifconfig sub part.
+ * Create lxc config from container config netifconfig sub part for veth.
  *
  * @param [in]	plxc	The lxc container instance to set config.
- * @param [in]	netc	Pointer to container_netifconfig_t.
+ * @param [in]	veth	Pointer to netif_elem_veth_t.
+ * @param [in]	num		Number of if setting index.
  * @return int
  * @retval 0	Success to set lxc config from netc.
  * @retval -1	Got lxc error.
  * @retval -2	A bytes of config string is larger than buffer size. Critical case only.
+ * @retval -3	Memory allocation error.
  */
-static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container_netifconfig_t *netc)
+static int lxcutil_set_config_static_netif_veth(struct lxc_container *plxc, netif_elem_veth_t *veth, int num)
 {
 	int result = -1;
 	bool bret = false;
 	char buf[1024];
-	container_static_netif_elem_t *netelem = NULL;
-	int num = 0;
 
 	(void) memset(buf,0,sizeof(buf));
 
-	// static net if
-	dl_list_for_each(netelem, &netc->static_netif.static_netiflist, container_static_netif_elem_t, list) {
-		buf[0] = '\0';
+	(void)snprintf(buf, sizeof(buf), "lxc.net.%d.type", num);	//No issue for buffer length.
+	bret = plxc->set_config_item(plxc, buf, "veth");
+	if (bret == false) {
+		result = -1;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, "veth");
+		#endif
+		goto err_ret;
+	}
 
-		// veth support
-		if (netelem->type == STATICNETIF_VETH) {
-			netif_elem_veth_t *veth = (netif_elem_veth_t*)netelem->setting;
+	// name is optional, lxc default is ethX.
+	if (veth->name != NULL) {
+		(void)snprintf(buf, sizeof(buf), "lxc.net.%d.name", num);	//No issue for buffer length.
+		bret = plxc->set_config_item(plxc, buf, veth->name);
+		if (bret == false) {
+			result = -1;
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->name);
+			#endif
+			goto err_ret;
+		}
+	}
 
-			(void)snprintf(buf, sizeof(buf), "lxc.net.%d.type", num);	//No issue for buffer length.
-			bret = plxc->set_config_item(plxc, buf, "veth");
-			if (bret == false) {
-				result = -1;
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, "veth");
-				#endif
-				goto err_ret;
-			}
+	// link - linking bridge device - is optional, lxc default is not linking.
+	if (veth->link != NULL) {
+		(void)snprintf(buf, sizeof(buf), "lxc.net.%d.link", num);	//No issue for buffer length.
+		bret = plxc->set_config_item(plxc, buf, veth->link);
+		if (bret == false) {
+			result = -1;
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->link);
+			#endif
+			goto err_ret;
+		}
+	}
 
-			// name is optional, lxc default is ethX.
-			if (veth->name != NULL) {
-				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.name", num);	//No issue for buffer length.
-				bret = plxc->set_config_item(plxc, buf, veth->name);
-				if (bret == false) {
-					result = -1;
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->name);
-					#endif
-					goto err_ret;
-				}
-			}
+	// flags is optional, lxc default is link down.
+	if (veth->flags != NULL) {
+		(void)snprintf(buf, sizeof(buf), "lxc.net.%d.flags", num);	//No issue for buffer length.
+		bret = plxc->set_config_item(plxc, buf, veth->flags);
+		if (bret == false) {
+			result = -1;
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->flags);
+			#endif
+			goto err_ret;
+		}
+	}
 
-			// link - linking bridge device - is optional, lxc default is not linking.
-			if (veth->link != NULL) {
-				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.link", num);	//No issue for buffer length.
-				bret = plxc->set_config_item(plxc, buf, veth->link);
-				if (bret == false) {
-					result = -1;
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->link);
-					#endif
-					goto err_ret;
-				}
-			}
+	// hwaddr is optional, lxc default is random mac address.
+	if (veth->hwaddr != NULL) {
+		(void)snprintf(buf, sizeof(buf), "lxc.net.%d.hwaddr", num);	//No issue for buffer length.
+		bret = plxc->set_config_item(plxc, buf, veth->hwaddr);
+		if (bret == false) {
+			result = -1;
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->hwaddr);
+			#endif
+			goto err_ret;
+		}
+	}
 
-			// flags is optional, lxc default is link down.
-			if (veth->flags != NULL) {
-				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.flags", num);	//No issue for buffer length.
-				bret = plxc->set_config_item(plxc, buf, veth->flags);
-				if (bret == false) {
-					result = -1;
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->flags);
-					#endif
-					goto err_ret;
-				}
-			}
+	// mode is optional, lxc default is bridge mode.
+	if (veth->mode != NULL) {
+		(void)snprintf(buf, sizeof(buf), "lxc.net.%d.veth.mode", num);	//No issue for buffer length.
+		bret = plxc->set_config_item(plxc, buf, veth->mode);
+		if (bret == false) {
+			result = -1;
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->mode);
+			#endif
+			goto err_ret;
+		}
+	}
 
-			// hwaddr is optional, lxc default is random mac address.
-			if (veth->hwaddr != NULL) {
-				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.hwaddr", num);	//No issue for buffer length.
-				bret = plxc->set_config_item(plxc, buf, veth->hwaddr);
-				if (bret == false) {
-					result = -1;
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->hwaddr);
-					#endif
-					goto err_ret;
-				}
-			}
+	// address is optional, lxc default is not set ip address.
+	if (veth->address != NULL) {
+		(void)snprintf(buf, sizeof(buf), "lxc.net.%d.ipv4.address", num);	//No issue for buffer length.
+		bret = plxc->set_config_item(plxc, buf, veth->address);
+		if (bret == false) {
+			result = -1;
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->address);
+			#endif
+			goto err_ret;
+		}
+	}
 
-			// mode is optional, lxc default is bridge mode.
-			if (veth->mode != NULL) {
-				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.veth.mode", num);	//No issue for buffer length.
-				bret = plxc->set_config_item(plxc, buf, veth->mode);
-				if (bret == false) {
-					result = -1;
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->mode);
-					#endif
-					goto err_ret;
-				}
-			}
-
-			// address is optional, lxc default is not set ip address.
-			if (veth->address != NULL) {
-				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.ipv4.address", num);	//No issue for buffer length.
-				bret = plxc->set_config_item(plxc, buf, veth->address);
-				if (bret == false) {
-					result = -1;
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->address);
-					#endif
-					goto err_ret;
-				}
-			}
-
-			// gateway is optional, lxc default is not set default gateway.
-			if (veth->gateway != NULL) {
-				(void)snprintf(buf, sizeof(buf), "lxc.net.%d.ipv4.gateway", num);	//No issue for buffer length.
-				bret = plxc->set_config_item(plxc, buf, veth->gateway);
-				if (bret == false) {
-					result = -1;
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->gateway);
-					#endif
-					goto err_ret;
-				}
-			}
+	// gateway is optional, lxc default is not set default gateway.
+	if (veth->gateway != NULL) {
+		(void)snprintf(buf, sizeof(buf), "lxc.net.%d.ipv4.gateway", num);	//No issue for buffer length.
+		bret = plxc->set_config_item(plxc, buf, veth->gateway);
+		if (bret == false) {
+			result = -1;
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, veth->gateway);
+			#endif
+			goto err_ret;
 		}
 	}
 
@@ -1133,7 +1125,195 @@ err_ret:
 
 	return result;
 }
+/**
+ * Create lxc config from container config netifconfig sub part for vxcan.
+ *
+ * @param [in]	plxc	The lxc container instance to set config.
+ * @param [in]	vxcan	Pointer to netif_elem_vxcan_t.
+ * @param [in]	num		Number of if setting index.
+ * @return int
+ * @retval 0	Success to set lxc config from netc.
+ * @retval -1	Got lxc error.
+ * @retval -2	A bytes of config string is larger than buffer size. Critical case only.
+ * @retval -3	Memory allocation error.
+ */
+static int lxcutil_set_config_static_netif_vxcan(struct lxc_container *plxc, netif_elem_vxcan_t *vxcan, int num)
+{
+	int64_t ms_time = 0;
+	int result = -1, ret = -1;
+	char *peer_host = NULL, *peer_guest = NULL;
+	size_t if_name_alloc_size = (size_t)IFNAMSIZ + 1u;
+	bool bret = false;
+	char buf[1024];
 
+	if ((plxc == NULL) || (vxcan == NULL)) {
+		result = -1;
+		goto err_ret;
+	}
+
+	(void) memset(buf,0,sizeof(buf));
+
+	// if vxcan->peer_host and vxcan->peer_guest != NULL. Shall free memory and try to remove previous interface.
+	if (vxcan->peer_host != NULL) {
+		ret = socketcanutil_remove_vxcan_peer(vxcan->peer_host);
+		#ifdef _PRINTF_DEBUG_
+		if (ret < 0) {
+			(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif_vxcan socketcanutil_remove_vxcan_peer( %s ) return %d.\n", vxcan->peer_host, ret);
+		}
+		#endif
+		(void) ret;
+	}
+	(void) free(vxcan->peer_host);
+	(void) free(vxcan->peer_guest);
+	vxcan->peer_host = NULL;
+	vxcan->peer_guest = NULL;
+
+	// To avoid name conflict, add monotonic ms time to if name.
+	ms_time = get_current_time_ms();
+	peer_host = (char*)malloc(if_name_alloc_size);
+	peer_guest = (char*)malloc(if_name_alloc_size);
+	if ((peer_host == NULL) || (peer_guest == NULL)) {
+		result = -3;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif malloc fail at %s.\n", "vxcan");
+		#endif
+		goto err_ret;
+	}
+
+	// Clear memory
+	(void) memset(peer_host, 0, if_name_alloc_size);
+	(void) memset(peer_guest, 0, if_name_alloc_size);
+
+	// Create VXCAN IF name
+	(void) snprintf(peer_host, IFNAMSIZ, "vxcanh%08x", (uint32_t)ms_time);
+	(void) snprintf(peer_guest, IFNAMSIZ, "vxcang%08x", (uint32_t)ms_time);
+
+	vxcan->peer_host = peer_host;
+	vxcan->peer_guest = peer_guest;
+
+	//VXCAN support - use phys type
+	(void)snprintf(buf, sizeof(buf), "lxc.net.%d.type", num);	//No issue for buffer length.
+	bret = plxc->set_config_item(plxc, buf, "phys");
+	if (bret == false) {
+		result = -1;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif_vxcan set config %s = %s fail.\n", buf, "vxcan");
+		#endif
+		goto err_ret;
+	}
+
+	// name is mandatory.
+	(void)snprintf(buf, sizeof(buf), "lxc.net.%d.name", num);	//No issue for buffer length.
+	bret = plxc->set_config_item(plxc, buf, vxcan->name);
+	if (bret == false) {
+		result = -1;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, vxcan->name);
+		#endif
+		goto err_ret;
+	}
+
+	// Create VXCAN pair.
+	ret = socketcanutil_create_vxcan_peer(peer_host, peer_guest);
+	if (ret < 0) {
+		result = -3;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif vxcan pair creation fail. %s, %s.\n", peer_host, peer_guest);
+		#endif
+		goto err_ret;
+	}
+
+	(void)snprintf(buf, sizeof(buf), "lxc.net.%d.link", num);	//No issue for buffer length.
+	bret = plxc->set_config_item(plxc, buf, vxcan->peer_guest);
+	if (bret == false) {
+		result = -1;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, vxcan->peer_guest);
+		#endif
+		goto err_ret;
+	}
+
+	(void)snprintf(buf, sizeof(buf), "lxc.net.%d.flags", num);	//No issue for buffer length.
+	bret = plxc->set_config_item(plxc, buf, "up");
+	if (bret == false) {
+		result = -1;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif set config %s = %s fail.\n", buf, "up");
+		#endif
+		goto err_ret;
+	}
+
+	(void) socketcanutil_up_can_if(vxcan->peer_host);
+
+	(void) socketcanutil_configure_gateway(vxcan->upstream, vxcan->peer_host);
+
+	return 0;
+
+err_ret:
+	// Remove interface
+	(void) socketcanutil_remove_vxcan_peer(vxcan->peer_host);
+	// free memory
+	(void) free(vxcan->peer_host);
+	(void) free(vxcan->peer_guest);
+	vxcan->peer_host = NULL;
+	vxcan->peer_guest = NULL;
+
+	return result;
+}
+
+
+/**
+ * Create lxc config from container config netifconfig sub part.
+ *
+ * @param [in]	plxc	The lxc container instance to set config.
+ * @param [in]	netc	Pointer to container_netifconfig_t.
+ * @return int
+ * @retval 0	Success to set lxc config from netc.
+ * @retval -1	Got lxc error.
+ * @retval -2	A bytes of config string is larger than buffer size. Critical case only.
+ * @retval -3	Memory allocation error.
+ */
+static int lxcutil_set_config_static_netif(struct lxc_container *plxc, container_netifconfig_t *netc)
+{
+	int ret = -1, result = 0;
+	container_static_netif_elem_t *netelem = NULL;
+	int num = 0;
+
+	// static net if
+	dl_list_for_each(netelem, &netc->static_netif.static_netiflist, container_static_netif_elem_t, list) {
+		if (netelem->type == STATICNETIF_VETH) {
+			// veth support
+			netif_elem_veth_t *veth = (netif_elem_veth_t*)netelem->setting;
+
+			ret = lxcutil_set_config_static_netif_veth(plxc, veth, num);
+			if (ret < 0) {
+				result = -1;
+				#ifdef _PRINTF_DEBUG_
+				(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif fail.\n");
+				#endif
+				goto do_return;
+			}
+
+		} else if (netelem->type == STATICNETIF_VXCAN) {
+			//VXCAN support
+			netif_elem_vxcan_t *vxcan = (netif_elem_vxcan_t*)netelem->setting;
+
+			ret = lxcutil_set_config_static_netif_vxcan(plxc, vxcan, num);
+			if (ret < 0) {
+				result = -1;
+				#ifdef _PRINTF_DEBUG_
+				(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif fail.\n");
+				#endif
+				goto do_return;
+			}
+		}
+
+		num++;
+	}
+
+do_return:
+	return result;
+}
 
 /**
  * Create lxc container instance and set to runtime data of container_config_t.
