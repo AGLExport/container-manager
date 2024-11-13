@@ -14,6 +14,7 @@ containermanager_SOURCES = \
 	lxc-util.c \
 	lxc-util-config.c \
 	net-util.c \
+	socketcan-util.c \
 	signal-util.c \
 	proc-util.c \
 	uevent_injection.c \

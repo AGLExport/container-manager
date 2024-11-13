@@ -106,6 +106,13 @@
 					"hwaddr":	"00:16:3e:xx:xx:xx",
 					"mode": "bridge"
 				}
+			},
+			{
+				"type":		"vxcan",
+				"param": {
+					"name":	"can0",
+					"upstream": "can0"
+				}
 			}
 		]
 	}
