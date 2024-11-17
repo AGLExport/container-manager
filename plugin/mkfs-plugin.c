@@ -60,7 +60,9 @@ static int cm_worker_set_args(cm_worker_handle_t handle, const char *arg_str, si
 
 	pmkfs = (mkfs_plugin_t*)handle;
 
-	(void) strncpy(strbuf, arg_str, (arg_length + 1u));
+	strbuf[sizeof(strbuf)-1u] = '\0';
+	// Typically arg_length is set strlen(arg_str). In this case must set +1 byte to length argument at strncpy to add null terminate.
+	(void) strncpy(strbuf, arg_str, sizeof(strbuf) - 1u);
 
 	#ifdef _PRINTF_DEBUG_
 	(void) fprintf(stdout,"mkfs-plugin: cm_worker_set_args %s (%zu)\n", arg_str, arg_length);
@@ -113,6 +115,11 @@ static int cm_worker_wait_unmount(mkfs_plugin_t *pmkfs)
 
 	// test to /sys/fs/ext4/block-device-name
 	devname = libcmplug_trimmed_devname(pmkfs->blkdev_path);
+	if (devname == NULL) {
+		// pmkfs->blkdev_path is not device name.
+		result = -1;
+		goto do_return;
+	}
 
 	test_path[0] = '\0';
 	buflen = (ssize_t)sizeof(test_path) - 1;

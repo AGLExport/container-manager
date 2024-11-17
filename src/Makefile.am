@@ -10,6 +10,7 @@ containermanager_SOURCES = \
     parser/parser-container.c \
     parser/parser-manager.c \
 	cm-utils.c \
+	cgroup-utils.c \
 	block-util.c \
 	lxc-util.c \
 	lxc-util-config.c \

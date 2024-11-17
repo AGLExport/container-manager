@@ -60,7 +60,9 @@ static int cm_worker_set_args(cm_worker_handle_t handle, const char *arg_str, si
 
 	permkfs = (erase_mkfs_plugin_t*)handle;
 
-	(void) strncpy(strbuf, arg_str, (arg_length + 1u));
+	strbuf[sizeof(strbuf)-1u] = '\0';
+	// Typically arg_length is set strlen(arg_str). In this case must set +1 byte to length argument at strncpy to add null terminate.
+	(void) strncpy(strbuf, arg_str, sizeof(strbuf) - 1u);
 
 	#ifdef _PRINTF_DEBUG_
 	(void) fprintf(stdout,"erase-mkfs-plugin: cm_worker_set_args %s (%zu)\n", arg_str, arg_length);
@@ -113,6 +115,11 @@ static int cm_worker_wait_unmount(erase_mkfs_plugin_t *permkfs)
 
 	// test to /sys/fs/ext4/block-device-name
 	devname = libcmplug_trimmed_devname(permkfs->blkdev_path);
+	if (devname == NULL) {
+		// permkfs->blkdev_path is not device name.
+		result = -1;
+		goto do_return;
+	}
 
 	test_path[0] = '\0';
 	buflen = (ssize_t)sizeof(test_path) - 1;
@@ -177,10 +184,14 @@ do_return:
 static int cm_worker_exec_erase(erase_mkfs_plugin_t *permkfs)
 {
 	int fd = -1;
-	int ret = -1;
+	int result = -1;
 	uint64_t *erase_buff = NULL;
 
 	erase_buff = (uint64_t*)malloc(ERASE_BUFFER_SIZE);
+	if (erase_buff == NULL) {
+		result = -1;
+		goto do_return;
+	}
 	(void) memset(erase_buff, 0, ERASE_BUFFER_SIZE);
 
 	fd = open(permkfs->blkdev_path, O_CLOEXEC | O_SYNC | O_WRONLY);
@@ -193,7 +204,7 @@ static int cm_worker_exec_erase(erase_mkfs_plugin_t *permkfs)
 		do {
 			if (permkfs->cancel_request == 1) {
 				// Got cancel request.
-				ret = 1;
+				result = 1;
 				goto do_return;
 			}
 			sret = write(fd, erase_buff, ERASE_BUFFER_SIZE);
@@ -204,15 +215,16 @@ static int cm_worker_exec_erase(erase_mkfs_plugin_t *permkfs)
 		(void) fprintf(stdout,"erase-mkfs-plugin: write end for %s ret = %d(%d)\n",permkfs->blkdev_path, (int)sret, errno);
 		#endif
 
-		(void) close(fd);
-
-		ret = 0;
+		result = 0;
 	}
 
 do_return:
+	if (fd >= 0) {
+		(void) close(fd);
+	}
 	(void) free(erase_buff);
 
-	return ret;
+	return result;
 }
 /**
  * @brief Function for disk format execution.

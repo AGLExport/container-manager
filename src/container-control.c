@@ -20,6 +20,7 @@
 
 #include "cm-utils.h"
 #include "lxc-util.h"
+#include "cgroup-utils.h"
 #include "container-config.h"
 
 #undef _PRINTF_DEBUG_
@@ -402,15 +403,15 @@ int container_mngsm_regist_device_manager(containers_t *cs, dynamic_device_manag
 	return 0;
 }
 /**
- * Container manager system level setup.
+ * Setup A/B boot configuration.
  *
  * @param [in]	cs	setup target for struct s_container.
  * @return int
- * @retval	0	Success to setup internal timer.
+ * @retval	0	Success to setup ab boot.
  * @retval	-1	Internal error.
  * @retval	-2	Argument error. (Reserve)
  */
-static int container_mngsm_do_system(containers_t *cs)
+static int container_mngsm_ab_boot_setup(containers_t *cs)
 {
 	struct s_container_mngsm *cms = NULL;
 	procutil_t *pu = NULL;
@@ -456,6 +457,104 @@ static int container_mngsm_do_system(containers_t *cs)
 	return 0;
 }
 /**
+ * Cleanup A/B boot configuration.
+ *
+ * @param [in]	cs	cleanup target for struct s_container.
+ * @return int
+ * @retval	0	Success to cleanup.
+ * @retval	-1	Argument error.
+ */
+static int container_mngsm_ab_boot_cleanup(containers_t *cs)
+{
+	struct s_container_mngsm *cms = NULL;
+
+	if (cs == NULL) {
+		return -1;
+	}
+
+	cms = (struct s_container_mngsm*)cs->cms;
+	if (cms == NULL) {
+		return -1;
+	}
+
+	(void) procutil_cleanup(cms->prutl);
+
+	return 0;
+}
+/**
+ * Setup cgroup configuration.
+ *
+ * @param [in]	cs	setup target for struct s_container.
+ * @return int
+ * @retval	0	Success to setup cgroup configuration.
+ * @retval	-1	Internal error.
+ * @retval	-2	Argument error. (Reserve)
+ */
+static int container_mngsm_cgroup_setup(containers_t *cs)
+{
+	int ret = -1, result = 0;
+	int cgroup_ver = -1;
+
+	cgroup_ver = cgroup_util_get_cgroup_version();
+	if (cgroup_ver == 1) {
+		// cgroup v1 mode
+	} else if (cgroup_ver == 2) {
+		// cgroup v2 mode
+		ret = cgroup_util_cgroup_v2_setup();
+		if (ret < 0) {
+			result = -1;
+			goto do_return;
+		}
+	} else {
+		result = -1;
+		goto do_return;
+	}
+
+do_return:
+	return result;
+}
+/**
+ * Cleanup cgroup configuration.
+ *
+ * @param [in]	cs	cleanup target for struct s_container.
+ * @return int
+ * @retval	0	Success to cleanup.
+ * @retval	-1	Argument error.
+ */
+static int container_mngsm_cgroup_cleanup(containers_t *cs)
+{
+	// Nothing
+	return 0;
+}
+/**
+ * Container manager system level setup.
+ *
+ * @param [in]	cs	setup target for struct s_container.
+ * @return int
+ * @retval	0	Success to setup internal timer.
+ * @retval	-1	Internal error.
+ * @retval	-2	Argument error. (Reserve)
+ */
+static int container_mngsm_do_system(containers_t *cs)
+{
+	int ret = -1, result = 0;
+
+	ret = container_mngsm_ab_boot_setup(cs);
+	if (ret < 0) {
+		result = -1;
+		goto do_return;
+	}
+
+	ret = container_mngsm_cgroup_setup(cs);
+	if (ret < 0) {
+		result = -1;
+		goto do_return;
+	}
+
+do_return:
+	return result;
+}
+/**
  * Container manager system level cleanup.
  *
  * @param [in]	cs	cleanup target for struct s_container.
@@ -469,7 +568,8 @@ static int container_mngsm_cleanup_system(containers_t *cs)
 		return -1;
 	}
 
-	(void) procutil_cleanup(cs->cms->prutl);
+	(void) container_mngsm_cgroup_cleanup(cs);
+	(void) container_mngsm_ab_boot_cleanup(cs);
 
 	return 0;
 }
@@ -686,6 +786,7 @@ int container_mngsm_cleanup(containers_t *cs)
  * @param [in]	cs	Instance of containers_t
  * @param [in]	role	Execution role 0: startup, 1: terminate.
  * @return int
+ * @retval	1	Operation is not required.
  * @retval	0	Success to exec.
  * @retval	-1	Now executing.
  * @retval	-2	Argument error.
@@ -703,6 +804,8 @@ int container_mngsm_exec_delayed_operation(containers_t *cs, int role)
 		ret = manager_operation_delayed_launch(cs);
 		if (ret == 0) {
 			result = 0;
+		} else if (ret == 1) {
+			result = 1;
 		} else if (ret == -1) {
 			result = -1;
 		} else {
@@ -712,6 +815,8 @@ int container_mngsm_exec_delayed_operation(containers_t *cs, int role)
 		ret = manager_operation_delayed_terminate(cs);
 		if (ret == 0) {
 			result = 0;
+		} else if (ret == 1) {
+			result = 1;
 		} else if (ret == -1) {
 			result = -1;
 		} else {
