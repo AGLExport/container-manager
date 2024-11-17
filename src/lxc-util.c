@@ -224,7 +224,7 @@ int lxcutil_cgroup_device_operation(container_config_t *cc, int is_add, const ch
 
 	// Device allow/deny setting using cgroup.
 	value_length = strlen(value);
-	if (value_length == 0) {
+	if (value_length == 0u) {
 		// Can't operate this value.
 		result = -1;
 		goto err_ret;
