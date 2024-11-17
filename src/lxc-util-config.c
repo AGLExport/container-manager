@@ -7,6 +7,7 @@
 
 #include "lxc-util.h"
 #include "cm-utils.h"
+#include "cgroup-utils.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -170,11 +171,11 @@ static int lxcutil_set_config_base(struct lxc_container *plxc, container_basecon
 	if (bc->extended.shmounts != NULL) {
 		// The shmount option was enabled.
 		buf[0] = '\0';
-		ret = snprintf(buf,sizeof(buf),"cgroup:ro proc:mixed sys:mixed shmounts:%s", bc->extended.shmounts);
+		ret = snprintf(buf,sizeof(buf),"cgroup:mixed proc:mixed sys:mixed shmounts:%s", bc->extended.shmounts);
 	} else {
 		// The shmount option was not enabled. Set default options.
 		buf[0] = '\0';
-		ret = snprintf(buf,sizeof(buf),"cgroup:ro proc:mixed sys:mixed");
+		ret = snprintf(buf,sizeof(buf),"cgroup:mixed proc:mixed sys:mixed");
 	}
 	bret = plxc->set_config_item(plxc, "lxc.mount.auto", buf);
 	if (bret == false) {
@@ -233,7 +234,8 @@ err_ret:
 	return result;
 }
 /**
- * Create the per container cgroup setting to avoid overwrite from guest.
+ * Create the per container cgroup setting to avoid overwrite from guest in cgroup v1 environment.
+ * It must be same interface for lxcutil_create_per_guest_cgroup.
  *
  * @param [in]	plxc	The lxc container instance to set config.
  * @param [in]	rsc		Pointer to container_resourceconfig_t.
@@ -243,7 +245,7 @@ err_ret:
  * @retval -1	Got lxc error.
  * @retval -2	A bytes of config string is larger than buffer size. Critical case only.
  */
-static int lxcutil_create_per_guest_cgroup(struct lxc_container *plxc, container_resourceconfig_t *rsc, const char *name)
+static int lxcutil_create_per_guest_cgroup_v1(struct lxc_container *plxc, container_resourceconfig_t *rsc, const char *name)
 {
 	int result = -1;
 	bool bret = false;
@@ -333,6 +335,8 @@ static int lxcutil_create_per_guest_cgroup(struct lxc_container *plxc, container
 		goto err_ret;
 	}
 
+	rsc->enable_cgroup_inner_outer_mode = 1;
+
 	return 0;
 
 err_ret:
@@ -344,6 +348,56 @@ err_ret:
 
 	(void) free(rsc->cgroup_path_container);
 	rsc->cgroup_path_container = NULL;
+
+	rsc->enable_cgroup_inner_outer_mode = 0;
+
+	return result;
+}
+/**
+ * Create the per container cgroup setting to avoid overwrite from guest in cgroup v2 environment.
+ * It must be same interface for lxcutil_create_per_guest_cgroup.
+ *
+ * @param [in]	plxc	The lxc container instance to set config.
+ * @param [in]	rsc		Pointer to container_resourceconfig_t.
+ * @param [in]	name	String for guest name.
+ * @return int
+ * @retval 0	Success to set lxc config.
+ * @retval -1	Got lxc error.
+ * @retval -2	A bytes of config string is larger than buffer size. Critical case only.
+ */
+static int lxcutil_create_per_guest_cgroup_v2(struct lxc_container *plxc, container_resourceconfig_t *rsc, const char *name)
+{
+	// This feature is not support v2 environment.
+	rsc->cgroup_subpath_container_inner = NULL;
+	rsc->cgroup_path_monitor = NULL;
+	rsc->cgroup_path_container = NULL;
+	rsc->enable_cgroup_inner_outer_mode = 0;
+	return 0;
+}
+/**
+ * Create the per container cgroup setting to avoid overwrite from guest.
+ *
+ * @param [in]	plxc	The lxc container instance to set config.
+ * @param [in]	rsc		Pointer to container_resourceconfig_t.
+ * @param [in]	name	String for guest name.
+ * @return int
+ * @retval 0	Success to set lxc config.
+ * @retval -1	Got lxc error.
+ * @retval -2	A bytes of config string is larger than buffer size. Critical case only.
+ */
+static int lxcutil_create_per_guest_cgroup(struct lxc_container *plxc, container_resourceconfig_t *rsc, const char *name)
+{
+	int result = -1;
+	int ret = -1;
+
+	ret = cgroup_util_get_cgroup_version();
+	if (ret == 2) {
+		result = lxcutil_create_per_guest_cgroup_v2(plxc, rsc, name);
+	} else if (ret == 1) {
+		result = lxcutil_create_per_guest_cgroup_v1(plxc, rsc, name);
+	} else {
+		result = -1;
+	}
 
 	return result;
 }
@@ -364,6 +418,8 @@ static int lxcutil_release_per_guest_cgroup_runtime_data(container_resourceconfi
 
 	(void) free(rsc->cgroup_path_container);
 	rsc->cgroup_path_container = NULL;
+
+	rsc->enable_cgroup_inner_outer_mode = 0;
 
 	return 0;
 }
@@ -552,6 +608,42 @@ err_ret:
 	return result;
 }
 /**
+ * Set lxc config from container config deviceconfig sub part for set default.
+ *
+ * @param [in]	plxc		The lxc container instance to set config.
+ * @param [in]	is_allow	If this parameter set true, it set allow.  If this parameter set true, it set deny.
+ * @param [in]	config_str	Device setting string.
+ * @return bool
+ * @retval true	Success to set lxc config.
+ * @retval false Fail to set lxc config.
+ */
+static bool lxcutil_set_cgroup_device(struct lxc_container *plxc, bool is_allow, const char *config_str)
+{
+	int ret = -1;
+	bool bret = false;
+
+	ret = cgroup_util_get_cgroup_version();
+	if (ret == 1) {
+		// cgroup v1
+		if (is_allow == true) {
+			bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", config_str);
+		} else {
+			bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.deny", config_str);
+		}
+	} else if (ret == 2) {
+		// cgroup v2
+		if (is_allow == true) {
+			bret = plxc->set_config_item(plxc, "lxc.cgroup2.devices.allow", config_str);
+		} else {
+			bret = plxc->set_config_item(plxc, "lxc.cgroup2.devices.deny", config_str);
+		}
+	} else {
+		bret = false;
+	}
+
+	return bret;
+}
+/**
  * Create lxc config from container config deviceconfig sub part for set default.
  *
  * @param [in]	plxc	The lxc container instance to set config.
@@ -560,71 +652,41 @@ err_ret:
  * @retval -1	Got lxc error.
  * @retval -2	A bytes of config string is larger than buffer size. Critical case only.
  */
+static const char *g_default_allow_devices[] = {
+	"c 1:3 rwm",	// /dev/null
+	"c 1:5 rwm",	// /dev/zero
+	"c 1:7 rwm",	// /dev/full
+	"c 5:0 rwm",	// /dev/tty
+	"c 5:2 rwm",	// /dev/ptmx
+	"c 1:8 rwm",	// /dev/random
+	"c 1:9 rwm",	// /dev/urandom
+	"c 136:* rwm",	// /dev/pts/x
+	NULL,
+};
 static int lxcutil_set_config_static_device_default(struct lxc_container *plxc)
 {
 	int result = 0;
 	bool bret = false;
 
 	// Set all devices are deny
-	bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.deny", "a");
+	bret = lxcutil_set_cgroup_device(plxc, false, "a");
 	if (bret == false) {
 		result = -1;
 		goto err_ret;
 	}
 
-	// /dev/null
-	bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", "c 1:3 rwm");
-	if (bret == false) {
-		result = -1;
-		goto err_ret;
-	}
+	// Set default allow devices
+	for (int i=0; ; i++) {
+		const char *config_str = g_default_allow_devices[i];
+		if (config_str == NULL) {
+			break;
+		}
 
-	// /dev/zero
-	bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", "c 1:5 rwm");
-	if (bret == false) {
-		result = -1;
-		goto err_ret;
-	}
-
-	// /dev/full
-	bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", "c 1:7 rwm");
-	if (bret == false) {
-		result = -1;
-		goto err_ret;
-	}
-
-	// /dev/tty
-	bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", "c 5:0 rwm");
-	if (bret == false) {
-		result = -1;
-		goto err_ret;
-	}
-
-	// /dev/ptmx
-	bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", "c 5:2 rwm");
-	if (bret == false) {
-		result = -1;
-		goto err_ret;
-	}
-
-	// /dev/random
-	bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", "c 1:8 rwm");
-	if (bret == false) {
-		result = -1;
-		goto err_ret;
-	}
-
-	// /dev/urandom
-	bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", "c 1:9 rwm");
-	if (bret == false) {
-		result = -1;
-		goto err_ret;
-	}
-	// /dev/pts/x
-	bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", "c 136:* rwm");
-	if (bret == false) {
-		result = -1;
-		goto err_ret;
+		bret = lxcutil_set_cgroup_device(plxc, true, config_str);
+		if (bret == false) {
+			result = -1;
+			goto err_ret;
+		}
 	}
 
 err_ret:
@@ -734,7 +796,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 			}
 		}
 
-		bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", buf);
+		bret = lxcutil_set_cgroup_device(plxc, true, buf);
 	}
 
 	// gpio
@@ -865,7 +927,7 @@ static int lxcutil_set_config_static_device(struct lxc_container *plxc, containe
 					continue;	// buffer over -> drop data
 				}
 
-				bret = plxc->set_config_item(plxc, "lxc.cgroup.devices.allow", buf);
+				bret = lxcutil_set_cgroup_device(plxc, true, buf);
 				if (bret == false) {
 					result = -1;
 					#ifdef _PRINTF_DEBUG_

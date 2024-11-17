@@ -224,6 +224,7 @@ struct s_container_resourceconfig {
 	container_resource_t resource;	/**< The data structure for container resource control settings. */
 
 	//--- internal control data
+	int enable_cgroup_inner_outer_mode;							/**< Enable/Disable cgroup v1 inner outer mode. 1:Enable, 0:Disable. */
 	char *cgroup_path_container;								/**< A mirror for lxc.cgroup.dir.container. */
 	char *cgroup_path_monitor;									/**< A mirror for lxc.cgroup.dir.monitor. */
 	char *cgroup_subpath_container_inner;						/**< A mirror for lxc.cgroup.dir.container.inner. */
