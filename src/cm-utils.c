@@ -62,6 +62,7 @@ int intr_safe_write(int fd, const void* data, size_t size)
 int once_write(const char *path, const void* data, size_t size)
 {
 	int fd = -1;
+	int result = 0;
 	ssize_t ret = -1;
 
 	fd = open(path, (O_WRONLY | O_CLOEXEC | O_TRUNC));
@@ -73,9 +74,13 @@ int once_write(const char *path, const void* data, size_t size)
 		ret = write(fd, data, size);
 	} while ((ret == -1) && (errno == EINTR));
 
+	if (ret < 0) {
+		result = -1;
+	}
+
 	(void) close(fd);
 
-	return 0;
+	return result;
 }
 /**
  * Once read util.
@@ -92,6 +97,7 @@ int once_write(const char *path, const void* data, size_t size)
 int once_read(const char *path, void* data, size_t size)
 {
 	int fd = -1;
+	int result = 0;
 	ssize_t ret = -1;
 
 	fd = open(path, (O_RDONLY | O_CLOEXEC));
@@ -103,9 +109,13 @@ int once_read(const char *path, void* data, size_t size)
 		ret = read(fd, data, size);
 	} while ((ret == -1) && (errno == EINTR));
 
+	if (ret < 0) {
+		result = -1;
+	}
+
 	(void) close(fd);
 
-	return 0;
+	return result;
 }
 /**
  * File node check.
