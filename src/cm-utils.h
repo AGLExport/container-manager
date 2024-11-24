@@ -27,6 +27,7 @@ void sleep_ms_time(int64_t wait_time);
 int mount_disk_failover(char **devs, const char *path, const char *fstype, unsigned long mntflag, char* option);
 int mount_disk_ab(char **devs, const char *path, const char *fstype, unsigned long mntflag, char* option, int side);
 int mount_disk_once(char **devs, const char *path, const char *fstype, unsigned long mntflag, char* option);
+int mount_disk_bind(const char *src_path, const char *dest_path, int is_read_only);
 int unmount_disk(const char *path, int64_t timeout_at, int retry_max);
 //-----------------------------------------------------------------------------
 #endif //#ifndef CM_UTIL_H
