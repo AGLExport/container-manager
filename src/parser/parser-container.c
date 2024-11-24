@@ -162,7 +162,7 @@ static int cmparser_parser_get_diskmountfailop(const char *str)
 static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *rootfs)
 {
 	int result = -1;
-	cJSON *path = NULL, *filesystem = NULL, *mode = NULL, *option= NULL, *blockdev = NULL;
+	cJSON *path = NULL, *filesystem = NULL, *mode = NULL, *option= NULL, *blockdev = NULL, *hostpath = NULL;
 
 	path = cJSON_GetObjectItemCaseSensitive(rootfs, "path");
 	if (cJSON_IsString(path) && (path->valuestring != NULL)) {
@@ -186,12 +186,8 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 		(void) fprintf(stdout,"cmparser: filesystem value = %s\n",bc->rootfs.filesystem);
 		#endif
 	} else {
-		// Mandatory value
-		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		(void) fprintf(stderr,"[CM CRITICAL ERROR] cmparser: The rootfs filesystem is not set. It's mandatory value\n");
-		#endif
-		result = -2;
-		goto err_ret;
+		// In case of host bind mount, this option is not needed.
+		bc->rootfs.filesystem = NULL;
 	}
 
 	mode = cJSON_GetObjectItemCaseSensitive(rootfs, "mode");
@@ -217,32 +213,69 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 	}
 
 	blockdev = cJSON_GetObjectItemCaseSensitive(rootfs, "blockdev");
+	hostpath = cJSON_GetObjectItemCaseSensitive(rootfs, "hostpath");
 	if (cJSON_IsArray(blockdev)) {
 		cJSON *dev = NULL;
 		int i = 0;
 
+		// In case of block device, filesystem is mandatory setting.
+		if (bc->rootfs.filesystem == NULL) {
+			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+			(void) fprintf(stderr,"[CM CRITICAL ERROR] cmparser: The rootfs filesystem is not set. It's mandatory value.\n");
+			#endif
+			result = -2;
+			goto err_ret;
+		}
 
+		bc->rootfs.device_type = DEVICE_TYPE_BLOCK;
 		cJSON_ArrayForEach(dev, blockdev) {
 			if (i < 2) {
 				if (cJSON_IsString(dev) && (dev->valuestring != NULL)) {
-					bc->rootfs.blockdev[i] = strdup(dev->valuestring);
+					bc->rootfs.rootfs_dev[i] = strdup(dev->valuestring);
 					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"cmparser: base-path blockdev[%d] = %s\n",i,bc->rootfs.blockdev[i]);
+					(void) fprintf(stdout,"cmparser: base-path rootfs_dev[%d] = %s\n",i,bc->rootfs.rootfs_dev[i]);
 					#endif
 				} else {
-					bc->rootfs.blockdev[i] = NULL;
+					bc->rootfs.rootfs_dev[i] = NULL;
 					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"cmparser: base-path blockdev[%d] set default value = NULL\n", i);
+					(void) fprintf(stdout,"cmparser: base-path rootfs_dev[%d] set default value = NULL\n", i);
 					#endif
 				}
 			}
 			i++;
 		}
+	} else if (cJSON_IsArray(hostpath)) {
+		cJSON *dev = NULL;
+		int i = 0;
+
+		bc->rootfs.device_type = DEVICE_TYPE_HOST_ROOTFILESYSTEM;
+		cJSON_ArrayForEach(dev, hostpath) {
+			if (i < 2) {
+				if (cJSON_IsString(dev) && (dev->valuestring != NULL)) {
+					bc->rootfs.rootfs_dev[i] = strdup(dev->valuestring);
+					#ifdef _PRINTF_DEBUG_
+					(void) fprintf(stdout,"cmparser: base-path rootfs_dev[%d] = %s\n",i,bc->rootfs.rootfs_dev[i]);
+					#endif
+				} else {
+					bc->rootfs.rootfs_dev[i] = NULL;
+					#ifdef _PRINTF_DEBUG_
+					(void) fprintf(stdout,"cmparser: base-path rootfs_dev[%d] set default value = NULL\n", i);
+					#endif
+				}
+			}
+			i++;
+		}
+	} else {
+		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+		(void) fprintf(stderr,"[CM CRITICAL ERROR] cmparser: The block device/host rootfs path for rootfs is not set. It's mandatory value.\n");
+		#endif
+		result = -2;
+		goto err_ret;
 	}
 
-	if (bc->rootfs.blockdev[0] == NULL) {
+	if (bc->rootfs.rootfs_dev[0] == NULL) {
 		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		(void) fprintf(stderr,"[CM CRITICAL ERROR] cmparser: The block device for rootfs is not set. It's mandatory value\n");
+		(void) fprintf(stderr,"[CM CRITICAL ERROR] cmparser: The block device/host rootfs path for rootfs is not set. It's mandatory value\n");
 		#endif
 		result = -2;
 		goto err_ret;
@@ -251,11 +284,11 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 	return 0;
 
 err_ret:
-	(void) free(bc->rootfs.blockdev[1]);
-	bc->rootfs.blockdev[1] = NULL;
+	(void) free(bc->rootfs.rootfs_dev[1]);
+	bc->rootfs.rootfs_dev[1] = NULL;
 
-	(void) free(bc->rootfs.blockdev[0]);
-	bc->rootfs.blockdev[0] = NULL;
+	(void) free(bc->rootfs.rootfs_dev[0]);
+	bc->rootfs.rootfs_dev[0] = NULL;
 
 	(void) free(bc->rootfs.option);
 	bc->rootfs.option = NULL;
@@ -2073,7 +2106,7 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 		if (cJSON_IsString(role) && (role->valuestring != NULL)) {
 			ccfg->role = strdup(role->valuestring);
 			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-role value = %s\n",bc->role);
+			(void) fprintf(stdout,"cmparser: base-role value = %s\n",ccfg->role);
 			#endif
 		} else {
 			// When it not set, role is set container name
@@ -2368,8 +2401,8 @@ void cmparser_release_config(container_config_t *cc)
 			(void) free(exdisk);
 		}
 
-		(void) free(cc->baseconfig.rootfs.blockdev[0]);
-		(void) free(cc->baseconfig.rootfs.blockdev[1]);
+		(void) free(cc->baseconfig.rootfs.rootfs_dev[0]);
+		(void) free(cc->baseconfig.rootfs.rootfs_dev[1]);
 		(void) free(cc->baseconfig.rootfs.option);
 		(void) free(cc->baseconfig.rootfs.filesystem);
 		(void) free(cc->baseconfig.rootfs.path);

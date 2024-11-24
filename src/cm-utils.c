@@ -443,6 +443,47 @@ int mount_disk_once(char **devs, const char *path, const char *fstype, unsigned 
 	return 0;
 }
 /**
+ * Bind mount procedure.
+ *
+ * @param [in]	src_path	Source path of bind mount.
+ * @param [in]	dest_path	Destination path of bind mount.
+ * @param [in]	is_read_only		Read only flag. (1=read only mount)
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 mount error.
+ * @retval -2 Syscall error.
+ * @retval -3 Arg. error.
+ */
+int mount_disk_bind(const char *src_path, const char *dest_path, int is_read_only)
+{
+	int ret = 1;
+
+	ret = mount(src_path, dest_path, NULL, MS_BIND, NULL);
+	if (ret < 0) {
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"mount_disk_bind: %s bind mount fail to %s (%d).\n", src_path, dest_path, errno);
+		#endif
+		return -1;
+	}
+
+	if (is_read_only == 1) {
+		ret = mount(dest_path, dest_path, NULL, (MS_REMOUNT | MS_BIND | MS_RDONLY), NULL);
+		if (ret < 0) {
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"mount_disk_bind: read only remount fail to %s (%d).\n", dest_path, errno);
+			#endif
+			(void) umount(dest_path);
+			return -1;
+		}
+	}
+
+	#ifdef _PRINTF_DEBUG_
+	(void) fprintf(stdout,"mount_disk_bind: %s bind mount to %s\n", src_path, dest_path);
+	#endif
+
+	return 0;
+}
+/**
  * This function exec unmount operation.
  *
  * @param [in]	path		Unmount path.

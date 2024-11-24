@@ -1098,6 +1098,56 @@ int container_cleanup(container_config_t *cc, int64_t timeout)
 	return 0;
 }
 /**
+ * Rootfs mount procedure.
+ * This function do mount operation for guest rootfilesystem.
+ *
+ * @param [in]	bc	Pointer to container_baseconfig_rootfs_t.
+* @param [in]	side	Mount side a(=0) or b(=1).
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 mount error.
+ * @retval -2 Syscall error.
+ * @retval -3 Device type error.
+ */
+static int container_start_preprocess_base_do_mount_rootfs(container_baseconfig_rootfs_t *cbr, int side)
+{
+	int ret = -1, result = 0;
+
+	// mount rootfs
+	if (cbr->device_type == DEVICE_TYPE_BLOCK) {
+		// Device is block device.
+		unsigned long mntflag = 0;
+		if (cbr->mode == DISKMOUNT_TYPE_RW) {
+			mntflag = (MS_DIRSYNC | MS_NOATIME | MS_NODEV | MS_SYNCHRONOUS);
+		} else {
+			mntflag = (MS_NOATIME | MS_RDONLY);
+		}
+
+		ret = mount_disk_ab(cbr->rootfs_dev, cbr->path
+							, cbr->filesystem, mntflag, cbr->option, side);
+		if (ret < 0) {
+			result = -1;
+		}
+	} else if (cbr->device_type == DEVICE_TYPE_HOST_ROOTFILESYSTEM) {
+		// Bind mount.
+		int is_read_only = 0;
+		if (cbr->mode == DISKMOUNT_TYPE_RO) {
+			is_read_only = 1;
+		} else {
+			is_read_only = 0;
+		}
+
+		ret = mount_disk_bind(cbr->rootfs_dev[0], cbr->path, is_read_only);
+		if (ret < 0) {
+			result = -1;
+		}
+	} else {
+		result = -3;
+	}
+
+	return result;
+}
+/**
  * Preprocess for container start.
  * This function exec mount operation a part of base config operation.
  *
@@ -1115,14 +1165,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 	// mount rootfs
 	if (bc->rootfs.is_mounted == 0) {
 		// When already mounted, bypass this mount operation.
-		if (bc->rootfs.mode == DISKMOUNT_TYPE_RW) {
-			mntflag = MS_DIRSYNC | MS_NOATIME | MS_NODEV | MS_SYNCHRONOUS;
-		} else {
-			mntflag = MS_NOATIME | MS_RDONLY;
-		}
-
-		ret = mount_disk_ab(bc->rootfs.blockdev, bc->rootfs.path
-							, bc->rootfs.filesystem, mntflag, bc->rootfs.option, bc->abboot);
+		ret = container_start_preprocess_base_do_mount_rootfs(&bc->rootfs, bc->abboot);
 		if (ret < 0) {
 			// root fs mount is mandatory.
 			bc->rootfs.error_count = bc->rootfs.error_count + 1;
@@ -1131,7 +1174,7 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 				// This log should be reduced to one output per 100 time (default) of error.
 				(void) fprintf(stderr
 								,"[CM CRITICAL ERROR] Mandatory disk %s could not mount. (count = %d)\n"
-								, bc->rootfs.blockdev[bc->abboot], bc->rootfs.error_count);
+								, bc->rootfs.rootfs_dev[bc->abboot], bc->rootfs.error_count);
 			}
 			#endif
 			return -1;

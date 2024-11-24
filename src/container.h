@@ -49,6 +49,16 @@
  */
 #define DISKREDUNDANCY_TYPE_MKFS	(3)
 /**
+ * @def	DISKREDUNDANCY_TYPE_AB
+ * @brief	Disk mount redundancy type is fsck (Automatically run file system check in case of mount fail). It use at s_container_baseconfig_extradisk.redundancy.
+ */
+#define DEVICE_TYPE_BLOCK	(0)
+/**
+ * @def	DISKREDUNDANCY_TYPE_AB
+ * @brief	Disk mount redundancy type is AB (Automatically run mkfs in case of mount fail). It use at s_container_baseconfig_extradisk.redundancy.
+ */
+#define DEVICE_TYPE_HOST_ROOTFILESYSTEM	(1)
+/**
  * @struct	s_container_baseconfig_rootfs
  * @brief	The data structure for container root filesystem.  It's a part of s_container_baseconfig.
  */
@@ -57,7 +67,8 @@ struct s_container_baseconfig_rootfs {
 	char *filesystem;	/**< rootfs file system type. */
 	int mode;			/**< file system mount mode. (ro=DISKMOUNT_TYPE_RO/rw=DISKMOUNT_TYPE_RW) */
 	char *option;			/**< file system specific mount option. (ex. data=ordered,errors=remount-ro at ext4)*/
-	char *blockdev[2];	/**< block device for rootfs with A/B update. 0=a.1=b */
+	int device_type;	/**< rootfs device type. (block device = DEVICE_TYPE_BLOCK/ path of host rootfilesystem = DEVICE_TYPE_HOST_ROOTFILESYSTEM) */
+	char *rootfs_dev[2];	/**< rootfilesystem device for rootfs with A/B update. 0=a.1=b */
 	//--- internal control data
 	int is_mounted;		/**< rootfs is mounted or not. 0: not mounted. 1: mounted.*/
 	int error_count;		/**< mount error count of rootfs. That exclude busy error.*/
