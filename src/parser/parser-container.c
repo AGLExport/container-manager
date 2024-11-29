@@ -785,12 +785,18 @@ err_ret:
 static int cmparser_parser_get_resourcetype(const char *str)
 {
 	static const char ccgroup[] = "cgroup";
+	static const char ccgroup_v1[] = "cgroupv1";
+	static const char ccgroup_v2[] = "cgroupv2";
 	static const char cprlimit[] = "prlimit";
 	static const char csysctl[] = "sysctl";
 	int ret = RESOURCE_TYPE_UNKNOWN;
 
 	if (strncmp(ccgroup, str, sizeof(ccgroup)) == 0) {
-		ret = RESOURCE_TYPE_CGROUP;
+		ret = RESOURCE_TYPE_CGROUP_V1;
+	} else if (strncmp(ccgroup_v1, str, sizeof(ccgroup_v1)) == 0) {
+		ret = RESOURCE_TYPE_CGROUP_V1;
+	} else if (strncmp(ccgroup_v2, str, sizeof(ccgroup_v2)) == 0) {
+		ret = RESOURCE_TYPE_CGROUP_V2;
 	} else if (strncmp(cprlimit, str, sizeof(cprlimit)) == 0) {
 		ret = RESOURCE_TYPE_PRLIMIT;
 	} else if (strncmp(csysctl, str, sizeof(csysctl)) == 0) {
