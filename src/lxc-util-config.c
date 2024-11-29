@@ -458,7 +458,7 @@ static int lxcutil_set_config_resource(struct lxc_container *plxc, container_res
 		buflen = (ssize_t)sizeof(buf) - 1;
 		buf[0] = '\0';
 
-		if (melem->type == RESOURCE_TYPE_CGROUP) {
+		if (melem->type == RESOURCE_TYPE_CGROUP_V1) {
 			if ((melem->object == NULL) || (melem->value == NULL)) {
 				continue;	//drop data
 			}
