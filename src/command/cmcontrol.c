@@ -216,10 +216,19 @@ error_return:
 	return;
 }
 
+const char *cm_control_lifecycle_messages[] = {
+	"Success to shutdown guest: name = %s\n",
+	"Success to shutdown guest: role = %s\n",
+	"Success to reboot guest: name = %s\n",
+	"Success to reboot guest: role = %s\n",
+	"Success to force reboot guest: name = %s\n",
+	"Success to force reboot guest: role = %s\n",
+};
 void cm_get_guest_lifecycle(int code, char *name)
 {
 	int fd = -1;
 	int ret = -1;
+	int message_index = 0;
 	ssize_t sret = -1;
 	container_extif_command_lifecycle_t packet;
 	container_extif_command_lifecycle_response_t response;
@@ -256,6 +265,8 @@ void cm_get_guest_lifecycle(int code, char *name)
 		goto error_return;
 	}
 
+	message_index = code - 20;
+
 	(void) strncpy(packet.guest_name, name, (sizeof(packet.guest_name) - 1u));
 
 	sret = write(fd, &packet, sizeof(packet));
@@ -279,16 +290,18 @@ void cm_get_guest_lifecycle(int code, char *name)
 	if (response.header.command == CONTAINER_EXTIF_COMMAND_RESPONSE_LIFECYCLE) {
 
 		if (response.response == CONTAINER_EXTIF_LIFECYCLE_RESPONSE_ACCEPT) {
-			(void) fprintf(stdout, "Command accept.\n");
+			(void) fprintf(stdout, cm_control_lifecycle_messages[message_index], name);
 		} else if (response.response == CONTAINER_EXTIF_LIFECYCLE_RESPONSE_NONAME) {
-			(void) fprintf(stdout, "Command no guest name of %s.\n", name);
+			(void) fprintf(stdout, "Unknown guest name: %s.\n", name);
 		} else if (response.response == CONTAINER_EXTIF_LIFECYCLE_RESPONSE_NOROLE) {
-			(void) fprintf(stdout, "Command no guest role of %s.\n", name);
+			(void) fprintf(stdout, "Unknown guest role: %s.\n", name);
 		} else if (response.response == CONTAINER_EXTIF_LIFECYCLE_RESPONSE_ERROR) {
-			(void) fprintf(stdout, "Command error.\n");
+			(void) fprintf(stdout, "Error response.\n");
 		} else {
-			(void) fprintf(stdout, "Command unknown error.\n");
+			(void) fprintf(stdout, "Unknown error.\n");
 		}
+	} else {
+		(void) fprintf(stdout, "No response from container-manager\n");
 	}
 
 error_return:
@@ -346,13 +359,13 @@ void cm_get_guest_change(int code, char *name)
 	if (response.header.command == CONTAINER_EXTIF_COMMAND_RESPONSE_CHANGE) {
 
 		if (response.response == CONTAINER_EXTIF_CHANGE_RESPONSE_ACCEPT) {
-			(void) fprintf(stdout, "Command accept.\n");
+			(void) fprintf(stdout, "Success to exchange active guest to %s.\n", name);
 		} else if (response.response == CONTAINER_EXTIF_CHANGE_RESPONSE_NONAME) {
-			(void) fprintf(stdout, "Command no guest name of %s.\n", name);
+			(void) fprintf(stdout, "Guest name %s does not find.\n", name);
 		} else if (response.response == CONTAINER_EXTIF_CHANGE_RESPONSE_ERROR) {
-			(void) fprintf(stdout, "Command error.\n");
+			(void) fprintf(stdout, "Error response.\n");
 		} else {
-			(void) fprintf(stdout, "Command unknown error.\n");
+			(void) fprintf(stdout, "Unknown error.\n");
 		}
 	}
 
@@ -450,7 +463,7 @@ int main(int argc, char *argv[])
 			break;
 		} else {
 			//TODO
-			(void) fprintf(stderr, "TODO\n");
+			(void) fprintf(stderr, "This option is not support.\n");
 			break;
 		}
 	} while(1);

@@ -289,6 +289,7 @@ static int container_external_interface_command_lifecycle(cm_external_interface_
 	int ret = -1;
 
 	(void) memset(&response, 0 , sizeof(response));
+	response.header.command = CONTAINER_EXTIF_COMMAND_RESPONSE_LIFECYCLE;
 
 	if(size >= (ssize_t)sizeof(container_extif_command_lifecycle_t)) {
 		if (pcom_life->subcommand == CONTAINER_EXTIF_SUBCOMMAND_FORCEREBOOT_GUEST) {

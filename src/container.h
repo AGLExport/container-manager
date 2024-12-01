@@ -49,6 +49,16 @@
  */
 #define DISKREDUNDANCY_TYPE_MKFS	(3)
 /**
+ * @def	DISKREDUNDANCY_TYPE_AB
+ * @brief	Disk mount redundancy type is fsck (Automatically run file system check in case of mount fail). It use at s_container_baseconfig_extradisk.redundancy.
+ */
+#define DEVICE_TYPE_BLOCK	(0)
+/**
+ * @def	DISKREDUNDANCY_TYPE_AB
+ * @brief	Disk mount redundancy type is AB (Automatically run mkfs in case of mount fail). It use at s_container_baseconfig_extradisk.redundancy.
+ */
+#define DEVICE_TYPE_HOST_ROOTFILESYSTEM	(1)
+/**
  * @struct	s_container_baseconfig_rootfs
  * @brief	The data structure for container root filesystem.  It's a part of s_container_baseconfig.
  */
@@ -57,7 +67,8 @@ struct s_container_baseconfig_rootfs {
 	char *filesystem;	/**< rootfs file system type. */
 	int mode;			/**< file system mount mode. (ro=DISKMOUNT_TYPE_RO/rw=DISKMOUNT_TYPE_RW) */
 	char *option;			/**< file system specific mount option. (ex. data=ordered,errors=remount-ro at ext4)*/
-	char *blockdev[2];	/**< block device for rootfs with A/B update. 0=a.1=b */
+	int device_type;	/**< rootfs device type. (block device = DEVICE_TYPE_BLOCK/ path of host rootfilesystem = DEVICE_TYPE_HOST_ROOTFILESYSTEM) */
+	char *rootfs_dev[2];	/**< rootfilesystem device for rootfs with A/B update. 0=a.1=b */
 	//--- internal control data
 	int is_mounted;		/**< rootfs is mounted or not. 0: not mounted. 1: mounted.*/
 	int error_count;		/**< mount error count of rootfs. That exclude busy error.*/
@@ -175,20 +186,25 @@ typedef struct s_container_baseconfig container_baseconfig_t;	/**< typedef for s
 //-----------------------------------------------------------------------------
 // resource config ---------------------------------
 /**
- * @def	RESOURCE_TYPE_CGROUP
- * @brief	Resource type is cgroup.  It use at s_container_resource_elem.type.
+ * @def	RESOURCE_TYPE_CGROUP_V1
+ * @brief	Resource type is cgroup v1.  It use at s_container_resource_elem.type.
  */
-#define RESOURCE_TYPE_CGROUP	(1)
+#define RESOURCE_TYPE_CGROUP_V1	(1)
+/**
+ * @def	RESOURCE_TYPE_CGROUP
+ * @brief	Resource type is cgroup unified that support both cgroup v1 and v2.  It use at s_container_resource_elem.type.
+ */
+#define RESOURCE_TYPE_CGROUP_V2	(2)
 /**
  * @def	RESOURCE_TYPE_PRLIMIT
  * @brief	Resource type is prlimit.  It use at s_container_resource_elem.type.
  */
-#define RESOURCE_TYPE_PRLIMIT	(2)
+#define RESOURCE_TYPE_PRLIMIT	(3)
 /**
  * @def	RESOURCE_TYPE_SYSCTL
  * @brief	Resource type is sysctl.  It use at s_container_resource_elem.type.
  */
-#define RESOURCE_TYPE_SYSCTL	(3)
+#define RESOURCE_TYPE_SYSCTL	(4)
 /**
  * @def	RESOURCE_TYPE_UNKNOWN
  * @brief	Resource type is not set.
@@ -224,6 +240,7 @@ struct s_container_resourceconfig {
 	container_resource_t resource;	/**< The data structure for container resource control settings. */
 
 	//--- internal control data
+	int enable_cgroup_inner_outer_mode;							/**< Enable/Disable cgroup v1 inner outer mode. 1:Enable, 0:Disable. */
 	char *cgroup_path_container;								/**< A mirror for lxc.cgroup.dir.container. */
 	char *cgroup_path_monitor;									/**< A mirror for lxc.cgroup.dir.monitor. */
 	char *cgroup_subpath_container_inner;						/**< A mirror for lxc.cgroup.dir.container.inner. */

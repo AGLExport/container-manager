@@ -62,6 +62,7 @@ int intr_safe_write(int fd, const void* data, size_t size)
 int once_write(const char *path, const void* data, size_t size)
 {
 	int fd = -1;
+	int result = 0;
 	ssize_t ret = -1;
 
 	fd = open(path, (O_WRONLY | O_CLOEXEC | O_TRUNC));
@@ -73,9 +74,13 @@ int once_write(const char *path, const void* data, size_t size)
 		ret = write(fd, data, size);
 	} while ((ret == -1) && (errno == EINTR));
 
+	if (ret < 0) {
+		result = -1;
+	}
+
 	(void) close(fd);
 
-	return 0;
+	return result;
 }
 /**
  * Once read util.
@@ -92,6 +97,7 @@ int once_write(const char *path, const void* data, size_t size)
 int once_read(const char *path, void* data, size_t size)
 {
 	int fd = -1;
+	int result = 0;
 	ssize_t ret = -1;
 
 	fd = open(path, (O_RDONLY | O_CLOEXEC));
@@ -103,9 +109,13 @@ int once_read(const char *path, void* data, size_t size)
 		ret = read(fd, data, size);
 	} while ((ret == -1) && (errno == EINTR));
 
+	if (ret < 0) {
+		result = -1;
+	}
+
 	(void) close(fd);
 
-	return 0;
+	return result;
 }
 /**
  * File node check.
@@ -428,6 +438,47 @@ int mount_disk_once(char **devs, const char *path, const char *fstype, unsigned 
 
 	#ifdef _PRINTF_DEBUG_
 	(void) fprintf(stdout,"mount_disk_once: %s mount to %s (%s)\n", dev, path, fstype);
+	#endif
+
+	return 0;
+}
+/**
+ * Bind mount procedure.
+ *
+ * @param [in]	src_path	Source path of bind mount.
+ * @param [in]	dest_path	Destination path of bind mount.
+ * @param [in]	is_read_only		Read only flag. (1=read only mount)
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 mount error.
+ * @retval -2 Syscall error.
+ * @retval -3 Arg. error.
+ */
+int mount_disk_bind(const char *src_path, const char *dest_path, int is_read_only)
+{
+	int ret = 1;
+
+	ret = mount(src_path, dest_path, NULL, MS_BIND, NULL);
+	if (ret < 0) {
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"mount_disk_bind: %s bind mount fail to %s (%d).\n", src_path, dest_path, errno);
+		#endif
+		return -1;
+	}
+
+	if (is_read_only == 1) {
+		ret = mount(dest_path, dest_path, NULL, (MS_REMOUNT | MS_BIND | MS_RDONLY), NULL);
+		if (ret < 0) {
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"mount_disk_bind: read only remount fail to %s (%d).\n", dest_path, errno);
+			#endif
+			(void) umount(dest_path);
+			return -1;
+		}
+	}
+
+	#ifdef _PRINTF_DEBUG_
+	(void) fprintf(stdout,"mount_disk_bind: %s bind mount to %s\n", src_path, dest_path);
 	#endif
 
 	return 0;
