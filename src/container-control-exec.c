@@ -173,12 +173,14 @@ int container_netif_remove_element(container_config_t *cc)
 	cdn = &cc->netifconfig.dynamic_netif;
 	// netif remove
 	dl_list_for_each(cdne, &cdn->dynamic_netiflist, container_dynamic_netif_elem_t, list) {
-		cdne->ifindex = 0;
-
-		// Don't need memory free.
 		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout, "network if update removed %s from %s\n", cdne->ifname, cc->name);
+		if (cdne->ifindex != 0) {
+			(void) fprintf(stdout, "network if update removed %s from %s\n", cdne->ifname, cc->name);
+		}
 		#endif
+
+		cdne->ifindex = 0;
+		// Don't need memory free.
 	}
 
 	return 0;

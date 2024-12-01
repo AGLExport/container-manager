@@ -424,6 +424,46 @@ static int lxcutil_release_per_guest_cgroup_runtime_data(container_resourceconfi
 	return 0;
 }
 /**
+ * Create lxc config for resource setting.
+ *
+ * @param [in]	plxc	The lxc container instance to set config.
+ * @param [in]	node	Name of resource group node.
+ * @param [in]	object	Object name.
+ * @param [in]	value	Value for object.
+ * @return int
+ * @retval 0	Success to set lxc config from rsc.
+ * @retval -1	Got lxc error.
+ * @retval -2	A bytes of config string is larger than buffer size. Critical case only.
+ */
+static int lxcutil_set_config_resource_node(struct lxc_container *plxc, const char *node, const char *object, const char *value)
+{
+	int result = 0;
+	bool bret = false;
+	char buf[1024];
+	ssize_t slen = 0, buflen = 0;
+
+	buflen = (ssize_t)sizeof(buf) - 1;
+	buf[0] = '\0';
+
+	slen = (ssize_t)snprintf(buf, buflen, "lxc.%s.%s", node, object);
+	if (slen >= buflen) {
+		// buffer over -> drop data
+		result = -2;
+		goto do_return;
+	}
+
+	bret = plxc->set_config_item(plxc, buf, value);
+	if (bret == false) {
+		result = -1;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_resource_node set config %s = %s fail.\n", buf, value);
+		#endif
+	}
+
+do_return:
+	return result;
+}
+/**
  * Create lxc config from container config resourceconfig sub part.
  *
  * @param [in]	plxc	The lxc container instance to set config.
@@ -436,13 +476,12 @@ static int lxcutil_release_per_guest_cgroup_runtime_data(container_resourceconfi
  */
 static int lxcutil_set_config_resource(struct lxc_container *plxc, container_resourceconfig_t *rsc, const char *name)
 {
-	int ret = -1, result = -1;
-	bool bret = false;
-	char buf[1024];
-	ssize_t slen = 0, buflen = 0;
+	int ret = -1, result = 0;
+	int cgroup_ver = -1;
 	container_resource_elem_t *melem = NULL;
-
-	(void) memset(buf,0,sizeof(buf));
+	#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+	int once_error = 0;
+	#endif
 
 	ret = lxcutil_create_per_guest_cgroup(plxc, rsc, name);
 	if (ret < 0) {
@@ -451,76 +490,76 @@ static int lxcutil_set_config_resource(struct lxc_container *plxc, container_res
 		} else {
 			result = -2;
 		}
-		goto err_ret;
+		goto do_return;
 	}
 
-	dl_list_for_each(melem, &rsc->resource.resourcelist, container_resource_elem_t, list) {
-		buflen = (ssize_t)sizeof(buf) - 1;
-		buf[0] = '\0';
+	cgroup_ver = cgroup_util_get_cgroup_version();
 
-		if (melem->type == RESOURCE_TYPE_CGROUP) {
+	dl_list_for_each(melem, &rsc->resource.resourcelist, container_resource_elem_t, list) {
+		if (melem->type == RESOURCE_TYPE_CGROUP_V1) {
 			if ((melem->object == NULL) || (melem->value == NULL)) {
 				continue;	//drop data
 			}
-
-			slen = (ssize_t)snprintf(buf, buflen, "lxc.cgroup.%s", melem->object);
-			if (slen >= buflen) {
-				continue;	// buffer over -> drop data
-			}
-
-			bret = plxc->set_config_item(plxc, buf, melem->value);
-			if (bret == false) {
-				result = -1;
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"lxcutil: lxcutil_set_config_resource set config %s = %s fail.\n", buf, melem->value);
+			if (cgroup_ver != 1) {
+				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+				if (once_error == 0) {
+					(void) fprintf(stderr,"[CM CRITICAL INFO] Container %s has cgroup v1 setting. It was dropped.\n", name);
+				}
+				once_error++;
 				#endif
-				goto err_ret;
+				continue;	//drop data
 			}
-		} else 	if (melem->type == RESOURCE_TYPE_PRLIMIT) {
+
+			ret = lxcutil_set_config_resource_node(plxc, "cgroup", melem->object, melem->value);
+			if (ret < 0) {
+				result = -1;
+				goto do_return;
+			}
+		} else if (melem->type == RESOURCE_TYPE_CGROUP_V2) {
+			if (melem->object == NULL || melem->value == NULL) {
+				continue;	//drop data
+			}
+			if (cgroup_ver != 2) {
+				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+				if (once_error == 0) {
+					(void) fprintf(stderr,"[CM CRITICAL INFO] Container %s has cgroup v2 setting. It was dropped.\n", name);
+				}
+				once_error++;
+				#endif
+				continue;	//drop data
+			}
+
+			ret = lxcutil_set_config_resource_node(plxc, "cgroup2", melem->object, melem->value);
+			if (ret < 0) {
+				result = -1;
+				goto do_return;
+			}
+		} else if (melem->type == RESOURCE_TYPE_PRLIMIT) {
 			if (melem->object == NULL || melem->value == NULL) {
 				continue;	//drop data
 			}
 
-			slen = (ssize_t)snprintf(buf, buflen, "lxc.prlimit.%s", melem->object);
-			if (slen >= buflen) {
-				continue;	// buffer over -> drop data
-			}
-
-			bret = plxc->set_config_item(plxc, buf, melem->value);
-			if (bret == false) {
+			ret = lxcutil_set_config_resource_node(plxc, "prlimit", melem->object, melem->value);
+			if (ret < 0) {
 				result = -1;
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"lxcutil: lxcutil_set_config_resource set config %s = %s fail.\n", buf, melem->value);
-				#endif
-				goto err_ret;
+				goto do_return;
 			}
 		} else if (melem->type == RESOURCE_TYPE_SYSCTL) {
 			if (melem->object == NULL || melem->value == NULL) {
 				continue;	//drop data
 			}
 
-			slen = (ssize_t)snprintf(buf, buflen, "lxc.sysctl.%s", melem->object);
-			if (slen >= buflen) {
-				continue;	// buffer over -> drop data
-			}
-
-			bret = plxc->set_config_item(plxc, buf, melem->value);
-			if (bret == false) {
+			ret = lxcutil_set_config_resource_node(plxc, "sysctl", melem->object, melem->value);
+			if (ret < 0) {
 				result = -1;
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"lxcutil: lxcutil_set_config_resource set config %s = %s fail.\n", buf, melem->value);
-				#endif
-				goto err_ret;
+				goto do_return;
 			}
 		} else {
 			; //nop
 		}
 	}
 
-	return 0;
-
-err_ret:
-
+do_return:
 	return result;
 }
 /**

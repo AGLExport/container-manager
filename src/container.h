@@ -186,20 +186,25 @@ typedef struct s_container_baseconfig container_baseconfig_t;	/**< typedef for s
 //-----------------------------------------------------------------------------
 // resource config ---------------------------------
 /**
- * @def	RESOURCE_TYPE_CGROUP
- * @brief	Resource type is cgroup.  It use at s_container_resource_elem.type.
+ * @def	RESOURCE_TYPE_CGROUP_V1
+ * @brief	Resource type is cgroup v1.  It use at s_container_resource_elem.type.
  */
-#define RESOURCE_TYPE_CGROUP	(1)
+#define RESOURCE_TYPE_CGROUP_V1	(1)
+/**
+ * @def	RESOURCE_TYPE_CGROUP
+ * @brief	Resource type is cgroup unified that support both cgroup v1 and v2.  It use at s_container_resource_elem.type.
+ */
+#define RESOURCE_TYPE_CGROUP_V2	(2)
 /**
  * @def	RESOURCE_TYPE_PRLIMIT
  * @brief	Resource type is prlimit.  It use at s_container_resource_elem.type.
  */
-#define RESOURCE_TYPE_PRLIMIT	(2)
+#define RESOURCE_TYPE_PRLIMIT	(3)
 /**
  * @def	RESOURCE_TYPE_SYSCTL
  * @brief	Resource type is sysctl.  It use at s_container_resource_elem.type.
  */
-#define RESOURCE_TYPE_SYSCTL	(3)
+#define RESOURCE_TYPE_SYSCTL	(4)
 /**
  * @def	RESOURCE_TYPE_UNKNOWN
  * @brief	Resource type is not set.
