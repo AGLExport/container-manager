@@ -6,11 +6,9 @@ noinst_LIBRARIES = libsocketcangw.a
 libsocketcangw_a_SOURCES = \
 	libsocketcangw.c
 
-libsocketcangw_a_LBSADD = 
-
 libsocketcangw_a_CFLAGS = \
-	-g \
-	-D_GNU_SOURCE 
+	-g -Wall -Wno-unused-but-set-variable \
+	-D_GNU_SOURCE
 
 # configure option 
 if ENABLE_ADDRESS_SANITIZER

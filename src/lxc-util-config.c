@@ -1245,6 +1245,8 @@ static int lxcutil_set_config_static_netif_vxcan(struct lxc_container *plxc, net
 
 	(void) socketcanutil_up_can_if(vxcan->peer_host);
 
+	(void) socketcanutil_configure_gateway(vxcan->upstream, vxcan->peer_host);
+
 	return 0;
 
 err_ret:

@@ -1,4 +1,4 @@
-SUBDIRS = src plugin 3rdparty/libsocketcangw
+SUBDIRS = 3rdparty/libsocketcangw src plugin
 
 if ENABLE_TEST
 SUBDIRS += test/unit

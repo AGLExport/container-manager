@@ -20,6 +20,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <libsocketcangw.h>
+
 #undef _PRINTF_DEBUG_
 
 /**
@@ -268,4 +270,34 @@ do_return:
 	}
 
 	return result;
+}
+
+int socketcanutil_configure_gateway(const char *src_ifname, const char *dest_ifname)
+{
+	int ret = -1;
+	socketcan_gw_rule_t gw_rule;
+
+	if ((src_ifname == NULL) || (dest_ifname == NULL)) {
+		return -1;
+	}
+
+	memset(&gw_rule, 0, sizeof(gw_rule));
+
+	gw_rule.src_ifindex = if_nametoindex(src_ifname);
+	gw_rule.dst_ifindex = if_nametoindex(dest_ifname);
+
+	if ((gw_rule.src_ifindex == 0) || (gw_rule.dst_ifindex == 0)) {
+		return -2;
+	}
+
+	gw_rule.options |= SOCKETCAN_GW_RULE_FILTER;
+	gw_rule.filter.can_id = 0x000;
+	gw_rule.filter.can_mask = 0x000;
+
+	ret = cangw_add_rule(&gw_rule);
+	if (ret < 0) {
+		; //nop
+	}
+
+	return 0;
 }
