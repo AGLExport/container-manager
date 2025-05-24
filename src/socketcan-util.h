@@ -11,6 +11,8 @@
 
 //-----------------------------------------------------------------------------
 int socketcanutil_create_vxcan_peer(const char *ifname, const char *peer_ifname);
+int socketcanutil_up_can_if(const char *ifname);
+int socketcanutil_remove_vxcan_peer(const char *ifname);
 
 //-----------------------------------------------------------------------------
 #endif //#ifndef SOCKETCAN_UTIL_H

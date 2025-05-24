@@ -7,9 +7,8 @@
 #include "socketcan-util.h"
 
 #include <stdlib.h>
-
+#include <net/if.h>
 #include <libmnl/libmnl.h>
-#include <linux/if.h>
 #include <linux/if_link.h>
 #include <linux/rtnetlink.h>
 #include <linux/can/vxcan.h>
@@ -24,15 +23,13 @@
 #undef _PRINTF_DEBUG_
 
 /**
- * Sub function for getting network interface name.
- * This function call from data_cb.
+ * Function for create VXCAN interface pair.
  *
- * @param [in]	nlh		The nlmsghdr by libmnl.
- * @param [out]	ifname	Buffer for ifname.
- * @param [out]	size	Buffer size for ifname.
+ * @param [in]	ifname	Pointer to ifname.
+ * @param [in]	peer_ifname	Pointer to peer ifname.
  * @return int
- * @retval	0	Success to get available data.
- * @retval	-1	No data.
+ * @retval	0	Success to create VXCAN interface pair.
+ * @retval	-1	Fail to create VXCAN interface pair.
  * @retval	-2	Argument error.
  */
 int socketcanutil_create_vxcan_peer(const char *ifname, const char *peer_ifname)
@@ -46,7 +43,8 @@ int socketcanutil_create_vxcan_peer(const char *ifname, const char *peer_ifname)
 	unsigned int portid = 0, vxcan_seq = 115200;
 
 	if ((ifname == NULL) || (peer_ifname == NULL)) {
-		return -2;
+		result = -2;
+		goto do_return;
 	}
 
 	nlh = mnl_nlmsg_put_header(buf);
@@ -80,6 +78,160 @@ int socketcanutil_create_vxcan_peer(const char *ifname, const char *peer_ifname)
 		mnl_attr_nest_end(nlh, peerinfo);
 	}
 	mnl_attr_nest_end(nlh, linkinfo);
+
+	nl = mnl_socket_open(NETLINK_ROUTE);
+	if (nl == NULL) {
+		result = -1;
+		goto do_return;
+	}
+
+	if (mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0) {
+		result = -1;
+		goto do_return;
+	}
+	portid = mnl_socket_get_portid(nl);
+
+	if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
+		result = -1;
+		goto do_return;
+	}
+
+	ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
+	if (ret == -1) {
+		result = -1;
+		goto do_return;
+	}
+
+	ret = mnl_cb_run(buf, ret, vxcan_seq, portid, NULL, NULL);
+	if (ret == -1){
+		result = -1;
+		goto do_return;
+	}
+
+do_return:
+	if (nl != NULL) {
+		mnl_socket_close(nl);
+	}
+
+	return result;
+}
+/**
+ * Function for remove VXCAN interface pair.
+ *
+ * @param [in]	ifname	Pointer to ifname.
+ * @return int
+ * @retval	0	Success to remove vxcan interface.
+ * @retval	-1	Fail to remove VXCAN interface pair.
+ * @retval	-2	Argument error.
+ * @retval	-3	No interface.
+ */
+int socketcanutil_up_can_if(const char *ifname)
+{
+	struct mnl_socket *nl = NULL;
+	char buf[8192];
+	struct nlmsghdr *nlh = NULL;
+	struct ifinfomsg *ifm = NULL;
+	int ret = 0, result = 0;
+	unsigned int portid = 0, vxcan_seq = 115202, vxcan_if_index = 0;
+
+	if (ifname == NULL) {
+		result = -2;
+		goto do_return;
+	}
+
+	vxcan_if_index = if_nametoindex(ifname);
+	if (vxcan_if_index == 0) {
+		// No interface
+		result = -3;
+		goto do_return;
+	}
+
+	nlh = mnl_nlmsg_put_header(buf);
+	nlh->nlmsg_type = RTM_NEWLINK;
+	nlh->nlmsg_flags = (NLM_F_REQUEST | NLM_F_ACK);
+	nlh->nlmsg_seq = vxcan_seq;
+	ifm = mnl_nlmsg_put_extra_header(nlh, sizeof(*ifm));
+	ifm->ifi_family = AF_UNSPEC;
+	ifm->ifi_index = vxcan_if_index;
+	ifm->ifi_change = 0;
+	ifm->ifi_flags = IFF_UP;
+
+	nl = mnl_socket_open(NETLINK_ROUTE);
+	if (nl == NULL) {
+		result = -1;
+		goto do_return;
+	}
+
+	if (mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0) {
+		result = -1;
+		goto do_return;
+	}
+	portid = mnl_socket_get_portid(nl);
+
+	if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
+		result = -1;
+		goto do_return;
+	}
+
+	ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
+	if (ret == -1) {
+		result = -1;
+		goto do_return;
+	}
+
+	ret = mnl_cb_run(buf, ret, vxcan_seq, portid, NULL, NULL);
+	if (ret == -1){
+		result = -1;
+		goto do_return;
+	}
+
+do_return:
+	if (nl != NULL) {
+		mnl_socket_close(nl);
+	}
+
+	return result;
+}
+/**
+ * Function for remove VXCAN interface pair.
+ *
+ * @param [in]	ifname	Pointer to ifname.
+ * @return int
+ * @retval	0	Success to remove vxcan interface.
+ * @retval	-1	Fail to remove VXCAN interface pair.
+ * @retval	-2	Argument error.
+ * @retval	-3	No interface.
+ */
+int socketcanutil_remove_vxcan_peer(const char *ifname)
+{
+	struct mnl_socket *nl = NULL;
+	char buf[8192];
+	struct nlmsghdr *nlh = NULL;
+	struct ifinfomsg *ifm = NULL;
+	int ret = 0, result = 0;
+	unsigned int portid = 0, vxcan_seq = 115201, vxcan_if_index = 0;
+
+	if (ifname == NULL) {
+		result = -2;
+		goto do_return;
+	}
+
+	vxcan_if_index = if_nametoindex(ifname);
+	if (vxcan_if_index == 0) {
+		// No interface
+		result = -3;
+		goto do_return;
+	}
+
+	nlh = mnl_nlmsg_put_header(buf);
+	nlh->nlmsg_type = RTM_DELLINK;
+	nlh->nlmsg_flags = (NLM_F_REQUEST | NLM_F_ACK);
+	nlh->nlmsg_seq = vxcan_seq;
+	ifm = mnl_nlmsg_put_extra_header(nlh, sizeof(*ifm));
+	ifm->ifi_family = AF_UNSPEC;
+	ifm->ifi_index = vxcan_if_index;
+	ifm->ifi_change = 0;
+	ifm->ifi_flags = 0;
 
 	nl = mnl_socket_open(NETLINK_ROUTE);
 	if (nl == NULL) {
