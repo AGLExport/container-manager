@@ -401,9 +401,7 @@ err_return:
 		(void) mnl_socket_close(nl);
 	}
 
-	if (netifmon != NULL) {
-		(void) free(netifmon);
-	}
+	(void) free(netifmon);
 
 	return -1;
 }

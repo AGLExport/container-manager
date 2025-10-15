@@ -798,9 +798,7 @@ err_return:
 		(void) udev_unref(pudev);
 	}
 
-	if (ddu != NULL) {
-		(void) free(ddu);
-	}
+	(void) free(ddu);
 
 	ddm->ddu = NULL;
 
