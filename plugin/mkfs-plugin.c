@@ -397,13 +397,9 @@ int cm_worker_new(cm_worker_instance_t **instance)
 	return 0;
 
 err_return:
-	if (plug != NULL) {
-		(void)free(plug);
-	}
+	(void)free(plug);
 
-	if (inst != NULL) {
-		(void)free(inst);
-	}
+	(void)free(inst);
 
 	return result;
 }

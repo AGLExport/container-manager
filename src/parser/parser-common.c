@@ -64,9 +64,7 @@ char *cmparser_read_jsonstring(const char *file)
 	return strbuf;
 
 err_ret:
-	if (strbuf != NULL) {
-		(void) free(strbuf);
-	}
+	(void) free(strbuf);
 
 	if(fd >= 0) {
 		(void) close(fd);
@@ -81,7 +79,5 @@ err_ret:
  */
 void cmparser_release_jsonstring(char *jsonstring)
 {
-	if (jsonstring != NULL) {
-		(void) free(jsonstring);
-	}
+	(void) free(jsonstring);
 }
