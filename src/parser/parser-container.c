@@ -1780,6 +1780,8 @@ static void* cmparser_parse_static_netif_veth_create(cJSON *param)
 		return NULL;
 	}
 
+	(void) memset(pveth, 0, sizeof(netif_elem_veth_t));
+
 	link = cJSON_GetObjectItemCaseSensitive(param, "link");
 	if (cJSON_IsString(link) && (link->valuestring != NULL)) {
 		plink = strdup(link->valuestring);
@@ -1879,6 +1881,8 @@ static void* cmparser_parse_static_netif_vxcan_create(cJSON *param)
 	if (pvxcan == NULL) {
 		return NULL;
 	}
+
+	(void) memset(pvxcan, 0, sizeof(netif_elem_vxcan_t));
 
 	name = cJSON_GetObjectItemCaseSensitive(param, "name");
 	if (cJSON_IsString(name) && (name->valuestring != NULL)) {
