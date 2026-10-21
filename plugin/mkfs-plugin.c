@@ -194,7 +194,13 @@ static int cm_worker_exec_mkfs(mkfs_plugin_t *pmkfs)
 	}
 
 	if (child_pid == 0) {
-		// exec /sbin/fsck.ext4 -p
+		// unblock SIGTERM for child process
+		sigset_t unblock;
+		(void) sigemptyset(&unblock);
+		(void) sigaddset(&unblock, SIGTERM);
+		(void) sigprocmask(SIG_UNBLOCK, &unblock, NULL);
+
+		// exec /sbin/mkfs.ext4 -p
 		(void) execlp("/sbin/mkfs.ext4", "/sbin/mkfs.ext4", "-I", "256", pmkfs->blkdev_path, (char*)NULL);
 
 		// Shall not return execlp

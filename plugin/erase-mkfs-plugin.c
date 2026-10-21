@@ -252,6 +252,12 @@ static int cm_worker_exec_mkfs(erase_mkfs_plugin_t *permkfs)
 	}
 
 	if (child_pid == 0) {
+		// unblock SIGTERM for child process
+		sigset_t unblock;
+		(void) sigemptyset(&unblock);
+		(void) sigaddset(&unblock, SIGTERM);
+		(void) sigprocmask(SIG_UNBLOCK, &unblock, NULL);
+
 		// exec /sbin/fsck.ext4 -p
 		(void) execlp("/sbin/mkfs.ext4", "/sbin/mkfs.ext4", "-I", "256", permkfs->blkdev_path, (char*)NULL);
 

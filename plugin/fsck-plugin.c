@@ -207,6 +207,12 @@ static int cm_worker_exec(cm_worker_handle_t handle)
 	}
 
 	if (child_pid == 0) {
+		// unblock SIGTERM for child process
+		sigset_t unblock;
+		(void) sigemptyset(&unblock);
+		(void) sigaddset(&unblock, SIGTERM);
+		(void) sigprocmask(SIG_UNBLOCK, &unblock, NULL);
+
 		// exec /sbin/fsck.ext4 -p
 		(void) execlp("/sbin/fsck.ext4", "/sbin/fsck.ext4", "-p", pfsck->blkdev_path, (char*)NULL);
 
