@@ -213,7 +213,10 @@ static int cm_worker_exec_mkfs(mkfs_plugin_t *pmkfs)
 
 	child_fd = libcmplug_pidfd_open(child_pid);
 	if (child_fd < 0) {
-		// Fail to fork
+		// Fail to fork?
+		int wait_status = 0;
+		(void) kill(child_pid, SIGKILL);
+		(void) waitpid(child_pid, &wait_status, 0);
 		goto do_return;
 	}
 
@@ -247,7 +250,7 @@ static int cm_worker_exec_mkfs(mkfs_plugin_t *pmkfs)
 				// Can't wait child process.
 				int wait_status = 0;
 
-				(void) kill(child_pid, SIGTERM);
+				(void) kill(child_pid, SIGKILL);
 				(void) waitpid(child_pid, &wait_status, 0);
 				result = -1;
 				#ifdef _PRINTF_DEBUG_
