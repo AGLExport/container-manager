@@ -406,7 +406,7 @@ int container_workqueue_run(container_workqueue_t *workqueue)
 
 	ret = pthread_create(&(workqueue->worker_thread), &thread_attr, container_workqueue_thread, (void*)workqueue);
 	(void) pthread_attr_destroy(&thread_attr);
-	if (ret < 0) {
+	if (ret != 0) {
 		// Fail back status.
 		status = CONTAINER_WORKER_SCHEDULED;
 		__atomic_store(&(workqueue->status), &status, __ATOMIC_RELAXED);
@@ -576,7 +576,7 @@ int container_workqueue_get_status(container_workqueue_t *workqueue)
  */
 int container_workqueue_initialize(container_workqueue_t *workqueue)
 {
-	int result = -1;
+	int result = 0;
 	int status = CONTAINER_WORKER_DISABLE;
 
 	if (workqueue == NULL) {
