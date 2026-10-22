@@ -716,7 +716,6 @@ struct s_cm_worker_object;
  */
 struct s_container_workqueue {
 	pthread_t worker_thread;				/**< Worker thread object. */
-	pthread_mutex_t workqueue_mutex;		/**< Mutex for container workqueue. */
 	struct s_cm_worker_object *object;		/**< Worker object.*/
 	int status;								/**< Status of this workqueue. */
 	int state_after_execute;				/**< Container state after workqueue execute. Keep stop: 0. Restart: 1. Other: error.*/

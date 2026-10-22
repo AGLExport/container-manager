@@ -310,19 +310,24 @@ error_return:
  */
 int container_workqueue_cleanup(container_workqueue_t *workqueue, int *after_execute)
 {
+	int status = CONTAINER_WORKER_DISABLE;
+
 	if ((workqueue == NULL) || (after_execute == NULL)) {
 		return -2;
 	}
 
-	if (workqueue->status == CONTAINER_WORKER_STARTED) {
+	__atomic_load(&(workqueue->status), &status, __ATOMIC_ACQUIRE);
+
+	if (status == CONTAINER_WORKER_STARTED) {
 		return -1;
-	} else if (workqueue->status != CONTAINER_WORKER_COMPLETED) {
+	} else if (status != CONTAINER_WORKER_COMPLETED) {
 		return -3;
 	} else {
 		;	//nop
 	}
 
-	workqueue->status = CONTAINER_WORKER_INACTIVE;
+	status = CONTAINER_WORKER_INACTIVE;
+	__atomic_store(&(workqueue->status), &status, __ATOMIC_RELAXED);
 
 	if (workqueue->state_after_execute == 1) {
 		(*after_execute) = 1;
@@ -350,6 +355,7 @@ int container_workqueue_cleanup(container_workqueue_t *workqueue, int *after_exe
 static void* container_workqueue_thread(void *args)
 {
 	int ret = -1;
+	int status = CONTAINER_WORKER_DISABLE;
 	container_workqueue_t *workqueue = (container_workqueue_t*)args;
 
 	if (args == NULL) {
@@ -358,10 +364,9 @@ static void* container_workqueue_thread(void *args)
 
 	ret = container_workqueue_exec(workqueue);
 
-	(void) pthread_mutex_lock(&(workqueue->workqueue_mutex));
 	workqueue->result = ret;
-	workqueue->status = CONTAINER_WORKER_COMPLETED;
-	(void) pthread_mutex_unlock(&(workqueue->workqueue_mutex));
+	status = CONTAINER_WORKER_COMPLETED;
+	__atomic_store(&(workqueue->status), &status, __ATOMIC_RELEASE);
 
 	pthread_exit(NULL);
 
@@ -381,28 +386,30 @@ static void* container_workqueue_thread(void *args)
 int container_workqueue_run(container_workqueue_t *workqueue)
 {
 	int ret = -1;
+	int status = CONTAINER_WORKER_DISABLE;
 	pthread_attr_t thread_attr;
 
 	if (workqueue == NULL) {
 		return -2;
 	}
 
-	if (workqueue->status != CONTAINER_WORKER_SCHEDULED) {
+	__atomic_load(&(workqueue->status), &status, __ATOMIC_RELAXED);
+	if (status != CONTAINER_WORKER_SCHEDULED) {
 		return -1;
 	}
 
 	(void) pthread_attr_init(&thread_attr);
 	(void) pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_DETACHED);
 
-	(void) pthread_mutex_lock(&(workqueue->workqueue_mutex));
-	workqueue->status = CONTAINER_WORKER_STARTED;
-	(void) pthread_mutex_unlock(&(workqueue->workqueue_mutex));
+	status = CONTAINER_WORKER_STARTED;
+	__atomic_store(&(workqueue->status), &status, __ATOMIC_RELAXED);
 
 	ret = pthread_create(&(workqueue->worker_thread), &thread_attr, container_workqueue_thread, (void*)workqueue);
 	(void) pthread_attr_destroy(&thread_attr);
 	if (ret < 0) {
 		// Fail back status.
-		workqueue->status = CONTAINER_WORKER_SCHEDULED;
+		status = CONTAINER_WORKER_SCHEDULED;
+		__atomic_store(&(workqueue->status), &status, __ATOMIC_RELAXED);
 		return -3;
 	}
 
@@ -423,16 +430,18 @@ int container_workqueue_cancel(container_workqueue_t *workqueue)
 {
 	int ret = -1;
 	int result = -1;
+	int status = CONTAINER_WORKER_DISABLE;
 
 	if (workqueue == NULL) {
 		return -2;
 	}
 
-	if ((workqueue->status == CONTAINER_WORKER_DISABLE)
-		|| (workqueue->status == CONTAINER_WORKER_INACTIVE)) {
+	__atomic_load(&(workqueue->status), &status, __ATOMIC_RELAXED);
+	if ((status == CONTAINER_WORKER_DISABLE)
+		|| (status == CONTAINER_WORKER_INACTIVE)) {
 		// Not need cancel.
 		result = -1;
-	} else if (workqueue->status == CONTAINER_WORKER_SCHEDULED) {
+	} else if (status == CONTAINER_WORKER_SCHEDULED) {
 		// Worker is scheduled but not run. Can remove worker.
 		result = 0;
 	} else {
@@ -458,18 +467,22 @@ int container_workqueue_cancel(container_workqueue_t *workqueue)
  */
 int container_workqueue_remove(container_workqueue_t *workqueue, int *after_execute)
 {
+	int status = CONTAINER_WORKER_DISABLE;
+
 	if (workqueue == NULL) {
 		return -2;
 	}
 
-	if ((workqueue->status == CONTAINER_WORKER_STARTED)
-		|| (workqueue->status == CONTAINER_WORKER_COMPLETED)) {
+	__atomic_load(&(workqueue->status), &status, __ATOMIC_RELAXED);
+	if ((status == CONTAINER_WORKER_STARTED)
+		|| (status == CONTAINER_WORKER_COMPLETED)) {
 		return -1;
 
 	}
 
-	if (workqueue->status != CONTAINER_WORKER_DISABLE) {
-		workqueue->status = CONTAINER_WORKER_INACTIVE;
+	if (status != CONTAINER_WORKER_DISABLE) {
+		status = CONTAINER_WORKER_INACTIVE;
+		__atomic_store(&(workqueue->status), &status, __ATOMIC_RELAXED);
 	}
 
 	if (after_execute != NULL) {
@@ -499,12 +512,14 @@ int container_workqueue_schedule(container_workqueue_t *workqueue, const char *k
 {
 	int ret = -1;
 	int result = -2;
+	int status = CONTAINER_WORKER_DISABLE;
 
 	if ((workqueue == NULL) || (key == NULL)) {
 		return -2;
 	}
 
-	if (workqueue->status != CONTAINER_WORKER_INACTIVE) {
+	__atomic_load(&(workqueue->status), &status, __ATOMIC_RELAXED);
+	if (status != CONTAINER_WORKER_INACTIVE) {
 		return -1;
 	}
 
@@ -515,7 +530,8 @@ int container_workqueue_schedule(container_workqueue_t *workqueue, const char *k
 
 	ret = container_workqueue_set_args(workqueue, args);
 	if (ret == 0) {
-		workqueue->status = CONTAINER_WORKER_SCHEDULED;
+		status = CONTAINER_WORKER_SCHEDULED;
+		__atomic_store(&(workqueue->status), &status, __ATOMIC_RELAXED);
 		workqueue->state_after_execute = launch_after_end;
 		workqueue->result = 0;
 		result = 0;
@@ -539,11 +555,15 @@ int container_workqueue_schedule(container_workqueue_t *workqueue, const char *k
  */
 int container_workqueue_get_status(container_workqueue_t *workqueue)
 {
+	int status = CONTAINER_WORKER_DISABLE;
+
 	if (workqueue == NULL) {
 		return CONTAINER_WORKER_DISABLE;
 	}
 
-	return workqueue->status;
+	__atomic_load(&(workqueue->status), &status, __ATOMIC_RELAXED);
+
+	return status;
 }
 
 /**
@@ -556,31 +576,21 @@ int container_workqueue_get_status(container_workqueue_t *workqueue)
  */
 int container_workqueue_initialize(container_workqueue_t *workqueue)
 {
-	int ret = -1;
 	int result = -1;
-	pthread_mutexattr_t mutex_attr;
+	int status = CONTAINER_WORKER_DISABLE;
 
 	if (workqueue == NULL) {
 		return -1;
 	}
 
 	(void) memset(workqueue, 0, sizeof(container_workqueue_t));
-	workqueue->status = CONTAINER_WORKER_DISABLE;
+	status = CONTAINER_WORKER_DISABLE;
+	__atomic_store(&(workqueue->status), &status, __ATOMIC_RELEASE);
 
-	(void) pthread_mutexattr_init(&mutex_attr);
-	(void) pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_ERRORCHECK);
-
-	ret = pthread_mutex_init(&(workqueue->workqueue_mutex), &mutex_attr);
-	if (ret < 0) {
-		goto err_ret;
-	}
-
-	workqueue->status = CONTAINER_WORKER_INACTIVE;
+	status = CONTAINER_WORKER_INACTIVE;
+	__atomic_store(&(workqueue->status), &status, __ATOMIC_RELEASE);
 	workqueue->state_after_execute = 0;
 	workqueue->result = 0;
-err_ret:
-
-	(void) pthread_mutexattr_destroy(&mutex_attr);
 
 	return result;
 }
@@ -601,9 +611,7 @@ int container_workqueue_deinitialize(container_workqueue_t *workqueue)
 		return -1;
 	}
 
-	(void) pthread_mutex_lock(&(workqueue->workqueue_mutex));
-	status = workqueue->status;
-	(void) pthread_mutex_unlock(&(workqueue->workqueue_mutex));
+	__atomic_load(&(workqueue->status), &status, __ATOMIC_ACQUIRE);
 
 	if (status == CONTAINER_WORKER_STARTED) {
 		// Not stopped workqueue. Have a crash risk.
@@ -611,9 +619,9 @@ int container_workqueue_deinitialize(container_workqueue_t *workqueue)
 		return -2;
 	}
 
-	workqueue->status = CONTAINER_WORKER_DISABLE;
+	status = CONTAINER_WORKER_DISABLE;
+	__atomic_store(&(workqueue->status), &status, __ATOMIC_RELEASE);
 	workqueue->state_after_execute = 0;
-	(void) pthread_mutex_destroy(&(workqueue->workqueue_mutex));
 
 	return 0;
 }
