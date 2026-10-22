@@ -137,6 +137,8 @@ static int cm_worker_wait_unmount(erase_mkfs_plugin_t *permkfs)
 
 	result = -1;
 	do {
+		int cancel_request = 0;
+
 		ret = libcmplug_node_check(test_path);
 		if (ret == -1) {
 			// Already unmounted
@@ -150,7 +152,8 @@ static int cm_worker_wait_unmount(erase_mkfs_plugin_t *permkfs)
 		libcmplug_sleep_ms_time(100ll);
 		retry_count--;
 
-		if (permkfs->cancel_request == 1) {
+		__atomic_load(&(permkfs->cancel_request), &cancel_request, __ATOMIC_RELAXED);
+		if (cancel_request == 1) {
 			// Got cancel request.
 			result = -1;
 			break;
@@ -202,7 +205,10 @@ static int cm_worker_exec_erase(erase_mkfs_plugin_t *permkfs)
 		ssize_t sret = -1;
 
 		do {
-			if (permkfs->cancel_request == 1) {
+			int cancel_request = 0;
+
+			__atomic_load(&(permkfs->cancel_request), &cancel_request, __ATOMIC_RELAXED);
+			if (cancel_request == 1) {
 				// Got cancel request.
 				result = 1;
 				goto do_return;
@@ -242,6 +248,7 @@ static int cm_worker_exec_mkfs(erase_mkfs_plugin_t *permkfs)
 	int ret = -1;
 	int exit_code = -1;
 	int child_fd = -1;
+	int cancel_request = 0;
 	pid_t child_pid = -1;
 
 	child_pid = fork();
@@ -292,7 +299,10 @@ static int cm_worker_exec_mkfs(erase_mkfs_plugin_t *permkfs)
 			break;
 		} else if (ret == 0) {
 			// Timeout
-			if (permkfs->cancel_request == 1) {
+			int cancel_request = 0;
+
+			__atomic_load(&(permkfs->cancel_request), &cancel_request, __ATOMIC_RELAXED);
+			if (cancel_request == 1) {
 				// Need to cancel
 				#ifdef _PRINTF_DEBUG_
 				(void) fprintf(stdout, "erase-mkfs-plugin: cm_worker_exec got a cancel request.\n");
@@ -344,7 +354,8 @@ static int cm_worker_exec_mkfs(erase_mkfs_plugin_t *permkfs)
 		goto do_return;
 	}
 
-	if (permkfs->cancel_request == 1) {
+	__atomic_load(&(permkfs->cancel_request), &cancel_request, __ATOMIC_RELAXED);
+	if (cancel_request == 1) {
 		result = 1;
 	} else {
 		result = 0;
@@ -431,6 +442,7 @@ do_return:
 int cm_worker_cancel(cm_worker_handle_t handle)
 {
 	erase_mkfs_plugin_t *permkfs = NULL;
+	int cancel_request = 1;
 
 	if (handle == NULL) {
 		return -1;
@@ -438,7 +450,7 @@ int cm_worker_cancel(cm_worker_handle_t handle)
 
 	permkfs = (erase_mkfs_plugin_t*)handle;
 
-	permkfs->cancel_request = 1;
+	__atomic_store(&(permkfs->cancel_request), &cancel_request, __ATOMIC_RELAXED);
 
 	return 0;
 }

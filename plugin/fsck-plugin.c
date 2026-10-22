@@ -136,6 +136,8 @@ static int cm_worker_wait_unmount(fsck_plugin_t *pfsck)
 
 	result = -1;
 	do {
+		int cancel_request = 0;
+
 		ret = libcmplug_node_check(test_path);
 		if (ret == -1) {
 			// Already unmounted
@@ -149,7 +151,8 @@ static int cm_worker_wait_unmount(fsck_plugin_t *pfsck)
 		libcmplug_sleep_ms_time(100ll);
 		retry_count--;
 
-		if (pfsck->cancel_request == 1) {
+		__atomic_load(&(pfsck->cancel_request), &cancel_request, __ATOMIC_RELAXED);
+		if (cancel_request == 1) {
 			// Got cancel request.
 			result = -1;
 			break;
@@ -184,6 +187,7 @@ static int cm_worker_exec(cm_worker_handle_t handle)
 	int ret = -1;
 	int exit_code = -1;
 	int child_fd = -1;
+	int cancel_request = 0;
 	pid_t child_pid = -1;
 
 	if (handle == NULL) {
@@ -247,7 +251,10 @@ static int cm_worker_exec(cm_worker_handle_t handle)
 			break;
 		} else if (ret == 0) {
 			// Timeout
-			if (pfsck->cancel_request == 1) {
+			int cancel_request = 0;
+
+			__atomic_load(&(pfsck->cancel_request), &cancel_request, __ATOMIC_RELAXED);
+			if (cancel_request == 1) {
 				// Need to cancel
 				#ifdef _PRINTF_DEBUG_
 				(void) fprintf(stdout, "fsck-plugin: cm_worker_exec got a cancel request.\n");
@@ -299,7 +306,8 @@ static int cm_worker_exec(cm_worker_handle_t handle)
 		goto do_return;
 	}
 
-	if (pfsck->cancel_request == 1) {
+	__atomic_load(&(pfsck->cancel_request), &cancel_request, __ATOMIC_RELAXED);
+	if (cancel_request == 1) {
 		result = 1;
 	} else {
 		result = 0;
@@ -323,6 +331,7 @@ do_return:
 int cm_worker_cancel(cm_worker_handle_t handle)
 {
 	fsck_plugin_t *pfsck = NULL;
+	int cancel_request = 1;
 
 	if (handle == NULL) {
 		return -1;
@@ -330,7 +339,7 @@ int cm_worker_cancel(cm_worker_handle_t handle)
 
 	pfsck = (fsck_plugin_t*)handle;
 
-	pfsck->cancel_request = 1;
+	__atomic_store(&(pfsck->cancel_request), &cancel_request, __ATOMIC_RELAXED);
 
 	return 0;
 }
