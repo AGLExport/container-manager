@@ -31,6 +31,40 @@
 static const char *cstr_signal_default = "SIGTERM";
 
 /**
+ * Utility function for the sub file availability check.
+ *
+ * @param [in]	file_path Path to the file to check.
+ * @return int
+ * @retval 0 File is available.
+ * @retval -1 Error occurred while checking file availability.
+ * @retval -2 Invalid file path.
+ */
+static int sub_file_availability_check(const char *file_path)
+{
+	int ret = -1, result = -1;
+	struct stat sb;
+
+	if (!file_path) {
+		result = -2;
+		goto do_return;
+	}
+
+	(void) memset(&sb, 0, sizeof(sb));
+	ret = stat(file_path, &sb);
+	if (ret < 0) {
+		goto do_return;
+	}
+	if ((sb.st_mode & S_IFMT) != S_IFREG) {
+		goto do_return;
+	}
+
+	result = 0;
+
+do_return:
+	return result;
+}
+
+/**
  * Sub function for the idmap parse.
  * Shall not call from other than cmparser_parse_base.
  *
@@ -1872,8 +1906,8 @@ static int cmparser_parse_static_netif_veth_free(void *p)
  */
 static void* cmparser_parse_static_netif_vxcan_create(cJSON *param)
 {
-	cJSON *name = NULL, *upstream = NULL;
-	char *pname = NULL, *pupstream = NULL;
+	cJSON *name = NULL, *upstream = NULL, *gw_config = NULL;
+	char *pname = NULL, *pupstream = NULL, *pgw_rule = NULL;
 	netif_elem_vxcan_t *pvxcan = NULL;
 	void *vp = NULL;
 
@@ -1900,17 +1934,40 @@ static void* cmparser_parse_static_netif_vxcan_create(cJSON *param)
 		goto error_return;
 	}
 
+	gw_config = cJSON_GetObjectItemCaseSensitive(param, "gw_rule");
+	if (cJSON_IsString(gw_config) && (gw_config->valuestring != NULL)) {
+		int ret = -1;
+		pgw_rule = strdup(gw_config->valuestring);
+		ret = sub_file_availability_check(pgw_rule);
+		if (ret < 0) {
+			// Fail back to default behavior.
+			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
+			(void) fprintf(stderr,"[CM CRITICAL INFO] cmparser: config has can gw_rule property but file(%s) is not available.\n", pgw_rule);
+			#endif
+			(void) free(pgw_rule);
+			pgw_rule = NULL;
+		}
+	} else {
+		//gw rule is optional
+		pgw_rule = NULL;
+	}
+
 	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout,"cmparser: dcmparser_parse_static_netif_vxcan_create: name = %s, upstream = %s\n", pname, pupstream);
+	if (pgw_rule != NULL) {
+		(void) fprintf(stdout,"cmparser: dcmparser_parse_static_netif_vxcan_create: name = %s, upstream = %s, gw_rule = %s\n", pname, pupstream, pgw_rule);
+	} else {
+		(void) fprintf(stdout,"cmparser: dcmparser_parse_static_netif_vxcan_create: name = %s, upstream = %s, gw_rule = NULL\n", pname, pupstream);
+	}
 	#endif
 	pvxcan->name = pname;
 	pvxcan->upstream = pupstream;
-
+	pvxcan->gw_rule = pgw_rule;
 	vp = (void*)pvxcan;
 
 	return vp;
 
 error_return:
+	(void) free(pgw_rule);
 	(void) free(pupstream);
 	(void) free(pname);
 	(void) free(pvxcan);
@@ -1934,6 +1991,7 @@ static int cmparser_parse_static_netif_vxcan_free(void *p)
 	}
 
 	pvxcan = (netif_elem_vxcan_t*)p;
+	(void) free(pvxcan->gw_rule);
 	(void) free(pvxcan->upstream);
 	(void) free(pvxcan->name);
 	(void) free(pvxcan);

@@ -617,6 +617,7 @@ typedef struct s_netif_elem_veth netif_elem_veth_t;	/**< typedef for struct s_ne
 struct s_netif_elem_vxcan {
 	char *name;		/**< The name of vxcan. */
 	char *upstream;		/**< Upstream CAN interface. */
+	char *gw_rule;		/**< Gateway rule for the vxcan interface. */
 	//--- internal control data
 	char *peer_host;	/**< The vxcan name of host */
 	char *peer_guest;	/**< The vxcan name of guest */
