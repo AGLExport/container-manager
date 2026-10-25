@@ -4,7 +4,7 @@ ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 noinst_LIBRARIES = libsocketcangw.a
 
 libsocketcangw_a_SOURCES = \
-	libsocketcangw.c
+	libsocketcangw.c libsocketcangw_config.c
 
 libsocketcangw_a_CFLAGS = \
 	-g -Wall -Wno-unused-but-set-variable \

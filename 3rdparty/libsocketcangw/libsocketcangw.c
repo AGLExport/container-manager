@@ -153,6 +153,7 @@ static int push_gw_rule(socketcan_gw_rules_t *gw_rules, socketcan_gw_rule_t *rul
 		if (pnew_rules != NULL) {
 			gw_rules->rules = pnew_rules;
 		} else {
+			gw_rules->array_num = gw_rules->array_num / 2;	// failed to extend, restore array_num
 			result = -1;
 			goto do_return;
 		}
@@ -205,32 +206,38 @@ static int parse_listing_data(socketcan_gw_rules_t *gw_rules, unsigned char *rxb
 	struct rtattr *rta = NULL;
 	struct nlmsghdr *nlh = NULL;
 	int rtlen = 0;
+	int ret = -1;
 	int result = 0;
 
 	nlh = (struct nlmsghdr *) rxbuf;
 
 	while (1) {
+		// check the message is valid
 		if (!NLMSG_OK(nlh, len)) {
 			result = 0;
 			break;
 		}
 
+		// if it is error message, return error
 		if (nlh->nlmsg_type == NLMSG_ERROR) {
 			result = -1;
 			break;
 		}
 
+		// if it is done message, return completed
 		if (nlh->nlmsg_type == NLMSG_DONE) {
 			result = 1;
 			break;
 		}
 
+		// Check the AF_CAN message
 		rtc = (struct rtcanmsg *) NLMSG_DATA(nlh);
 		if (rtc->can_family != AF_CAN) {
 			result = -1;
 			break;
 		}
 
+		// Check the functionality of the can gateway
 		if (rtc->gwtype != CGW_TYPE_CAN_CAN) {
 			result = -1;
 			break;
@@ -243,6 +250,7 @@ static int parse_listing_data(socketcan_gw_rules_t *gw_rules, unsigned char *rxb
 		}
 		memset(rule, 0, sizeof(socketcan_gw_rule_t));
 
+		// Pick up the src_ifindex and dst_ifindex from the netlink message
 		rta = (struct rtattr *) RTCAN_RTA(rtc);
 		rtlen = RTCAN_PAYLOAD(nlh);
 		while (RTA_OK(rta, rtlen)) {
@@ -259,28 +267,32 @@ static int parse_listing_data(socketcan_gw_rules_t *gw_rules, unsigned char *rxb
 			rta = RTA_NEXT(rta, rtlen);
 		}
 
-		rule->options = (SOCKETCAN_GW_RULE_ECHO | SOCKETCAN_GW_RULE_FILTER);
-
+		// Pick up the echo status from the netlink message
 		if ((rtc->flags & CGW_FLAGS_CAN_ECHO) == CGW_FLAGS_CAN_ECHO) {
 			rule->echo = 1;
 		} else {
 			rule->echo = 0;
 		}
 
+		// Pick up the filter from the netlink message
 		rta = (struct rtattr *) RTCAN_RTA(rtc);
 		rtlen = RTCAN_PAYLOAD(nlh);
 		while (RTA_OK(rta, rtlen)) {
 			switch (rta->rta_type) {
 			case CGW_FILTER: {
 				struct can_filter *filter = (struct can_filter *) RTA_DATA(rta);
-				if (filter->can_id & CAN_INV_FILTER) {
+				if ((filter->can_id & CAN_INV_FILTER) == CAN_INV_FILTER) {
 					rule->filter.can_id = (filter->can_id & ~CAN_INV_FILTER);
+					rule->invert_can_id = 1;
 				} else {
 					rule->filter.can_id = filter->can_id;
+					rule->invert_can_id = 0;
 				}
 				rule->filter.can_mask = filter->can_mask;
 				break;
 			}
+
+			// To be extended for other attributes in the future
 
 			default:
 				break;
@@ -288,8 +300,14 @@ static int parse_listing_data(socketcan_gw_rules_t *gw_rules, unsigned char *rxb
 			rta = RTA_NEXT(rta, rtlen);
 		}
 
-		push_gw_rule(gw_rules, rule);
+		// push the rule into gw_rules
+		ret = push_gw_rule(gw_rules, rule);
+		if (ret < 0) {
+			result = -1;
+			goto error_return;
+		}
 
+		// Move to next message
 		nlh = NLMSG_NEXT(nlh, len);
 	}
 
@@ -308,7 +326,7 @@ error_return:
  * @param flags value of the nlmsg_flags
  * @param type value of the nlmsg_type
  *
- * Set a netlink request data from rule to req.
+ * Set Netlink request data from rule to req.
  */
 static void init_req_data(struct s_request_data *req, unsigned short flags, unsigned short type)
 {
@@ -327,45 +345,57 @@ static void init_req_data(struct s_request_data *req, unsigned short flags, unsi
 
 /**
  * @ingroup intern
- * @brief operate_rule_options - operate to options of gw rule
+ * @brief operate_rule_options - set echo and filter attributes for a rule
  *
- * @param req pointer to s_request_data structure that is wrote the options.
+ * @param req Request whose echo flag and filter attribute are set.
  * @param rule pointer to source data of the gw configuration rule
  *
- * Set a netlink request data from rule to req.
+ * Set Netlink request data from rule to req.
  */
 static void operate_rule_options(struct s_request_data *req, socketcan_gw_rule_t *rule)
 {
-	if ((rule->options & SOCKETCAN_GW_RULE_ECHO) == SOCKETCAN_GW_RULE_ECHO) {
-		if (rule->echo == 1) {
-			req->rtcan.flags |= CGW_FLAGS_CAN_ECHO;
-		}
+	struct can_filter filter = rule->filter;
+
+	if (rule->echo == 1) {
+		req->rtcan.flags |= CGW_FLAGS_CAN_ECHO;
+	} else {
+		req->rtcan.flags &= ~CGW_FLAGS_CAN_ECHO;
 	}
 
-	if ((rule->options & SOCKETCAN_GW_RULE_FILTER) == SOCKETCAN_GW_RULE_FILTER) {
-		addattr_l(
-			&req->nh,
-			sizeof(struct s_request_data),
-			CGW_FILTER,
-			&rule->filter,
-			sizeof(struct can_filter));
+	if (rule->invert_can_id == 1) {
+		filter.can_id |= CAN_INV_FILTER;
 	}
+
+	addattr_l(
+		&req->nh,
+		sizeof(struct s_request_data),
+		CGW_FILTER,
+		&filter,
+		sizeof(filter));
 }
 
 /**
  * @ingroup extern
- * cangw_add_rule - add routing rule to can gateway
- * @param rule rule data of the can gateway.
+ * cangw_add_rule - install one routing rule in the kernel CAN gateway
+ * @param rule Non-NULL rule with nonzero source and destination interface indices.
  *
- * @return 0 if success
- * @return -1 if operation is failed
- * @return -2 if linux does not support can gateway
- * @return -3 if argument is invalid
+ * Send a Netlink request and wait for its acknowledgement. For direction OUT,
+ * swap the source and destination indices in the request. Other direction
+ * values use the indices as stored in rule. Enable echo only when echo is 1
+ * and always include the filter. A zero mask with invert disabled matches all IDs.
+ * The caller retains ownership of rule; its contents are not modified.
+ *
+ * @return 0 if the kernel acknowledged the rule addition successfully
+ * @return -1 if socket creation, communication or the kernel request failed
+ * @return -2 if Linux does not support CAN gateway
+ * @return -3 if rule is NULL or either interface index is zero
  */
 int cangw_add_rule(socketcan_gw_rule_t *rule)
 {
 	int result = 0;
 	int ret = -1;
+	unsigned int src_ifindex = 0;
+	unsigned int dst_ifindex = 0;
 	struct s_request_data req;
 
 	if (rule == NULL) {
@@ -381,10 +411,18 @@ int cangw_add_rule(socketcan_gw_rule_t *rule)
 		result = -3;
 		goto do_return;
 	}
-	addattr_l(&req.nh, sizeof(req), CGW_SRC_IF, &rule->src_ifindex, sizeof(rule->src_ifindex));
-	addattr_l(&req.nh, sizeof(req), CGW_DST_IF, &rule->dst_ifindex, sizeof(rule->dst_ifindex));
 
-	// operate options
+	if (rule->direction == SOCKETCAN_GW_DIRECTION_OUT) {
+		src_ifindex = rule->dst_ifindex;
+		dst_ifindex = rule->src_ifindex;
+	} else {
+		src_ifindex = rule->src_ifindex;
+		dst_ifindex = rule->dst_ifindex;
+	}
+	addattr_l(&req.nh, sizeof(req), CGW_SRC_IF, &src_ifindex, sizeof(src_ifindex));
+	addattr_l(&req.nh, sizeof(req), CGW_DST_IF, &dst_ifindex, sizeof(dst_ifindex));
+
+	// Set echo and filter attributes
 	operate_rule_options(&req, rule);
 
 	ret = send_cangw_set_request(&req);
@@ -399,18 +437,27 @@ do_return:
 
 /**
  * @ingroup extern
- * cangw_delete_rule - delete routing rule to can gateway
- * @param rule rule data of the can gateway.
+ * cangw_delete_rule - delete one routing rule from the kernel CAN gateway
+ * @param rule Non-NULL rule identifying the installed rule to delete.
  *
- * @return 0 if success
- * @return -1 if operation is failed
- * @return -2 if linux does not support can gateway
- * @return -3 if argument is invalid
+ * Send a Netlink request and wait for its acknowledgement. Both interface
+ * indices must be nonzero. For direction OUT, swap the source and destination
+ * indices in the request, using the same mapping as cangw_add_rule().
+ * Other direction values use the indices as stored in rule.
+ * Enable echo only when echo is 1 and always include the filter.
+ * The caller retains ownership of rule; its contents are not modified or freed.
+ *
+ * @return 0 if the kernel acknowledged the rule deletion successfully
+ * @return -1 if socket creation, communication or the kernel request failed
+ * @return -2 if Linux does not support CAN gateway
+ * @return -3 if rule is NULL or either interface index is zero
  */
 int cangw_delete_rule(socketcan_gw_rule_t *rule)
 {
 	int result = 0;
 	int ret = -1;
+	unsigned int src_ifindex = 0;
+	unsigned int dst_ifindex = 0;
 	struct s_request_data req;
 
 	if (rule == NULL) {
@@ -426,10 +473,18 @@ int cangw_delete_rule(socketcan_gw_rule_t *rule)
 		result = -3;
 		goto do_return;
 	}
-	addattr_l(&req.nh, sizeof(req), CGW_SRC_IF, &rule->src_ifindex, sizeof(rule->src_ifindex));
-	addattr_l(&req.nh, sizeof(req), CGW_DST_IF, &rule->dst_ifindex, sizeof(rule->dst_ifindex));
 
-	// operate options
+	if (rule->direction == SOCKETCAN_GW_DIRECTION_OUT) {
+		src_ifindex = rule->dst_ifindex;
+		dst_ifindex = rule->src_ifindex;
+	} else {
+		src_ifindex = rule->src_ifindex;
+		dst_ifindex = rule->dst_ifindex;
+	}
+	addattr_l(&req.nh, sizeof(req), CGW_SRC_IF, &src_ifindex, sizeof(src_ifindex));
+	addattr_l(&req.nh, sizeof(req), CGW_DST_IF, &dst_ifindex, sizeof(dst_ifindex));
+
+	// Set echo and filter attributes
 	operate_rule_options(&req, rule);
 
 	ret = send_cangw_set_request(&req);
@@ -444,11 +499,199 @@ do_return:
 
 /**
  * @ingroup extern
- * cangw_clean_rule - delete all routing rule to can gateway
+ * cangw_add_rules - install routing rules in the kernel CAN gateway in array order
+ * @param gw_rules Non-NULL container whose rules array must also be non-NULL.
  *
- * @return 0 if success
- * @return -1 if operation is failed
- * @return -2 if linux does not support can gateway
+ * Call cangw_add_rule() for each of the rule_num entries, using its direction
+ * and echo/filter handling. A zero rule count succeeds if the array is non-NULL.
+ * Stop at the first failure and return -1, including invalid individual rules.
+ * Previously added rules remain installed; no rollback is performed.
+ * The caller retains ownership of the container, array and rules. Their
+ * contents and order are not modified, and no input memory is freed.
+ *
+ * @return 0 if all rules were added successfully, including zero rules
+ * @return -1 if any cangw_add_rule() call failed
+ * @return -3 if gw_rules or its rules array is NULL
+ */
+int cangw_add_rules(socketcan_gw_rules_t *gw_rules)
+{
+	int result = -1, ret = -1;
+
+	if ((gw_rules == NULL) || (gw_rules->rules == NULL)) {
+		result = -3;
+		goto do_return;
+	}
+
+	for (size_t i = 0; i < gw_rules->rule_num; i++) {
+		ret = cangw_add_rule(gw_rules->rules[i]);
+		if (ret < 0) {
+			result = -1;
+			goto do_return;
+		}
+	}
+
+	result = 0;
+
+do_return:
+	return result;
+}
+
+/**
+ * @ingroup extern
+ * cangw_delete_rules - delete routing rules from the kernel CAN gateway in array order
+ * @param gw_rules Non-NULL container whose rules array must also be non-NULL.
+ *
+ * Call cangw_delete_rule() for each of the rule_num entries, using its
+ * direction and echo/filter handling. OUT rules swap source and destination
+ * indices in each request, using the same mapping as cangw_add_rules().
+ * A zero rule count succeeds if the array is non-NULL.
+ * Stop at the first failure and return -1, including invalid individual rules.
+ * Previously deleted rules are not restored.
+ * The caller retains ownership of the container, array and rules. Their
+ * contents and order are not modified, and no input memory is freed.
+ *
+ * @return 0 if all rules were deleted successfully, including zero rules
+ * @return -1 if any cangw_delete_rule() call failed
+ * @return -3 if gw_rules or its rules array is NULL
+ */
+int cangw_delete_rules(socketcan_gw_rules_t *gw_rules)
+{
+	int result = -1, ret = -1;
+
+	if ((gw_rules == NULL) || (gw_rules->rules == NULL)) {
+		result = -3;
+		goto do_return;
+	}
+
+	for (size_t i = 0; i < gw_rules->rule_num; i++) {
+		ret = cangw_delete_rule(gw_rules->rules[i]);
+		if (ret < 0) {
+			result = -1;
+			goto do_return;
+		}
+	}
+
+	result = 0;
+
+do_return:
+	return result;
+}
+
+/**
+ * @ingroup extern
+ * cangw_push_gw_rule - append an owned copy of a rule to gw_rules
+ * @param gw_rules Non-NULL valid container, initially zero-initialized if empty.
+ * @param rule Non-NULL rule whose entire contents are copied into new memory.
+ *
+ * Allocate a separate rule, copy the input and append the copy. Allocate or
+ * grow the pointer array as needed and increment rule_num on success.
+ * The container owns the registered copy. The caller retains ownership of the
+ * input and may modify or free it after this function returns.
+ * On failure, free any unregistered copy and preserve the registered rules.
+ * Copies can be removed with cangw_pop_gw_rule(); release an owned heap
+ * container and its remaining copies with cangw_release_rules().
+ * This operation changes only the container, not the kernel gateway rules.
+ *
+ * @return 0 if a copy was appended successfully
+ * @return -1 if allocating the copy or allocating/growing the array failed
+ */
+int cangw_push_gw_rule(socketcan_gw_rules_t *gw_rules, const socketcan_gw_rule_t *rule)
+{
+	socketcan_gw_rule_t *prule = NULL;
+	int ret = -1, result = -1;
+
+	prule = (socketcan_gw_rule_t *)malloc(sizeof(socketcan_gw_rule_t));
+	if (prule == NULL) {
+		result = -1;
+		goto do_return;
+	}
+
+	(void) memcpy(prule, rule, sizeof(socketcan_gw_rule_t));
+	ret = push_gw_rule(gw_rules, prule);
+	if (ret < 0) {
+		result = -1;
+		goto do_return;
+	}
+	prule = NULL;
+	result = 0;
+
+do_return:
+	(void) free(prule);
+
+	return result;
+}
+
+/**
+ * @ingroup extern
+ * cangw_pop_gw_rule - remove the first matching rule from gw_rules
+ * @param gw_rules Container owning the registered rules; its array must be non-NULL.
+ * @param rule Rule to match by all fields; it may point to a registered rule.
+ *
+ * Skip NULL entries and compare the interface indices, echo, invert,
+ * direction, CAN ID and CAN mask. Free the first matching registered rule,
+ * compact the array, decrement rule_num and clear its old tail.
+ * Keep the array capacity and the order of the remaining rules unchanged.
+ * The caller's comparison rule is not freed unless it is the removed rule;
+ * pointers to that removed rule become invalid. Other matching entries remain.
+ * An unmatched container is left unchanged.
+ * This operation changes only the container, not the kernel gateway rules.
+ *
+ * @return 0 if a matching rule was removed
+ * @return -1 if no matching rule was found, including a non-NULL empty array
+ * @return -3 if gw_rules, rule or the container's rules array is NULL
+ */
+int cangw_pop_gw_rule(socketcan_gw_rules_t *gw_rules, const socketcan_gw_rule_t *rule)
+{
+	int result = -1;
+
+	if ((gw_rules == NULL) || (rule == NULL) ||
+		(gw_rules->rules == NULL)) {
+		result = -3;
+		goto do_return;
+	}
+
+	for (size_t i = 0; i < gw_rules->rule_num; i++) {
+		socketcan_gw_rule_t *entry = gw_rules->rules[i];
+
+		if (entry == NULL) {
+			continue;
+		}
+
+		if ((entry->src_ifindex != rule->src_ifindex) ||
+			(entry->dst_ifindex != rule->dst_ifindex) ||
+			(entry->echo != rule->echo) ||
+			(entry->invert_can_id != rule->invert_can_id) ||
+			(entry->direction != rule->direction) ||
+			(entry->filter.can_id != rule->filter.can_id) ||
+			(entry->filter.can_mask != rule->filter.can_mask)) {
+			continue;
+		}
+
+		(void) memmove(&gw_rules->rules[i], &gw_rules->rules[i + 1],
+			(gw_rules->rule_num - i - 1) * sizeof(*gw_rules->rules));
+		gw_rules->rule_num--;
+		gw_rules->rules[gw_rules->rule_num] = NULL;
+		(void) free(entry);
+		result = 0;
+		goto do_return;
+	}
+
+do_return:
+	return result;
+}
+
+/**
+ * @ingroup extern
+ * cangw_clean_rule - delete all routing rules from the kernel CAN gateway
+ *
+ * Send a Netlink deletion request with both interface indices set to zero
+ * and wait for its acknowledgement. This removes gateway rules across all
+ * interfaces, rather than selecting one route or filter.
+ * Existing userspace rule containers are not updated or freed by this call.
+ *
+ * @return 0 if the kernel acknowledged the deletion request successfully
+ * @return -1 if socket creation, communication or the kernel request failed
+ * @return -2 if Linux does not support CAN gateway
  */
 int cangw_clean_rule(void)
 {
@@ -476,13 +719,24 @@ do_return:
 
 /**
  * @ingroup extern
- * cangw_get_rules - get can gateway routing rule
- * @param gw_rules double pointer to rules structure of the can gateway to get existing rules.
+ * cangw_get_rules - collect routing rules from the kernel CAN gateway
+ * @param gw_rules Non-NULL output address receiving a newly allocated container.
  *
- * @return 0 if success
- * @return -1 if operation is failed
- * @return -2 if linux does not support can gateway
- * @return -3 if argument is invalid
+ * Request a Netlink dump and collect rules until NLMSG_DONE is received.
+ * On success, transfer ownership of the container, array and rules to the
+ * caller, who must release them with cangw_release_rules(). Zero collected
+ * rules still produce a valid container; its array may be NULL.
+ * Returned indices describe kernel routes. Direction is initialized to IN;
+ * the original logical direction of an added rule is not recovered.
+ * NLMSG_DONE returns the collected rules even for interrupted completion;
+ * the result is not guaranteed to be a complete snapshot.
+ * On failure, free temporary allocations and leave *gw_rules unchanged.
+ * This operation reads kernel rules without changing them.
+ *
+ * @return 0 if dump completion was received and the collected rules were returned
+ * @return -1 if communication, memory allocation or dump parsing failed
+ * @return -2 if creating the Netlink socket failed
+ * @return -3 if gw_rules is NULL
  */
 int cangw_get_rules(socketcan_gw_rules_t **gw_rules)
 {
@@ -530,6 +784,7 @@ int cangw_get_rules(socketcan_gw_rules_t **gw_rules)
 	pgw_rules->rules = NULL;
 
 	while (1) {
+		int localret = -1;
 		unsigned char rxbuf[8192];
 		memset(rxbuf, 0, sizeof(rxbuf));
 
@@ -539,14 +794,25 @@ int cangw_get_rules(socketcan_gw_rules_t **gw_rules)
 			goto do_return;
 		}
 
-		/* leave on errors or NLMSG_DONE */
-		if (parse_listing_data(pgw_rules, rxbuf, ret))
-			break;
+		localret = parse_listing_data(pgw_rules, rxbuf, ret);
+		if (localret > 0) {
+			break; /* completed to get routing rule from kernel */
+		} else if (localret < 0) {
+			result = -1;
+			goto do_return;
+		} else {
+			;/* continue to get routing rule from kernel */
+		}
 	}
 
 	(*gw_rules) = pgw_rules;
+	pgw_rules = NULL;
 
 do_return:
+	if (pgw_rules != NULL) {
+		cangw_release_rules(pgw_rules);
+	}
+
 	if (sock_fd >= 0) {
 		close(sock_fd);
 	}
@@ -555,11 +821,19 @@ do_return:
 }
 /**
  * @ingroup extern
- * cangw_release_rules - delete routing rule to can gateway
- * @param gw_rules rules pointer to rules structure of the can gateway to free allocated memory.
+ * cangw_release_rules - release an owned rule container and all of its memory
+ * @param gw_rules Non-NULL heap-allocated container owning its array and rules.
  *
- * @return 0 if success
- * @return -3 if argument is invalid
+ * Free each rule in the first rule_num array entries, then free the pointer
+ * array and the container itself. NULL rule entries and an empty container
+ * with a NULL array are allowed. Each non-NULL rule must be independently
+ * owned and compatible with free().
+ * The container and pointers to its freed memory become invalid. The caller's
+ * pointer variable is not reset; set it to NULL if it will be reused.
+ * This releases userspace memory without deleting kernel gateway rules.
+ *
+ * @return 0 if the container and its owned memory were released
+ * @return -3 if gw_rules is NULL
  */
 int cangw_release_rules(socketcan_gw_rules_t *gw_rules)
 {
