@@ -14,6 +14,8 @@
 #include <cjson/cJSON.h>
 #include "list.h"
 
+#include "cm-log.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -145,9 +147,7 @@ static int cmparser_manager_parse_operation_mount(container_manager_operation_mo
 			;
 		} else {
 			// Mandatory value, drop this entry.
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			(void) fprintf(stderr,"[CM CRITICAL ERROR] cmparser_manager: mount type not set. It's mandatory value. drop entry\n");
-			#endif
+			cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] cmparser_manager: mount type not set. It's mandatory value. drop entry.\n");
 			continue;
 		}
 
@@ -159,9 +159,7 @@ static int cmparser_manager_parse_operation_mount(container_manager_operation_mo
 			;
 		} else {
 			// Mandatory value, drop this entry.
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			(void) fprintf(stderr,"[CM CRITICAL ERROR] cmparser_manager: mount to not set. It's mandatory value. drop entry\n");
-			#endif
+			cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] cmparser_manager: mount to not set. It's mandatory value. drop entry.\n");
 			continue;
 		}
 
@@ -172,9 +170,7 @@ static int cmparser_manager_parse_operation_mount(container_manager_operation_mo
 			(void) fprintf(stdout,"cmparser_manager: mount filesystem = %s\n",filesystem->valuestring);
 			#endif
 		} else {
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			(void) fprintf(stderr,"[CM CRITICAL ERROR] cmparser_manager: mount filesystem not set. It's mandatory value. drop entry\n");
-			#endif
+			cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] cmparser_manager: mount filesystem not set. It's mandatory value. drop entry.\n");
 			continue;
 		}
 
@@ -236,9 +232,7 @@ static int cmparser_manager_parse_operation_mount(container_manager_operation_mo
 
 		if(bdev[0] == NULL) {
 			// Mandatory value, drop this entry.
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			(void) fprintf(stderr,"[CM CRITICAL ERROR] cmparser_manager: mount blockdev[0] not set. It's mandatory value. drop entry\n");
-			#endif
+			cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] cmparser_manager: mount blockdev[0] not set. It's mandatory value. drop entry.\n");
 			continue;
 		}
 

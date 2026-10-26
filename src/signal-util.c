@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <systemd/sd-event.h>
 
+#include "cm-log.h"
+
 #include <stdio.h>
 
 /**
@@ -72,9 +74,7 @@ static int sd_event_signal_handler(sd_event_source *s, const struct signalfd_sig
 
 		if (ret < 0) {
 			(void) sd_event_exit(sigutil_mng->event, -1);
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			(void) fprintf(stderr,"[CM CRITICAL ERROR] signal notification fail. force exit event loop.\n");
-			#endif
+			cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] signal notification fail. force exit event loop.\n");
 		}
 	}
 

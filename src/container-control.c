@@ -10,6 +10,8 @@
 #include "container-external-interface.h"
 #include "container-manager-operations.h"
 
+#include "cm-log.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -740,9 +742,7 @@ int container_mngsm_exit(containers_t *cs)
 	ret = sd_event_exit(cs->event, 0);
 	if (ret < 0) {
 		// Force process exit
-		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		(void) fprintf(stderr,"[CM CRITICAL ERROR] container_mngsm_exit was fail.\n");
-		#endif
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] container_mngsm_exit was fail.\n");
 		(void) _exit(0);
 	}
 

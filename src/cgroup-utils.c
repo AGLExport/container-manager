@@ -8,6 +8,8 @@
 
 #include <sys/vfs.h>
 #include <linux/magic.h>
+#include "cm-log.h"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -90,9 +92,7 @@ int cgroup_util_cgroup_v2_setup(void)
 		ret = once_write(g_cgroup_v2_config_path, buf, szlen);
 		if (ret < 0) {
 			result = -1;
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			(void) fprintf(stderr,"[CM CRITICAL ERROR] Current environment is not supporting %s subsystem in cgroup-v2.\n", cgv2_subsys);
-			#endif
+			cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] Current environment is not supporting %s subsystem in cgroup-v2.\n", cgv2_subsys);
 			goto do_return;
 		}
 	}

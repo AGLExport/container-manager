@@ -6,6 +6,7 @@ SUBDIRS = command
 bin_PROGRAMS = containermanager
 
 containermanager_SOURCES = \
+	log/cm-log.c \
     parser/parser-common.c \
     parser/parser-container.c \
     parser/parser-manager.c \
@@ -51,6 +52,7 @@ containermanager_CFLAGS = \
 	-I$(top_srcdir)/3rdparty/wpa-supplicant \
 	-I$(top_srcdir)/3rdparty/libsocketcangw \
 	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/src/log \
 	@LIBSYSTEMD_CFLAGS@ \
 	@LIBUDEV_CFLAGS@ \
 	@LIBMNL_CFLAGS@ \
@@ -65,6 +67,7 @@ containermanager_CXXFLAGS = \
 	-I$(top_srcdir)/3rdparty/wpa-supplicant \
 	-I$(top_srcdir)/3rdparty/libsocketcangw \
 	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/src/log \
 	@LIBSYSTEMD_CFLAGS@ \
 	@LIBUDEV_CFLAGS@ \
 	@LIBMNL_CFLAGS@ \

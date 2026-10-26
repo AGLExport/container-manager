@@ -18,6 +18,8 @@
 
 #include "container.h"
 
+#include "cm-log.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -206,9 +208,7 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 		#endif
 	} else {
 		// Mandatory value
-		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		(void) fprintf(stderr,"[CM CRITICAL ERROR] cmparser: The root path is not set. It's mandatory value\n");
-		#endif
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] cmparser: The root path is not set. It's mandatory value.\n");
 		result = -2;
 		goto err_ret;
 	}
@@ -254,9 +254,7 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 
 		// In case of block device, filesystem is mandatory setting.
 		if (bc->rootfs.filesystem == NULL) {
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			(void) fprintf(stderr,"[CM CRITICAL ERROR] cmparser: The rootfs filesystem is not set. It's mandatory value.\n");
-			#endif
+			cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] cmparser: The rootfs filesystem is not set. It's mandatory value.\n");
 			result = -2;
 			goto err_ret;
 		}
@@ -300,17 +298,13 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 			i++;
 		}
 	} else {
-		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		(void) fprintf(stderr,"[CM CRITICAL ERROR] cmparser: The block device/host rootfs path for rootfs is not set. It's mandatory value.\n");
-		#endif
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] cmparser: The block device/host rootfs path for rootfs is not set. It's mandatory value.\n");
 		result = -2;
 		goto err_ret;
 	}
 
 	if (bc->rootfs.rootfs_dev[0] == NULL) {
-		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		(void) fprintf(stderr,"[CM CRITICAL ERROR] cmparser: The block device/host rootfs path for rootfs is not set. It's mandatory value\n");
-		#endif
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] cmparser: The block device/host rootfs path for rootfs is not set. It's mandatory value.\n");
 		result = -2;
 		goto err_ret;
 	}
@@ -368,9 +362,7 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 			;
 		} else {
 			// Mandatory value, drop this entry.
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			(void) fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-extradisk from not set. It's mandatory value. drop entry\n");
-			#endif
+			cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] cmparser: base-extradisk from not set. It's mandatory value. drop entry.\n");
 			continue;
 		}
 
@@ -382,9 +374,7 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 			;
 		} else {
 			// Mandatory value, drop this entry.
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			(void) fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-extradisk to not set. It's mandatory value. drop entry\n");
-			#endif
+			cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] cmparser: base-extradisk to not set. It's mandatory value. drop entry.\n");
 			continue;
 		}
 
@@ -395,9 +385,7 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 			(void) fprintf(stdout,"cmparser: base-extradisk filesystem = %s\n",filesystem->valuestring);
 			#endif
 		} else {
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			(void) fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-extradisk filesystem not set. It's mandatory value. drop entry\n");
-			#endif
+			cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] cmparser: base-extradisk filesystem not set. It's mandatory value. drop entry.\n");
 			fsstr = NULL;
 		}
 
@@ -459,9 +447,7 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 
 		if(bdev[0] == NULL) {
 			// Mandatory value, drop this entry.
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			(void) fprintf(stderr,"[CM CRITICAL ERROR] cmparser: base-extradisk blockdev[0] not set. It's mandatory value. drop entry\n");
-			#endif
+			cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] cmparser: base-extradisk blockdev[0] not set. It's mandatory value. drop entry.\n");
 			continue;
 		}
 
@@ -607,9 +593,7 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 		}
 	} else {
 		// Mandatory value
-		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		(void) fprintf(stderr,"[CM CRITICAL ERROR] cmparser: rootfs not set. It's mandatory value\n");
-		#endif
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] cmparser: rootfs not set. It's mandatory value.\n");
 		result = -2;
 		goto err_ret;
 	}
@@ -1941,9 +1925,7 @@ static void* cmparser_parse_static_netif_vxcan_create(cJSON *param)
 		ret = sub_file_availability_check(pgw_rule);
 		if (ret < 0) {
 			// Fail back to default behavior.
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			(void) fprintf(stderr,"[CM CRITICAL INFO] cmparser: config has can gw_rule property but file(%s) is not available.\n", pgw_rule);
-			#endif
+			cm_log(CM_LOGLEVEL_CRITICAL_INFO, "[CM CRITICAL INFO] cmparser: config has can gw_rule property but file(%s) is not available.\n", pgw_rule);
 			(void) free(pgw_rule);
 			pgw_rule = NULL;
 		}

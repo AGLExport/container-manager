@@ -9,6 +9,8 @@
 #include "lxc-util.h"
 
 #include <stdlib.h>
+#include "cm-log.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -276,9 +278,7 @@ containers_t *create_container_configs(const char *config_file)
 			dent = readdir(dir);
 			if (dent != NULL) {
 				if (!(num < GUEST_CONTAINER_LIMIT)) {
-					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-					(void) fprintf(stderr,"[CM CRITICAL ERROR] Number of guest containers was over to limit.");
-					#endif
+					cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] Number of guest containers was over to limit.\n");
 					break;
 				}
 
@@ -309,9 +309,7 @@ containers_t *create_container_configs(const char *config_file)
 	}
 
 	if (num <= 0) {
-		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		(void) fprintf(stderr,"[CM CRITICAL ERROR] Did not find guest container config at %s.\n", confdir);
-		#endif
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] Did not find guest container config at %s.\n", confdir);
 		goto err_ret;
 	}
 

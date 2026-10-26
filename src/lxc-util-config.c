@@ -11,6 +11,8 @@
 
 #include "socketcan-util.h"
 
+#include "cm-log.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <lxc/lxccontainer.h>
@@ -481,9 +483,7 @@ static int lxcutil_set_config_resource(struct lxc_container *plxc, container_res
 	int ret = -1, result = 0;
 	int cgroup_ver = -1;
 	container_resource_elem_t *melem = NULL;
-	#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 	int once_error = 0;
-	#endif
 
 	ret = lxcutil_create_per_guest_cgroup(plxc, rsc, name);
 	if (ret < 0) {
@@ -503,12 +503,10 @@ static int lxcutil_set_config_resource(struct lxc_container *plxc, container_res
 				continue;	//drop data
 			}
 			if (cgroup_ver != 1) {
-				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 				if (once_error == 0) {
-					(void) fprintf(stderr,"[CM CRITICAL INFO] Container %s has cgroup v1 setting. It was dropped.\n", name);
+					cm_log(CM_LOGLEVEL_CRITICAL_INFO, "[CM CRITICAL INFO] Container %s has cgroup v1 setting. It was dropped.\n", name);
 				}
 				once_error++;
-				#endif
 				continue;	//drop data
 			}
 
@@ -522,12 +520,10 @@ static int lxcutil_set_config_resource(struct lxc_container *plxc, container_res
 				continue;	//drop data
 			}
 			if (cgroup_ver != 2) {
-				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 				if (once_error == 0) {
-					(void) fprintf(stderr,"[CM CRITICAL INFO] Container %s has cgroup v2 setting. It was dropped.\n", name);
+					cm_log(CM_LOGLEVEL_CRITICAL_INFO, "[CM CRITICAL INFO] Container %s has cgroup v2 setting. It was dropped.\n", name);
 				}
 				once_error++;
-				#endif
 				continue;	//drop data
 			}
 

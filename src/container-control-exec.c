@@ -8,6 +8,8 @@
 #include "container-control.h"
 #include "container-control-internal.h"
 
+#include "cm-log.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -252,9 +254,7 @@ int container_exited(containers_t *cs, const container_mngsm_guest_exit_data_t *
 			// now running, guest was dead
 			cc->runtime_stat.status = CONTAINER_DEAD;
 
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-			(void) fprintf(stderr,"[CM CRITICAL INFO] container %s was dead.\n", cc->name);
-			#endif
+			cm_log(CM_LOGLEVEL_CRITICAL_INFO, "[CM CRITICAL INFO] container %s was dead.\n", cc->name);
 		} else if (cc->runtime_stat.status == CONTAINER_REBOOT) {
 			// Current status is reboot, guest status change to dead
 			cc->runtime_stat.status = CONTAINER_DEAD;
@@ -341,9 +341,7 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 				(void) lxcutil_container_forcekill(cc);
 				(void) container_terminate(cc);
 				cc->runtime_stat.status = CONTAINER_NOT_STARTED; // guest is force dead
-				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				(void) fprintf(stderr,"[CM CRITICAL ERROR] At container_request_shutdown fourcekill to %s.\n", cc->name);
-				#endif
+				cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] At container_request_shutdown fourcekill to %s.\n", cc->name);
 			} else {
 				(void) container_timeout_set(cc);
 				cc->runtime_stat.status = CONTAINER_SHUTDOWN;
@@ -383,9 +381,7 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 				(void) lxcutil_container_forcekill(cc);
 				(void) container_terminate(cc);
 				cc->runtime_stat.status = CONTAINER_EXIT; // guest is force exit
-				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				(void) fprintf(stderr,"[CM CRITICAL ERROR] At container_request_shutdown fourcekill to %s.\n", cc->name);
-				#endif
+				cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] At container_request_shutdown fourcekill to %s.\n", cc->name);
 			} else {
 				(void) container_timeout_set(cc);
 				cc->runtime_stat.status = CONTAINER_SHUTDOWN;
@@ -453,9 +449,7 @@ int container_request_reboot(container_config_t *cc, int sys_state)
 				(void) lxcutil_container_forcekill(cc);
 				(void) container_terminate(cc);
 				cc->runtime_stat.status = CONTAINER_DEAD; // guest is force dead
-				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				(void) fprintf(stderr,"[CM CRITICAL ERROR] At container_request_reboot fourcekill to %s.\n", cc->name);
-				#endif
+				cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] At container_request_reboot fourcekill to %s.\n", cc->name);
 			} else {
 				//Requested, wait to exit.
 				(void) container_timeout_set(cc);
@@ -497,9 +491,7 @@ int container_request_reboot(container_config_t *cc, int sys_state)
 				(void) lxcutil_container_forcekill(cc);
 				(void) container_terminate(cc);
 				cc->runtime_stat.status = CONTAINER_EXIT; // guest is force exit
-				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				(void) fprintf(stderr,"[CM CRITICAL ERROR] At container_request_shutdown fourcekill to %s.\n", cc->name);
-				#endif
+				cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] At container_request_shutdown fourcekill to %s.\n", cc->name);
 			} else {
 				// Set timeout
 				(void) container_timeout_set(cc);
@@ -608,16 +600,12 @@ int container_exec_internal_event(containers_t *cs)
 				// Dead state -> relaunch
 				ret = container_start(cc);
 				if (ret == 0) {
-					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-					(void) fprintf(stderr,"[CM CRITICAL INFO] container %s relaunched.\n", cc->name);
-					#endif
+					cm_log(CM_LOGLEVEL_CRITICAL_INFO, "[CM CRITICAL INFO] container %s relaunched.\n", cc->name);
 
 					ret = container_monitor_addguest(cs, cc);
 					if (ret < 0) {
 						// Can run guest without monitor, critical log only.
-						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-						(void) fprintf(stderr,"[CM CRITICAL ERROR] Fail container_monitoring to %s ret = %d\n", cc->name, ret);
-						#endif
+						cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] Fail container_monitoring to %s ret = %d.\n", cc->name, ret);
 					}
 
 					// re-assign dynamic device
@@ -648,9 +636,7 @@ int container_exec_internal_event(containers_t *cs)
 							ret = container_monitor_addguest(cs, active_cc);
 							if (ret < 0) {
 								// Can run guest with out monitor, critical log only.
-								#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-								(void) fprintf(stderr,"[CM CRITICAL ERROR] Fail container_monitoring to %s ret = %d\n", active_cc->name, ret);
-								#endif
+								cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] Fail container_monitoring to %s ret = %d.\n", active_cc->name, ret);
 							}
 							// re-assign dynamic device
 							// dynamic device update - if these return error, recover to update timing
@@ -668,9 +654,7 @@ int container_exec_internal_event(containers_t *cs)
 							if (ret < 0) {
 								if ((ret == -2) || (ret == -3)) {
 									// Remove work queue
-									#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-									(void) fprintf(stderr,"[CM CRITICAL ERROR] Fail to container workqueue run ret = %d at %s\n", ret, cc->name);
-									#endif
+									cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] Fail to container workqueue run ret = %d at %s.\n", ret, cc->name);
 
 									ret = container_workqueue_cancel(&cc->workqueue);
 									if (ret <= 0) {
@@ -746,9 +730,7 @@ int container_exec_internal_event(containers_t *cs)
 					} else {
 						cc->runtime_stat.status = CONTAINER_NOT_STARTED; // Guest status change to not started. (For switching or stop)
 					}
-					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-					(void) fprintf(stderr,"[CM CRITICAL INFO] container %s was shutdown/reboot timeout, fourcekill.\n", cc->name);
-					#endif
+					cm_log(CM_LOGLEVEL_CRITICAL_INFO, "[CM CRITICAL INFO] container %s was shutdown/reboot timeout, fourcekill.\n", cc->name);
 				}
 			}
 		}
@@ -810,9 +792,7 @@ int container_exec_internal_event(containers_t *cs)
 				;	//nop, now started
 			} else {
 				(void) container_mngsm_exit(cs);
-				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				(void) fprintf(stderr,"[CM CRITICAL ERROR] Fail to container mngsm worker execution.\n");
-				#endif
+				cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] Fail to container mngsm worker execution.\n");
 			}
 			goto out;
 		}
@@ -826,9 +806,7 @@ int container_exec_internal_event(containers_t *cs)
 					(void) lxcutil_container_forcekill(cc);
 					(void) container_terminate(cc);
 					cc->runtime_stat.status = CONTAINER_EXIT; // guest is force dead
-					#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-					(void) fprintf(stderr,"[CM CRITICAL INFO] container %s was shutdown timeout at sys shutdown, fourcekill.\n", cc->name);
-					#endif
+					cm_log(CM_LOGLEVEL_CRITICAL_INFO, "[CM CRITICAL INFO] container %s was shutdown timeout at sys shutdown, fourcekill.\n", cc->name);
 				}
 			} else if (cc->runtime_stat.status == CONTAINER_RUN_WORKER) {
 				if (cc->runtime_stat.timeout < timeout) {
@@ -866,9 +844,7 @@ static int container_launch(container_config_t *cc)
 	if (ret < 0) {
 		cc->runtime_stat.status = CONTAINER_DEAD;
 
-		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		(void) fprintf(stderr,"[CM CRITICAL ERROR] lxcutil_create_instance ret = %d\n", ret);
-		#endif
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] lxcutil_create_instance ret = %d.\n", ret);
 		return -1;
 	}
 
@@ -926,9 +902,7 @@ int container_start(container_config_t *cc)
 	ret = container_setup_delayed_operation(cc);
 	if (ret < 0) {
 		// May not get this error.
-		#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-		(void) fprintf(stderr,"[CM CRITICAL ERROR] Delayed operation setup fail in %s.\n", cc->name);
-		#endif
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] Delayed operation setup fail in %s.\n", cc->name);
 
 		return -1;
 	}
@@ -940,22 +914,18 @@ int container_start(container_config_t *cc)
 
 		if (ret == -2) {
 			cc->runtime_stat.launch_error_count = cc->runtime_stat.launch_error_count + 1;
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 			if ((cc->runtime_stat.launch_error_count %g_reduced_critical_error_launch) == 1) {
-				(void) fprintf(stderr,"[CM CRITICAL ERROR] container %s start fail.\n", cc->name);
+				cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] container %s start fail.\n", cc->name);
 			}
-			#endif
 		}
 		return -1;
 	}
 
 	cc->runtime_stat.status = CONTAINER_STARTED;
-	#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 	if (cc->runtime_stat.launch_error_count > 0) {
 		// When success to launch after error, out extra log.
-		(void) fprintf(stderr,"[CM CRITICAL INFO] Revival container launch after %d errs.\n", cc->runtime_stat.launch_error_count);
+		cm_log(CM_LOGLEVEL_CRITICAL_INFO, "[CM CRITICAL INFO] Revival container launch after %d errs.\n", cc->runtime_stat.launch_error_count);
 	}
-	#endif
 	cc->runtime_stat.launch_error_count = 0;
 
 	return 0;
@@ -1026,9 +996,7 @@ int container_start_by_role(containers_t *cs, char *role)
 			ret = container_monitor_addguest(cs, cc);
 			if (ret < 0) {
 				// Can run guest with out monitor, critical log only.
-				#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
-				(void) fprintf(stderr,"[CM CRITICAL ERROR] Fail container_monitoring to %s ret = %d\n", cc->name, ret);
-				#endif
+				cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] Fail container_monitoring to %s ret = %d.\n", cc->name, ret);
 			}
 			result = 0;
 		} else {
@@ -1171,14 +1139,11 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 		if (ret < 0) {
 			// root fs mount is mandatory.
 			bc->rootfs.error_count = bc->rootfs.error_count + 1;
-			#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 			if ((bc->rootfs.error_count % g_reduced_critical_error_mount) == 1) {
 				// This log should be reduced to one output per 100 time (default) of error.
-				(void) fprintf(stderr
-								,"[CM CRITICAL ERROR] Mandatory disk %s could not mount. (count = %d)\n"
+				cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] Mandatory disk %s could not mount. (count = %d).\n"
 								, bc->rootfs.rootfs_dev[bc->abboot], bc->rootfs.error_count);
 			}
-			#endif
 			return -1;
 		} else {
 			// root fs mount is succeed.
@@ -1207,14 +1172,11 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 					if (ret < 0) {
 						// AB disk mount is mandatory function.
 						exdisk->error_count = exdisk->error_count + 1;
-						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 						if ((exdisk->error_count % g_reduced_critical_error_mount) == 1) {
 							// This log should be reduced to one output per 100 time of error.
-							(void) fprintf(stderr
-											,"[CM CRITICAL ERROR] Extra ab mount disk %s could not mount. (count = %d)\n"
+							cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] Extra ab mount disk %s could not mount. (count = %d).\n"
 											, exdisk->blockdev[bc->abboot], exdisk->error_count);
 						}
-						#endif
 						return -1;
 					} else {
 						// This extra disk mount is succeed.
@@ -1227,14 +1189,11 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 					if (ret < 0) {
 						// Failover disk mount is optional function.
 						exdisk->error_count = exdisk->error_count + 1;
-						#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 						if ((exdisk->error_count % g_reduced_critical_error_mount) == 1) {
 							// This log should be reduced to one output per 100 time of error.
-							(void) fprintf(stderr
-											,"[CM CRITICAL ERROR] Extra failover disk %s could not mount. (count = %d)\n"
+							cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] Extra failover disk %s could not mount. (count = %d).\n"
 											, exdisk->blockdev[0], exdisk->error_count);
 						}
-						#endif
 						continue;
 					} else {
 						// This extra disk mount is succeed.
@@ -1308,21 +1267,17 @@ static int container_start_preprocess_base_recovery(container_config_t *cc)
 					if (exdisk->redundancy == DISKREDUNDANCY_TYPE_FSCK) {
 						ret = container_workqueue_schedule(&cc->workqueue, "fsck", option_str, 1);
 						if (ret == 0) {
-							#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 							if ((exdisk->error_count % g_reduced_critical_error_mount) == 1) {
 								// This log should be reduced to one output per 100 time (default) of error.
-								(void) fprintf(stderr,"[CM CRITICAL ERROR] Queued fsck recovery to disk %s.\n", exdisk->blockdev[0]);
+								cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] Queued fsck recovery to disk %s.\n", exdisk->blockdev[0]);
 							}
-							#endif
 							return 1;
 						}
 					} else if (exdisk->redundancy == DISKREDUNDANCY_TYPE_MKFS) {
 						ret = container_workqueue_schedule(&cc->workqueue, "mkfs", option_str, 1);
 						if (ret == 0) {
-							#ifdef CM_CRITICAL_ERROR_OUT_STDERROR
 							// This log is output every time. Because this operation is force recovery, may not fail cyclic.
-							(void) fprintf(stderr,"[CM CRITICAL ERROR] Queued mkfs recovery to disk %s.\n", exdisk->blockdev[0]);
-							#endif
+							cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] Queued mkfs recovery to disk %s.\n", exdisk->blockdev[0]);
 							return 1;
 						}
 					} else {
