@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include <libsocketcangw.h>
+#include <libsocketcangw_config.h>
 
 #undef _PRINTF_DEBUG_
 
@@ -272,32 +273,92 @@ do_return:
 	return result;
 }
 
-int socketcanutil_configure_gateway(const char *src_ifname, const char *dest_ifname)
+/**
+ * Function for configure VXCAN interface pair.
+ *
+ * @param [in]	src_ifname	Pointer to source ifname.
+ * @param [in]	dest_ifname	Pointer to destination ifname.
+ * @param [in]	gw_config_file	Pointer to gateway config file.
+ * @return int
+ * @retval	0	Success to configure VXCAN interface pair.
+ * @retval	-1	Fail to configure VXCAN interface pair.
+ * @retval	-2	Argument error.
+ */
+int socketcanutil_configure_gateway(const char *src_ifname, const char *dest_ifname, const char *gw_config_file)
 {
-	int ret = -1;
-	socketcan_gw_rule_t gw_rule;
+	int result = -1,ret = -1;
+
+	unsigned int src_ifindex = 0, dst_ifindex = 0;
 
 	if ((src_ifname == NULL) || (dest_ifname == NULL)) {
-		return -1;
+		result = -2;
+		goto err_ret;
 	}
 
-	memset(&gw_rule, 0, sizeof(gw_rule));
+	src_ifindex = if_nametoindex(src_ifname);
+	dst_ifindex = if_nametoindex(dest_ifname);
 
-	gw_rule.src_ifindex = if_nametoindex(src_ifname);
-	gw_rule.dst_ifindex = if_nametoindex(dest_ifname);
-
-	if ((gw_rule.src_ifindex == 0) || (gw_rule.dst_ifindex == 0)) {
-		return -2;
+	if ((src_ifindex == 0) || (dst_ifindex == 0)) {
+		result = -1;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"socketcanutil_configure_gateway: CAN if pair %s,%s is nothing.\n", src_ifname, dest_ifname);
+		#endif
+		goto err_ret;
 	}
 
-	gw_rule.options |= SOCKETCAN_GW_RULE_FILTER;
-	gw_rule.filter.can_id = 0x000;
-	gw_rule.filter.can_mask = 0x000;
+	if (gw_config_file != NULL) {
+		// Have a GW settings
+		socketcan_gw_rules_t *psgr = NULL;
 
-	ret = cangw_add_rule(&gw_rule);
-	if (ret < 0) {
-		; //nop
+		ret = cangw_config_load_from_file(&psgr, gw_config_file);
+		if (ret < 0) {
+			result = -1;
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"socketcanutil_configure_gateway: CAN GW configuration file (%s) is invalid.\n", gw_config_file);
+			#endif
+			goto err_ret;
+		}
+
+		ret = cangw_config_refill_ifindex(psgr, dst_ifindex, src_ifindex);
+		if (ret < 0) {
+			result = -1;
+			goto err_ret;
+		}
+
+		ret = cangw_add_rules(psgr);
+		(void) cangw_release_rules(psgr);
+		if (ret < 0) {
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"socketcanutil_configure_gateway: cangw_add_rules is fail. ret = %d.\n", ret);
+			#endif
+			result = -1;
+			goto err_ret;
+		}
+	} else {
+		// Add default rule if no gw_config_file is specified.
+		socketcan_gw_rule_t gw_rule;
+		memset(&gw_rule, 0, sizeof(gw_rule));
+
+		gw_rule.src_ifindex = src_ifindex;
+		gw_rule.dst_ifindex = dst_ifindex;
+		gw_rule.filter.can_id = 0x000;
+		gw_rule.filter.can_mask = 0x000;
+		gw_rule.echo = 0;
+		gw_rule.invert_can_id = 0;
+		gw_rule.direction = 0;
+
+		ret = cangw_add_rule(&gw_rule);
+		if (ret < 0) {
+			result = -1;
+			#ifdef _PRINTF_DEBUG_
+			(void) fprintf(stdout,"socketcanutil_configure_gateway: cangw_add_rules is fail (default configuration). ret = %d.\n", ret);
+			#endif
+			goto err_ret;
+		}
 	}
 
 	return 0;
+
+err_ret:
+	return result;
 }

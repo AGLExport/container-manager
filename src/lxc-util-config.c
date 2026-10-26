@@ -1136,6 +1136,7 @@ err_ret:
  * @retval -1	Got lxc error.
  * @retval -2	A bytes of config string is larger than buffer size. Critical case only.
  * @retval -3	Memory allocation error.
+ * @retval -4	CAN interface setup error.
  */
 static int lxcutil_set_config_static_netif_vxcan(struct lxc_container *plxc, netif_elem_vxcan_t *vxcan, int num)
 {
@@ -1216,7 +1217,7 @@ static int lxcutil_set_config_static_netif_vxcan(struct lxc_container *plxc, net
 	// Create VXCAN pair.
 	ret = socketcanutil_create_vxcan_peer(peer_host, peer_guest);
 	if (ret < 0) {
-		result = -3;
+		result = -4;
 		#ifdef _PRINTF_DEBUG_
 		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif vxcan pair creation fail. %s, %s.\n", peer_host, peer_guest);
 		#endif
@@ -1243,9 +1244,23 @@ static int lxcutil_set_config_static_netif_vxcan(struct lxc_container *plxc, net
 		goto err_ret;
 	}
 
-	(void) socketcanutil_up_can_if(vxcan->peer_host);
+	ret = socketcanutil_up_can_if(vxcan->peer_host);
+	if (ret < 0) {
+		result = -4;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif vxcan up can if fail. %s.\n", vxcan->peer_host);
+		#endif
+		goto err_ret;
+	}
 
-	(void) socketcanutil_configure_gateway(vxcan->upstream, vxcan->peer_host);
+	ret = socketcanutil_configure_gateway(vxcan->upstream, vxcan->peer_host, vxcan->gw_rule);
+	if (ret < 0) {
+		result = -4;
+		#ifdef _PRINTF_DEBUG_
+		(void) fprintf(stdout,"lxcutil: lxcutil_set_config_static_netif vxcan configure gateway fail. %s, %s.\n", vxcan->upstream, vxcan->peer_host);
+		#endif
+		goto err_ret;
+	}
 
 	return 0;
 
