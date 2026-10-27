@@ -20,6 +20,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
+#include "cm-log.h"
+
 #include <stdio.h>
 
 
@@ -194,9 +196,7 @@ static int container_external_interface_reboot_guest(containers_t *cs, char *nam
 
 		if (role == 0) {
 			if (strncmp(cc->name, name, strlen(cc->name)) == 0) {
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"container_external_interface_reboot_guest: reboot to %s, command req %s\n", cc->name, name);
-				#endif
+				cm_log(CM_LOGLEVEL_DEBUG,"container_external_interface_reboot_guest: reboot to %s, command req %s\n", cc->name, name);
 				ret = container_request_reboot(cc, cs->sys_state);
 				if (ret == 0) {
 					command_accept = 0;
@@ -205,9 +205,7 @@ static int container_external_interface_reboot_guest(containers_t *cs, char *nam
 		} else {
 			if (cc->runtime_stat.status == CONTAINER_STARTED) {
 				if (strncmp(cc->role, name, strlen(cc->role)) == 0) {
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"container_external_interface_reboot_guest: reboot to %s, command req %s\n", cc->name, name);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG,"container_external_interface_reboot_guest: reboot to %s, command req %s\n", cc->name, name);
 					ret = container_request_reboot(cc, cs->sys_state);
 					if (ret == 0) {
 						command_accept = 0;
@@ -244,9 +242,7 @@ static int container_external_interface_shutdown_guest(containers_t *cs, char *n
 
 		if (role == 0) {
 			if (strncmp(cc->name, name, strlen(cc->name)) == 0) {
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"container_external_interface_shutdown_guest: shutdown to %s, command req %s\n", cc->name, name);
-				#endif
+				cm_log(CM_LOGLEVEL_DEBUG,"container_external_interface_shutdown_guest: shutdown to %s, command req %s\n", cc->name, name);
 				ret = container_request_shutdown(cc, cs->sys_state);
 				if (ret == 0) {
 					command_accept = 0;
@@ -255,9 +251,7 @@ static int container_external_interface_shutdown_guest(containers_t *cs, char *n
 		} else {
 			if (cc->runtime_stat.status == CONTAINER_STARTED) {
 				if (strncmp(cc->role, name, strlen(cc->role)) == 0) {
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"container_external_interface_shutdown_guest: shutdown to %s, command req %s\n", cc->name, name);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG,"container_external_interface_shutdown_guest: shutdown to %s, command req %s\n", cc->name, name);
 					ret = container_request_shutdown(cc, cs->sys_state);
 					if (ret == 0) {
 						command_accept = 0;
@@ -645,9 +639,7 @@ static int container_external_interface_incoming_handler(sd_event_source *event,
 
 		if(pextif->interface_session_evsource != NULL) {
 			// external interface is one session only
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"container_external_interface_incoming_handler: double session\n");
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"container_external_interface_incoming_handler: double session\n");
 			goto error_return;
 		}
 

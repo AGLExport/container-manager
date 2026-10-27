@@ -9,6 +9,8 @@
 #include "device-control.h"
 
 #include <stdlib.h>
+#include "cm-log.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -127,9 +129,7 @@ static int devc_static_devnode_scan(container_static_device_t *sdevc)
 			develem->is_valid = 0;
 		}
 
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"devc: device file %s detect major = %d, minor = %d\n", develem->devnode, develem->major, develem->minor);
-		#endif
+		cm_log(CM_LOGLEVEL_TRACE,"devc: device file %s detect major = %d, minor = %d\n", develem->devnode, develem->major, develem->minor);
 	}
 
 	return 0;
@@ -193,9 +193,7 @@ static int devc_gpionode_scan(container_static_device_t *sdevc)
 				continue; //May not cause this error.
 			}
 
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"devc: gpio node %s will export\n", buf);
-			#endif
+			cm_log(CM_LOGLEVEL_TRACE,"devc: gpio node %s will export\n", buf);
 			ret = once_write(gpio_export_node, buf, slen);
 			if (ret == 0) {
 				ret = node_check(gpioelem->from);
@@ -220,15 +218,11 @@ static int devc_gpionode_scan(container_static_device_t *sdevc)
 
 		ret = once_write(buf, gpio_direction_table[gpioelem->portdirection], strlen(gpio_direction_table[gpioelem->portdirection]));
 		if (ret != 0) {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"devc: gpio node %s direction set %s is fail\n", gpioelem->from,  gpio_direction_table[gpioelem->portdirection]);
-			#endif
+			cm_log(CM_LOGLEVEL_WARNING,"devc: gpio node %s direction set %s is fail\n", gpioelem->from,  gpio_direction_table[gpioelem->portdirection]);
 			continue; //Skip port setup, may not cause this error.
 		}
 		gpioelem->is_valid = 1;
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"devc: gpio node %s is valid = %d\n", gpioelem->from, gpioelem->is_valid);
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG,"devc: gpio node %s is valid = %d\n", gpioelem->from, gpioelem->is_valid);
 	}
 
 	return 0;
@@ -300,9 +294,8 @@ static int devc_iionode_scan(container_static_device_t *sdevc)
 			iioelem->is_dev_valid = 0;
 		}
 
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"devc: iio node %s / %s is valid = %d\n", iioelem->sysfrom, iioelem->devfrom, iioelem->is_valid);
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG,"devc: iio node %s / %s is valid = dev:%d sys:%d.\n"
+				, iioelem->sysfrom, iioelem->devfrom, iioelem->is_dev_valid, iioelem->is_sys_valid);
 	}
 
 	return 0;

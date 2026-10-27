@@ -6,6 +6,8 @@
  */
 
 #include <stdlib.h>
+#include "cm-log.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -72,27 +74,21 @@ int main(int argc, char *argv[])
 
 	ret = container_mngsm_setup(&cs, event, NULL);
 	if (ret < 0) {
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"container_mngsm_setup: fail %d\n", ret);
-		#endif
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR,"container_mngsm_setup: fail %d\n", ret);
 		result = -1;
 		goto finish;
 	}
 
 	ret = container_mngsm_interface_get(&cci, cs);
 	if (ret < 0) {
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"container_mngsm_interface_create: fail %d\n", ret);
-		#endif
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR,"container_mngsm_interface_create: fail %d\n", ret);
 		result = -1;
 		goto finish;
 	}
 
 	ret = devc_device_manager_setup(cs, cci, event);
 	if (ret < 0) {
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"devc_device_manager_setup: fail %d\n", ret);
-		#endif
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR,"devc_device_manager_setup: fail %d\n", ret);
 		result = -1;
 		goto finish;
 	}

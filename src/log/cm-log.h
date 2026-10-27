@@ -20,6 +20,7 @@
 #define CM_LOGLEVEL_TRACE			(50)	// Log level for the trace.
 
 //-----------------------------------------------------------------------------
+int cm_log_enabled(int level);
 void cm_log(int level, const char *format, ...);
 
 //-----------------------------------------------------------------------------

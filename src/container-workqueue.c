@@ -4,6 +4,8 @@
  * @file	container-workqueue.c
  * @brief	This file include implementation for per container extra operation.
  */
+#include "cm-log.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
@@ -213,32 +215,24 @@ static int container_workqueue_load_plugin(container_workqueue_t *workqueue, con
 
 	obj->plugin_dlhandle = dlopen(plugin_path, (RTLD_NOW | RTLD_NODELETE));
 	if (obj->plugin_dlhandle == NULL) {
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"container_workqueue_load_plugin: fail to load %s / %s\n", plugin_path, dlerror());
-		#endif
+		cm_log(CM_LOGLEVEL_ERROR,"container_workqueue_load_plugin: fail to load %s / %s\n", plugin_path, dlerror());
 		goto error_return;
 	}
 
 	obj->cm_worker_new = (cm_worker_new_t)dlsym(obj->plugin_dlhandle, "cm_worker_new");
 	if (obj->cm_worker_new == NULL) {
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"container_workqueue_load_plugin: fail to symbol load %s at %s\n", "cm_worker_new", plugin_path);
-		#endif
+		cm_log(CM_LOGLEVEL_ERROR,"container_workqueue_load_plugin: fail to symbol load %s at %s\n", "cm_worker_new", plugin_path);
 		goto error_return;
 	}
 	obj->cm_worker_delete = (cm_worker_delete_t)dlsym(obj->plugin_dlhandle, "cm_worker_delete");
 	if (obj->cm_worker_delete == NULL) {
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"container_workqueue_load_plugin: fail to symbol load %s at %s\n", "cm_worker_delete", plugin_path);
-		#endif
+		cm_log(CM_LOGLEVEL_ERROR,"container_workqueue_load_plugin: fail to symbol load %s at %s\n", "cm_worker_delete", plugin_path);
 		goto error_return;
 	}
 
 	ret = obj->cm_worker_new(&obj->instance);
 	if (ret < 0) {
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"container_workqueue_load_plugin: fail to %s at %s\n", "cm_worker_new", plugin_path);
-		#endif
+		cm_log(CM_LOGLEVEL_ERROR,"container_workqueue_load_plugin: fail to %s at %s\n", "cm_worker_new", plugin_path);
 		goto error_return;
 	}
 
@@ -280,9 +274,7 @@ static int container_workqueue_unload_plugin(container_workqueue_t *workqueue)
 
 	ret = obj->cm_worker_delete(obj->instance);
 	if (ret < 0) {
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"container_workqueue_unload_plugin: fail to %s\n", "cm_worker_delete");
-		#endif
+		cm_log(CM_LOGLEVEL_ERROR,"container_workqueue_unload_plugin: fail to %s\n", "cm_worker_delete");
 		goto error_return;
 	}
 
@@ -337,9 +329,7 @@ int container_workqueue_cleanup(container_workqueue_t *workqueue, int *after_exe
 
 	workqueue->state_after_execute = 0;
 
-	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout,"container_workqueue_cleanup: got result %d\n", workqueue->result);
-	#endif
+	cm_log(CM_LOGLEVEL_DEBUG,"container_workqueue_cleanup: got result %d\n", workqueue->result);
 
 	(void) container_workqueue_unload_plugin(workqueue);
 

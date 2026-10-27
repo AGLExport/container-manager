@@ -50,11 +50,9 @@ static int container_mngsm_state_machine(containers_t *cs, const uint8_t *buf)
 
 	command = phead->command;
 
-	#ifdef _PRINTF_DEBUG_
 	if (command != CONTAINER_MNGSM_COMMAND_TIMER_TICK) {
-		(void) fprintf(stdout,"container_mngsm_state_machine: command %x\n", command);
+		cm_log(CM_LOGLEVEL_TRACE,"container_mngsm_state_machine: command %x\n", command);
 	}
-	#endif
 
 	switch(command) {
 	case CONTAINER_MNGSM_COMMAND_NETIFUPDATED :
@@ -595,14 +593,10 @@ int container_mngsm_start(containers_t *cs)
 			ret = container_start_by_role(cs, cmrc->name);
 			if (ret < 0) {
 				if (ret == -2) {
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"container start: no active guest in role : %s.\n", cmrc->name);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG,"container start: no active guest in role : %s.\n", cmrc->name);
 					; //Critical log was out in sub function.
 				} else {
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"container start: fail to start active guest in role : %s.\n", cmrc->name);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG,"container start: fail to start active guest in role : %s.\n", cmrc->name);
 					; //Critical log was out in sub function.
 				}
 			}

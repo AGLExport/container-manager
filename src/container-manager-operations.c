@@ -6,6 +6,8 @@
  */
 
 #include <stdlib.h>
+#include "cm-log.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -146,17 +148,13 @@ static int manager_mount_operation(int control_fd, worker_operation_storage_t *w
 					if (ret < 0) {
 						wres.result = -1;
 					}
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout, "manager_mount_operation: mount_disk_once ret %d.\n", ret);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG, "manager_mount_operation: mount_disk_once ret %d.\n", ret);
 					(void) manager_operation_mount_elem_free(celem);
 					(void) intr_safe_write(wos->worker_fd, &wres, sizeof(wres));
 				} else {
 					// In case of mount error, need to exec next step. Keep this object in list.
 					result = -1;
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout, "manager_mount_operation: mount_disk_once fail do need to recover.\n");
-					#endif
+					cm_log(CM_LOGLEVEL_CRITICAL_INFO, "manager_mount_operation: mount_disk_once fail do need to recover.\n");
 				}
 			} else {
 				// AB and other not support, remove element from list.
@@ -218,20 +216,17 @@ static int manager_worker_exec(int control_fd, worker_operation_storage_t *wos)
 	dl_list_for_each_safe(celem, celem_n, &wos->mount_list, container_manager_operation_mount_elem_t, list) {
 		if (celem->state != MANAGER_WORKER_STATE_QUEUED) {
 			// Already canceled. Skip.
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout, "manager_worker_exec: %s operation was canceled.\n", celem->blockdev[0]);
-			#endif
+			cm_log(CM_LOGLEVEL_TRACE, "manager_worker_exec: %s operation was canceled.\n", celem->blockdev[0]);
 			continue;
 		}
 
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout, "manager_worker_exec: do %s operation.\n", celem->blockdev[0]);
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG, "manager_worker_exec: do %s operation.\n", celem->blockdev[0]);
 
 		child_pid = fork();
 		if (child_pid < 0) {
 			// Fail to fork
 			celem->state = MANAGER_WORKER_STATE_CANCELED;
+			cm_log(CM_LOGLEVEL_ERROR, "Fork was failed at manager_worker_exec %s operations.\n", celem->blockdev[0]);
 			continue;
 		}
 
@@ -249,15 +244,13 @@ static int manager_worker_exec(int control_fd, worker_operation_storage_t *wos)
 			(void) _exit(128);
 		}
 
-		#ifdef _PRINTF_DEBUG_
 		if (celem->redundancy == MANAGER_DISKREDUNDANCY_TYPE_FSCK) {
-			(void) fprintf(stdout, "manager_worker_exec fsck fork and exec fsck.ext4 pid=%d\n",(int)child_pid);
+			cm_log(CM_LOGLEVEL_DEBUG, "manager_worker_exec fsck fork and exec fsck.ext4 pid=%d\n",(int)child_pid);
 		} else if (celem->redundancy == MANAGER_DISKREDUNDANCY_TYPE_MKFS) {
-			(void) fprintf(stdout, "manager_worker_exec mkfs fork and exec mkfs.ext4 pid=%d\n",(int)child_pid);
+			cm_log(CM_LOGLEVEL_DEBUG, "manager_worker_exec mkfs fork and exec mkfs.ext4 pid=%d\n",(int)child_pid);
 		} else {
 			;	//nop
 		}
-		#endif
 
 		child_fd = pidfd_open_syscall_wrapper(child_pid);
 		// Fail to create pidfd, it handled error case of poll.
@@ -274,9 +267,7 @@ static int manager_worker_exec(int control_fd, worker_operation_storage_t *wos)
 				// Got a event
 				if (waiter[0].revents != 0) {
 					// child process was exited.
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout, "manager_worker_exec got a exit child process.\n");
-					#endif
+					cm_log(CM_LOGLEVEL_TRACE, "manager_worker_exec got a exit child process.\n");
 					break;
 				}
 
@@ -346,9 +337,7 @@ static int manager_worker_exec(int control_fd, worker_operation_storage_t *wos)
 		if (celem->state != MANAGER_WORKER_STATE_CANCELED) {
 			// When this elem was not canceled, it set complete state.
 			celem->state = MANAGER_WORKER_STATE_COMPLETE;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout, "manager_worker_exec %s recovery complete.\n", celem->blockdev[0]);
-			#endif
+			cm_log(CM_LOGLEVEL_INFO, "manager_worker_exec %s recovery complete.\n", celem->blockdev[0]);
 		}
 
 		ret = manager_worker_set_and_test_cancel(wos, -1);
@@ -540,9 +529,7 @@ int manager_operation_delayed_launch(containers_t *cs)
 
 	cmo->storage = cmos;
 
-	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout, "Do manager_operation_delayed_launch.\n");
-	#endif
+	cm_log(CM_LOGLEVEL_DEBUG, "Do manager_operation_delayed_launch.\n");
 
 	return 0;
 
@@ -612,15 +599,11 @@ int manager_operation_delayed_poll(containers_t *cs)
 				if (wres.result == 0) {
 					// mounted
 					cmom_elem->is_mounted = 1;
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout, "manager_operation_delayed_poll got mounted %s to %s.\n", cmom_elem->blockdev[0], cmom_elem->to);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG, "manager_operation_delayed_poll got mounted %s to %s.\n", cmom_elem->blockdev[0], cmom_elem->to);
 				} else if (wres.result == 1) {
 					// canceled
 					cmom_elem->is_mounted = 0;
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout, "manager_operation_delayed_poll got canceled %s to %s.\n", cmom_elem->blockdev[0], cmom_elem->to);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG, "manager_operation_delayed_poll got canceled %s to %s.\n", cmom_elem->blockdev[0], cmom_elem->to);
 				} else {
 					// error
 					cmom_elem->error_count++;
@@ -632,9 +615,7 @@ int manager_operation_delayed_poll(containers_t *cs)
 				cmom_elem->is_mounted = 0;
 				// Already completed worker operation
 				cmom_elem->is_dispatched = 0;
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout, "manager_operation_delayed_poll got unmounted %s from %s.\n", cmom_elem->blockdev[0], cmom_elem->to);
-				#endif
+				cm_log(CM_LOGLEVEL_DEBUG, "manager_operation_delayed_poll got unmounted %s from %s.\n", cmom_elem->blockdev[0], cmom_elem->to);
 			} else {
 				;	//nop
 			}
@@ -655,9 +636,7 @@ do_asses:
 			(void)free(cmo->storage);
 			cmo->storage = NULL;
 			result = 1;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout, "End of all delayed mount worker.\n");
-			#endif
+			cm_log(CM_LOGLEVEL_INFO, "End of all delayed mount worker.\n");
 		}
 	}
 
@@ -769,9 +748,7 @@ int manager_operation_delayed_terminate(containers_t *cs)
 
 	cmo->storage = cmos;
 
-	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout, "Do manager_operation_delayed_terminate.\n");
-	#endif
+	cm_log(CM_LOGLEVEL_DEBUG, "Do manager_operation_delayed_terminate.\n");
 
 	return 0;
 

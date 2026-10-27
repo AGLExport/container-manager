@@ -20,10 +20,10 @@
 
 #include "list.h"
 
+#include "cm-log.h"
+
 #include <stdio.h>
 #include <string.h>
-
-#undef _PRINTF_DEBUG_
 
 /**
  * @struct	s_netifmonitor
@@ -45,19 +45,27 @@ static const char *net_if_blacklist[] = {
 	NULL,
 };
 
-#ifdef _PRINTF_DEBUG_
 /**
- * Debug use only.
+ * Print network interface details at TRACE level.
  */
 static void print_iflist(network_interface_manager_t *nfm)
 {
 	network_interface_info_t *ifinfo = NULL;
 
 	dl_list_for_each(ifinfo, &nfm->nllist, network_interface_info_t, list) {
-		(void) fprintf(stdout, "index: %d  name: %s\n", ifinfo->ifindex, ifinfo->ifname);
+		cm_log(CM_LOGLEVEL_TRACE, "index: %d  name: %s.\n", ifinfo->ifindex, ifinfo->ifname);
 	}
 }
-#endif //#ifdef _PRINTF_DEBUG_
+
+/**
+ * Print the interface list only when TRACE logging is enabled.
+ */
+static void print_iflist_trace(network_interface_manager_t *nfm)
+{
+	if (cm_log_enabled(CM_LOGLEVEL_TRACE) == 1) {
+		print_iflist(nfm);
+	}
+}
 
 static int network_interface_info_free(network_interface_info_t *nfi);
 
@@ -167,10 +175,8 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 
 			if (nfi->ifindex == nfi_new->ifindex) {
 				// existing device is found -> remove
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"netifmonitor-new: Found existing if \n exist = %s(%d)\n new = %s(%d)\n\n"
+				cm_log(CM_LOGLEVEL_DEBUG,"netifmonitor-new: Found existing if \n exist = %s(%d)\n new = %s(%d)\n\n"
 						, nfi->ifname, nfi->ifindex, nfi_new->ifname, nfi_new->ifindex);
-				#endif
 				dl_list_del(&nfi->list);
 				(void) network_interface_info_free(nfi);
 			}
@@ -188,10 +194,8 @@ static int data_cb(const struct nlmsghdr *nlh, void *data)
 
 			if (nfi->ifindex == nfi_new->ifindex) {
 				// existing device is found -> remove
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"netifmonitor-del: Found existing if \n exist = %s(%d)\n new = %s(%d)\n\n"
+				cm_log(CM_LOGLEVEL_DEBUG,"netifmonitor-del: Found existing if \n exist = %s(%d)\n removed = %s(%d)\n\n"
 						, nfi->ifname, nfi->ifindex, nfi_new->ifname, nfi_new->ifindex);
-				#endif
 				dl_list_del(&nfi->list);
 				(void) network_interface_info_free(nfi);
 			}
@@ -253,9 +257,7 @@ static int nml_event_handler(sd_event_source *event, int fd, uint32_t revents, v
 		;	//nop
 	}
 
-	#ifdef _PRINTF_DEBUG_
-	print_iflist(&ddm->netif);
-	#endif	//#ifdef _PRINTF_DEBUG_
+	print_iflist_trace(&ddm->netif);
 
 	return 0;
 }
@@ -319,9 +321,7 @@ static int netifmonitor_listing_existif(dynamic_device_manager_t *ddm)
 
 	(void) mnl_socket_close(nl);
 
-	#ifdef _PRINTF_DEBUG_
-	print_iflist(&ddm->netif);
-	#endif	//#ifdef _PRINTF_DEBUG_
+	print_iflist_trace(&ddm->netif);
 
 	return 0;
 

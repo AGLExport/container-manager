@@ -7,6 +7,8 @@
 
 #include "lxc-util.h"
 
+#include "cm-log.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -34,9 +36,7 @@ int lxcutil_container_shutdown(container_config_t *cc)
 
 	if (cc->runtime_stat.lxc != NULL) {
 		bret = cc->runtime_stat.lxc->shutdown(cc->runtime_stat.lxc, 0);	//non block shutdown
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout, "lxcutil_container_shutdown: shutdown request to guest %s\n", cc->name);
-		#endif
+		cm_log(CM_LOGLEVEL_INFO, "lxcutil_container_shutdown: shutdown request to guest %s\n", cc->name);
 	}
 
 	if (bret == true) {
@@ -62,9 +62,7 @@ int lxcutil_container_forcekill(container_config_t *cc)
 
 		if (pid > 0) {
 			(void) kill(pid, SIGKILL);
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout, "lxcutil_container_forcekill: kill signal send to guest %s\n", cc->name );
-			#endif
+			cm_log(CM_LOGLEVEL_WARNING, "lxcutil_container_forcekill: kill signal send to guest %s\n", cc->name );
 		}
 	}
 
@@ -335,16 +333,12 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 
 			if (lddr->operation == DCD_UEVENT_ACTION_ADD) {
 				ret = lxcutil_cgroup_device_operation(cc, 1, buf);
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout, "lxcutil_cgroup_device_operation: %s = %s\n", "devices.allow", buf);
-				#endif
+				cm_log(CM_LOGLEVEL_TRACE, "lxcutil_cgroup_device_operation: %s = %s\n", "devices.allow", buf);
 			} else if (lddr->operation == DCD_UEVENT_ACTION_REMOVE) {
 				// In case of block device, guest must be unmount device. In this case need to access capability.
 				if (lddr->devtype != DEVNODE_TYPE_BLK) {
 					ret = lxcutil_cgroup_device_operation(cc, 0, buf);
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout, "lxcutil_cgroup_device_operation: %s = %s\n", "devices.deny", buf);
-					#endif
+					cm_log(CM_LOGLEVEL_TRACE, "lxcutil_cgroup_device_operation: %s = %s\n", "devices.deny", buf);
 				} else {
 					ret = 0;
 				}
@@ -354,9 +348,7 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 			}
 
 			if (ret < 0) {
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout, "lxcutil_dynamic_device_operation: fail set_cgroup_item %s\n", buf);
-				#endif
+				cm_log(CM_LOGLEVEL_ERROR, "lxcutil_dynamic_device_operation: fail set_cgroup_item %s\n", buf);
 				result = -2;
 				goto err_ret;
 			}
@@ -383,9 +375,7 @@ int lxcutil_dynamic_device_operation(container_config_t *cc, lxcutil_dynamic_dev
 				bret = false;
 			}
 			if (ret < 0) {
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout, "lxcutil_dynamic_device_operation: fail lxcutil_add_remove_guest_node (%d) %s\n", ret, lddr->devnode);
-				#endif
+				cm_log(CM_LOGLEVEL_WARNING, "lxcutil_dynamic_device_operation: fail lxcutil_add_remove_guest_node (%d) %s\n", ret, lddr->devnode);
 				result = -1;
 				goto err_ret;
 			}
@@ -415,9 +405,7 @@ int lxcutil_dynamic_networkif_add_to_guest(container_config_t *cc, container_dyn
 
 	if (cc->runtime_stat.lxc != NULL) {
 		bret = cc->runtime_stat.lxc->attach_interface(cc->runtime_stat.lxc, cdne->ifname, cdne->ifname);
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout, "lxcutil_dynamic_networkif_add_to_guest: network interface %s assign to %s\n", cdne->ifname, cc->name );
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG, "lxcutil_dynamic_networkif_add_to_guest: network interface %s assign to %s\n", cdne->ifname, cc->name );
 	}
 
 	if (bret == true) {
@@ -454,9 +442,7 @@ int lxcutil_dynamic_mount_to_guest(container_config_t *cc, const char *host_path
 		     struct lxc_mount *mnt);
 		*/
 		ret = cc->runtime_stat.lxc->mount(cc->runtime_stat.lxc, host_path, guest_path, NULL, MS_BIND, NULL, &mnt);
-		#ifdef _PRINTF_DEBUG_
-		fprintf(stdout, "lxcutil_dynamic_mount_to_guest: from %s to %s ret = %d\n", host_path, guest_path, ret);
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG, "lxcutil_dynamic_mount_to_guest: from %s to %s ret = %d\n", host_path, guest_path, ret);
 	}
 
 	if (ret == 0) {

@@ -15,6 +15,8 @@
 #include <limits.h>
 #include <sys/wait.h>
 #include <time.h>
+#include "cm-log.h"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -285,22 +287,16 @@ int mount_disk_failover(char **devs, const char *path, const char *fstype, unsig
 		if (ret < 0) {
 			if (errno == EBUSY) {
 				// already mounted
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"mount_disk_failover: %s is already mounted.\n", path);
-				#endif
+				cm_log(CM_LOGLEVEL_DEBUG, "mount_disk_failover: %s is already mounted.\n", path);
 				ret = umount2(path, MNT_DETACH);
 				if (ret < 0) {
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"mount_disk_failover: %s unmount fail.\n", path);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG, "mount_disk_failover: %s unmount fail.\n", path);
 					continue;
 				}
 
 				ret = mount(dev, path, fstype, mntflag, option);
 				if (ret < 0) {
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"mount_disk_failover: %s re-mount fail.\n", path);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG, "mount_disk_failover: %s re-mount fail.\n", path);
 					continue;
 				}
 				mntdisk = i;
@@ -312,9 +308,7 @@ int mount_disk_failover(char **devs, const char *path, const char *fstype, unsig
 		} else {
 			// success to mount
 			mntdisk = i;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"mount_disk_failover: mounted %s to %s.\n", dev, path);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG, "mount_disk_failover: mounted %s to %s.\n", dev, path);
 			break;
 		}
 	}
@@ -352,35 +346,25 @@ int mount_disk_ab(char **devs, const char *path, const char *fstype, unsigned lo
 	if (ret < 0) {
 		if (errno == EBUSY) {
 			// already mounted
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"mount_disk_ab: %s is already mounted.\n", path);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG, "mount_disk_ab: %s is already mounted.\n", path);
 			ret = umount2(path, MNT_DETACH);
 			if (ret < 0) {
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"mount_disk_ab: %s unmount fail.\n", path);
-				#endif
+				cm_log(CM_LOGLEVEL_DEBUG, "mount_disk_ab: %s unmount fail.\n", path);
 				return -1;
 			}
 
 			ret = mount(dev, path, fstype, mntflag, option);
 			if (ret < 0) {
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"mount_disk_ab: %s re-mount fail.\n", path);
-				#endif
+				cm_log(CM_LOGLEVEL_DEBUG, "mount_disk_ab: %s re-mount fail.\n", path);
 				return -1;
 			}
 		} else {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"mount_disk_ab: %s mount fail to %s (%d).\n", dev, path, errno);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG, "mount_disk_ab: %s mount fail to %s (%d).\n", dev, path, errno);
 			return -1;
 		}
 	}
 
-	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout,"mount_disk_ab(%d): %s mount to %s (%s)\n", side, dev, path, fstype);
-	#endif
+	cm_log(CM_LOGLEVEL_DEBUG, "mount_disk_ab(%d): %s mount to %s (%s)\n", side, dev, path, fstype);
 
 	return 0;
 }
@@ -410,35 +394,25 @@ int mount_disk_once(char **devs, const char *path, const char *fstype, unsigned 
 	if (ret < 0) {
 		if (errno == EBUSY) {
 			// already mounted
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"mount_disk_once: %s is already mounted.\n", path);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG, "mount_disk_once: %s is already mounted.\n", path);
 			ret = umount2(path, MNT_DETACH);
 			if (ret < 0) {
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"mount_disk_once: %s unmount fail.\n", path);
-				#endif
+				cm_log(CM_LOGLEVEL_DEBUG, "mount_disk_once: %s unmount fail.\n", path);
 				return -1;
 			}
 
 			ret = mount(dev, path, fstype, mntflag, option);
 			if (ret < 0) {
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"mount_disk_once: %s re-mount fail.\n", path);
-				#endif
+				cm_log(CM_LOGLEVEL_DEBUG, "mount_disk_once: %s re-mount fail.\n", path);
 				return -1;
 			}
 		} else {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"mount_disk_once: %s mount fail to %s (%d).\n", dev, path, errno);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG, "mount_disk_once: %s mount fail to %s (%d).\n", dev, path, errno);
 			return -1;
 		}
 	}
 
-	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout,"mount_disk_once: %s mount to %s (%s)\n", dev, path, fstype);
-	#endif
+	cm_log(CM_LOGLEVEL_DEBUG, "mount_disk_once: %s mount to %s (%s)\n", dev, path, fstype);
 
 	return 0;
 }
@@ -460,26 +434,20 @@ int mount_disk_bind(const char *src_path, const char *dest_path, int is_read_onl
 
 	ret = mount(src_path, dest_path, NULL, MS_BIND, NULL);
 	if (ret < 0) {
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"mount_disk_bind: %s bind mount fail to %s (%d).\n", src_path, dest_path, errno);
-		#endif
+		cm_log(CM_LOGLEVEL_ERROR, "mount_disk_bind: %s bind mount fail to %s (%d).\n", src_path, dest_path, errno);
 		return -1;
 	}
 
 	if (is_read_only == 1) {
 		ret = mount(dest_path, dest_path, NULL, (MS_REMOUNT | MS_BIND | MS_RDONLY), NULL);
 		if (ret < 0) {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"mount_disk_bind: read only remount fail to %s (%d).\n", dest_path, errno);
-			#endif
+			cm_log(CM_LOGLEVEL_ERROR, "mount_disk_bind: read only remount fail to %s (%d).\n", dest_path, errno);
 			(void) umount(dest_path);
 			return -1;
 		}
 	}
 
-	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout,"mount_disk_bind: %s bind mount to %s\n", src_path, dest_path);
-	#endif
+	cm_log(CM_LOGLEVEL_DEBUG, "mount_disk_bind: %s bind mount to %s\n", src_path, dest_path);
 
 	return 0;
 }
@@ -526,16 +494,12 @@ int unmount_disk(const char *path, int64_t timeout_at, int retry_max)
 		break;
 	}
 
-	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout,"container_cleanup_unmountdisk: retry = %d for unmount at %s.\n", retry_count, path);
-	#endif
+	cm_log(CM_LOGLEVEL_DEBUG, "container_cleanup_unmountdisk: retry = %d for unmount at %s.\n", retry_count, path);
 
 	if (umount_complete == 0) {
 		// In case of unmount time out -> lazy unmount
 		(void) umount2(path, MNT_DETACH);
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"container_cleanup_unmountdisk: lazy unmount at %s.\n", path);
-		#endif
+		cm_log(CM_LOGLEVEL_INFO, "container_cleanup_unmountdisk: lazy unmount at %s.\n", path);
 	}
 
 	return 0;

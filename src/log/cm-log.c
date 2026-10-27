@@ -11,6 +11,23 @@
 #include <string.h>
 
 static int g_log_output_level = CM_LOGLEVEL_CRITICAL_INFO;
+
+/**
+ * Test whether a log level is enabled.
+ *
+ * @param [in] level Log level.
+ * @return 1 when the log level is enabled, zero otherwise.
+ */
+int cm_log_enabled(int level)
+{
+	int result = 0;
+
+	if (level <= g_log_output_level) {
+		result = 1;
+	}
+	return result;
+}
+
 /**
  * Container Manager log.
  * This function supports log level filtered log output to stderr.
@@ -22,7 +39,7 @@ __attribute__((format(printf, 2, 3)))
 #endif
 void cm_log(int level, const char *format, ...)
 {
-	if (level <= g_log_output_level) {
+	if (cm_log_enabled(level)) {
 		va_list args;
 
 		va_start(args, format);

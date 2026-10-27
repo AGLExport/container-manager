@@ -60,9 +60,7 @@ static int bind_container_to_role_list(containers_t* cs)
 						// add guest info to existing role
 						container_manager_role_elem_t *pelem = NULL;
 
-						#ifdef _PRINTF_DEBUG_
-						(void) fprintf(stdout,"bind_container_to_role: add %s to existing role %s\n", cc->name, cmrc->name);
-						#endif
+						cm_log(CM_LOGLEVEL_DEBUG, "bind_container_to_role: add %s to existing role %s\n", cc->name, cmrc->name);
 
 						pelem = (container_manager_role_elem_t*)malloc(sizeof(container_manager_role_elem_t));
 						if (pelem != NULL) {
@@ -101,9 +99,7 @@ static int bind_container_to_role_list(containers_t* cs)
 				dl_list_init(&cmrc->container_list);
 
 				cmrc->name = strdup(role);
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"cmcfg: create new role %s\n", cmrc->name);
-				#endif
+				cm_log(CM_LOGLEVEL_DEBUG, "cmcfg: create new role %s\n", cmrc->name);
 
 				// create terminator
 				pelem = (container_manager_role_elem_t*)malloc(sizeof(container_manager_role_elem_t));
@@ -291,13 +287,14 @@ containers_t *create_container_configs(const char *config_file)
 					// parse container config.
 					ret = cmparser_create_from_file(&cc, buf);
 					if (ret < 0) {
-						#ifdef _PRINTF_DEBUG_
-						(void) fprintf(stdout, "[FAIL] cmparser_create_from_file %s ret = %d\n", buf, ret);
-						#endif
+						cm_log(CM_LOGLEVEL_WARNING, "cmparser_create_from_file: could not parse %s ret = %d\n", buf, ret);
 						continue;
 					}
 					(void)container_workqueue_initialize(&(cc->workqueue));
 					cc->runtime_stat.status = CONTAINER_DISABLE;
+
+					cm_log(CM_LOGLEVEL_TRACE, "cmparser_create_from_file: create %s instance.\n", buf);
+
 					ca[num] = cc;
 					num = num + 1;
 				}

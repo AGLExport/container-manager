@@ -87,40 +87,28 @@ static int cmparser_parse_basesub_idmap(container_baseconfig_idmap_t *map, const
 		guestroot = cJSON_GetObjectItemCaseSensitive(idmap, "guestroot");
 		if (cJSON_IsNumber(guestroot)) {
 			map->guest_root_id = guestroot->valueint;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-idmaps.%s.guest_root_id = %d\n", tc, map->guest_root_id);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-idmaps.%s.guest_root_id = %d\n", tc, map->guest_root_id);
 		} else {
 			isenable = 0;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-idmaps.%s.guest_root_id is error\n", tc);
-			#endif
+			cm_log(CM_LOGLEVEL_WARNING,"cmparser: base-idmaps.%s.guest_root_id is error. Feature is disabled.\n", tc);
 		}
 
 		hostidstart = cJSON_GetObjectItemCaseSensitive(idmap, "hostidstart");
 		if (cJSON_IsNumber(hostidstart)) {
 			map->host_start_id = hostidstart->valueint;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-idmaps.%s.host_start_id = %d\n", tc, map->host_start_id);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-idmaps.%s.host_start_id = %d\n", tc, map->host_start_id);
 		} else {
 			isenable = 0;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-idmaps.%s.host_start_id is error\n", tc);
-			#endif
+			cm_log(CM_LOGLEVEL_WARNING,"cmparser: base-idmaps.%s.host_start_id is error. Feature is disabled.\n", tc);
 		}
 
 		num = cJSON_GetObjectItemCaseSensitive(idmap, "num");
 		if (cJSON_IsNumber(num)) {
 			map->num_of_id = num->valueint;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-idmaps.%s.num_of_id = %d\n",tc, map->num_of_id);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-idmaps.%s.num_of_id = %d\n",tc, map->num_of_id);
 		} else {
 			isenable = 0;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-idmaps.%s.num_of_id is error\n", tc);
-			#endif
+			cm_log(CM_LOGLEVEL_WARNING,"cmparser: base-idmaps.%s.num_of_id is error. Feature is disabled.\n", tc);
 		}
 	}
 
@@ -203,9 +191,7 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 	path = cJSON_GetObjectItemCaseSensitive(rootfs, "path");
 	if (cJSON_IsString(path) && (path->valuestring != NULL)) {
 		bc->rootfs.path = strdup(path->valuestring);
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"cmparser: base-path value = %s\n",bc->rootfs.path);
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-path value = %s\n",bc->rootfs.path);
 	} else {
 		// Mandatory value
 		cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] cmparser: The root path is not set. It's mandatory value.\n");
@@ -216,9 +202,7 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 	filesystem = cJSON_GetObjectItemCaseSensitive(rootfs, "filesystem");
 	if (cJSON_IsString(filesystem) && (filesystem->valuestring != NULL)) {
 		bc->rootfs.filesystem = strdup(filesystem->valuestring);
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"cmparser: filesystem value = %s\n",bc->rootfs.filesystem);
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: filesystem value = %s\n",bc->rootfs.filesystem);
 	} else {
 		// In case of host bind mount, this option is not needed.
 		bc->rootfs.filesystem = NULL;
@@ -227,9 +211,7 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 	mode = cJSON_GetObjectItemCaseSensitive(rootfs, "mode");
 	if (cJSON_IsString(mode) && (mode->valuestring != NULL)) {
 		bc->rootfs.mode = cmparser_parser_get_diskmountmode(mode->valuestring);
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"cmparser: mode value = %d\n",bc->rootfs.mode);
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: mode value = %d\n",bc->rootfs.mode);
 	} else {
 		// When don't have disk mount mode setting, It's use ro mount as a default.
 		bc->rootfs.mode = DISKMOUNT_TYPE_RO;
@@ -238,9 +220,7 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 	option = cJSON_GetObjectItemCaseSensitive(rootfs, "option");
 	if (cJSON_IsString(option) && (option->valuestring != NULL)) {
 		bc->rootfs.option = strdup(option->valuestring);
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"cmparser: mode = %s\n", bc->rootfs.option);
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: mode = %s\n", bc->rootfs.option);
 	} else {
 		// When don't have disk option setting, It's use default for filesystem.
 		bc->rootfs.option = NULL;
@@ -264,14 +244,10 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 			if (i < 2) {
 				if (cJSON_IsString(dev) && (dev->valuestring != NULL)) {
 					bc->rootfs.rootfs_dev[i] = strdup(dev->valuestring);
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"cmparser: base-path rootfs_dev[%d] = %s\n",i,bc->rootfs.rootfs_dev[i]);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-path rootfs_dev[%d] = %s\n",i,bc->rootfs.rootfs_dev[i]);
 				} else {
 					bc->rootfs.rootfs_dev[i] = NULL;
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"cmparser: base-path rootfs_dev[%d] set default value = NULL\n", i);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-path rootfs_dev[%d] set default value = NULL\n", i);
 				}
 			}
 			i++;
@@ -285,14 +261,10 @@ static int cmparser_parse_base_rootfs(container_baseconfig_t *bc, const cJSON *r
 			if (i < 2) {
 				if (cJSON_IsString(dev) && (dev->valuestring != NULL)) {
 					bc->rootfs.rootfs_dev[i] = strdup(dev->valuestring);
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"cmparser: base-path rootfs_dev[%d] = %s\n",i,bc->rootfs.rootfs_dev[i]);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-path rootfs_dev[%d] = %s\n",i,bc->rootfs.rootfs_dev[i]);
 				} else {
 					bc->rootfs.rootfs_dev[i] = NULL;
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"cmparser: base-path rootfs_dev[%d] set default value = NULL\n", i);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-path rootfs_dev[%d] set default value = NULL\n", i);
 				}
 			}
 			i++;
@@ -356,9 +328,7 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 
 		from = cJSON_GetObjectItemCaseSensitive(disk, "from");
 		if (cJSON_IsString(from) && (from->valuestring != NULL)) {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-extradisk from = %s\n",from->valuestring);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-extradisk from = %s\n",from->valuestring);
 			;
 		} else {
 			// Mandatory value, drop this entry.
@@ -368,9 +338,7 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 
 		to = cJSON_GetObjectItemCaseSensitive(disk, "to");
 		if (cJSON_IsString(to) && (to->valuestring != NULL)) {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-extradisk to = %s\n",to->valuestring);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-extradisk to = %s\n",to->valuestring);
 			;
 		} else {
 			// Mandatory value, drop this entry.
@@ -381,9 +349,7 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 		filesystem = cJSON_GetObjectItemCaseSensitive(disk, "filesystem");
 		if (cJSON_IsString(filesystem) && (filesystem->valuestring != NULL)) {
 			fsstr = filesystem->valuestring;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-extradisk filesystem = %s\n",filesystem->valuestring);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-extradisk filesystem = %s\n",filesystem->valuestring);
 		} else {
 			cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] cmparser: base-extradisk filesystem not set. It's mandatory value. drop entry.\n");
 			fsstr = NULL;
@@ -392,9 +358,7 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 		mode = cJSON_GetObjectItemCaseSensitive(disk, "mode");
 		if (cJSON_IsString(mode) && (mode->valuestring != NULL)) {
 			mntmode = cmparser_parser_get_diskmountmode(mode->valuestring);
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-extradisk mode = %s\n",mode->valuestring);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-extradisk mode = %s\n",mode->valuestring);
 		} else {
 			// When don't have disk mount mode setting, It's use ro mount as a default.
 			mntmode = DISKMOUNT_TYPE_RO;
@@ -403,9 +367,7 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 		option = cJSON_GetObjectItemCaseSensitive(disk, "option");
 		if (cJSON_IsString(option) && (option->valuestring != NULL)) {
 			optionstr = option->valuestring;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-extradisk mode = %s\n",optionstr);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-extradisk mode = %s\n",optionstr);
 		} else {
 			// When don't have disk option setting, It's use default for filesystem.
 			optionstr = NULL;
@@ -414,9 +376,7 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 		redundancy = cJSON_GetObjectItemCaseSensitive(disk, "redundancy");
 		if (cJSON_IsString(redundancy) && (redundancy->valuestring != NULL)) {
 			mntredundancy = cmparser_parser_get_diskmountfailop(redundancy->valuestring);
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-extradisk redundancy = %s\n",redundancy->valuestring);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-extradisk redundancy = %s\n",redundancy->valuestring);
 		} else {
 			// When don't have disk mount mode setting, It's use failover as a default.
 			mntredundancy = DISKREDUNDANCY_TYPE_FAILOVER;
@@ -431,14 +391,10 @@ static int cmparser_parse_base_extradisk(container_baseconfig_t *bc, const cJSON
 				if (i < 2) {
 					if (cJSON_IsString(dev) && (dev->valuestring != NULL)) {
 						bdev[i] = dev->valuestring;
-						#ifdef _PRINTF_DEBUG_
-						(void) fprintf(stdout,"cmparser: base-extradisk blockdev[%d] = %s\n", i, bdev[i]);
-						#endif
+						cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-extradisk blockdev[%d] = %s\n", i, bdev[i]);
 					} else {
 						bdev[i] = NULL;
-						#ifdef _PRINTF_DEBUG_
-						(void) fprintf(stdout,"cmparser: base-extradisk blockdev[%d] set default value = NULL\n", i);
-						#endif
+						cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-extradisk blockdev[%d] set default value = NULL\n", i);
 					}
 				}
 				i++;
@@ -505,22 +461,16 @@ static int cmparser_parse_base_extended(container_baseconfig_t *bc, const cJSON 
 		shmounts = cJSON_GetObjectItemCaseSensitive(extended, "shmounts");
 		if (cJSON_IsString(shmounts) && (shmounts->valuestring != NULL)) {
 			bc->extended.shmounts = strdup(shmounts->valuestring);
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-extended shmounts = %s\n",bc->extended.shmounts);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-extended shmounts = %s\n",bc->extended.shmounts);
 		} else {
 			// Not mandatory value, set default value - disable option.
 			bc->extended.shmounts = NULL;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-extended shmounts not set. set default value - disable option.\n");
-			#endif
+			cm_log(CM_LOGLEVEL_WARNING,"cmparser: base-extended shmounts not set. set default value - disable option.\n");
 		}
 	} else {
 		// Set default value all - disable each option.
 		bc->extended.shmounts = NULL;
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"cmparser: base-extended not set. set default value all - disable option.\n");
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-extended not set. set default value all - disable option.\n");
 	}
 
 	return 0;
@@ -560,28 +510,20 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 			bc->autoboot = 0;
 		}
 
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"cmparser: base-autoboot value = %d\n",bc->autoboot);
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-autoboot value = %d\n",bc->autoboot);
 	} else {
 		bc->autoboot = 0; // Default value is 0
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"cmparser: base-autoboot set default value = 0\n");
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-autoboot set default value = 0\n");
 	}
 
 	// Get boot priority
 	bootpriority = cJSON_GetObjectItemCaseSensitive(base, "bootpriority");
 	if (cJSON_IsNumber(bootpriority)) {
 		bc->bootpriority = bootpriority->valueint;
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"cmparser: base-bootpriority value = %d\n",bc->bootpriority);
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-bootpriority value = %d\n",bc->bootpriority);
 	} else {
 		bc->bootpriority = 1000; // Default value is 1000
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"cmparser: base-autoboot set default value = 1000\n");
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-autoboot set default value = 1000\n");
 	}
 
 	// Get rootfs part
@@ -630,44 +572,32 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 		halt = cJSON_GetObjectItemCaseSensitive(lifecycle, "halt");
 		if (cJSON_IsString(halt) && (halt->valuestring != NULL)) {
 			bc->lifecycle.halt = strdup(halt->valuestring);
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-lifecycle-halt value = %s\n",bc->lifecycle.halt);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-lifecycle-halt value = %s\n",bc->lifecycle.halt);
 		}
 
 		reboot = cJSON_GetObjectItemCaseSensitive(lifecycle, "reboot");
 		if (cJSON_IsString(reboot) && (reboot->valuestring != NULL)) {
 			bc->lifecycle.reboot = strdup(reboot->valuestring);
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-lifecycle-reboot value = %s\n",bc->lifecycle.reboot);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-lifecycle-reboot value = %s\n",bc->lifecycle.reboot);
 		}
 
 		// Get boot priority
 		timeout = cJSON_GetObjectItemCaseSensitive(lifecycle, "timeout");
 		if (cJSON_IsNumber(timeout) && (timeout->valueint > 0)) {
 			bc->lifecycle.timeout = timeout->valueint;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-timeout value = %d\n",bc->lifecycle.timeout);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-timeout value = %d\n",bc->lifecycle.timeout);
 		} else {
 			bc->lifecycle.timeout = 10000; // Default value is 10000ms
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-timeout set default value = 1000\n");
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-timeout set default value = 1000\n");
 		}
 	}
 	if (bc->lifecycle.halt == NULL) {
 		bc->lifecycle.halt = strdup(cstr_signal_default);
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"cmparser: base-lifecycle-halt set default value = %s\n",bc->lifecycle.halt);
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-lifecycle-halt set default value = %s\n",bc->lifecycle.halt);
 	}
 	if (bc->lifecycle.reboot == NULL) {
 		bc->lifecycle.reboot = strdup(cstr_signal_default);
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"cmparser: base-lifecycle-reboot set default value = %s\n",bc->lifecycle.reboot);
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-lifecycle-reboot set default value = %s\n",bc->lifecycle.reboot);
 	}
 
 	// Get capability data
@@ -678,17 +608,13 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 		drop = cJSON_GetObjectItemCaseSensitive(cap, "drop");
 		if (cJSON_IsString(drop) && (drop->valuestring != NULL)) {
 			bc->cap.drop = strdup(drop->valuestring);
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-cap-drop value = %s\n",bc->cap.drop);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-cap-drop value = %s\n",bc->cap.drop);
 		}
 
 		keep = cJSON_GetObjectItemCaseSensitive(cap, "keep");
 		if (cJSON_IsString(keep) && (keep->valuestring != NULL)) {
 			bc->cap.keep = strdup(keep->valuestring);
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-cap-keep value = %s\n",bc->cap.keep);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-cap-keep value = %s\n",bc->cap.keep);
 		}
 	}
 
@@ -704,28 +630,22 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 		tty_max = cJSON_GetObjectItemCaseSensitive(tty, "tty");
 		if (cJSON_IsNumber(tty_max) && (tty_max->valueint > 0)) {
 			bc->tty.tty_max = tty_max->valueint;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-tty-tty value = %d\n",bc->tty.tty_max);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-tty-tty value = %d\n",bc->tty.tty_max);
 		}
 
 		// Get pty max
 		pty_max = cJSON_GetObjectItemCaseSensitive(tty, "pty");
 		if (cJSON_IsNumber(pty_max) && (pty_max->valueint > 0)) {
 			bc->tty.pty_max = pty_max->valueint;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-tty-pty value = %d\n",bc->tty.pty_max);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-tty-pty value = %d\n",bc->tty.pty_max);
 		}
 	}
-	#ifdef _PRINTF_DEBUG_
 	if (bc->tty.tty_max == 1) {
-		(void) fprintf(stdout,"cmparser: base-tty-tty set default value = 1\n");
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-tty-tty set default value = 1\n");
 	}
 	if (bc->tty.pty_max == 1) {
-		(void) fprintf(stdout,"cmparser: base-tty-pty set default value = 1\n");
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-tty-pty set default value = 1\n");
 	}
-	#endif
 
 	// Get idmap data
 	idmap = cJSON_GetObjectItemCaseSensitive(base, "idmap");
@@ -745,20 +665,14 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 
 		if (uidenable == 1 && gidenable == 1) {
 			bc->idmaps.enabled = 1;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: idmap enable\n");
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: idmap enable\n");
 		} else {
 			bc->idmaps.enabled = 0;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: idmap disable  [uid = %d][gid = %d]\n", uidenable, gidenable);
-			#endif
+			cm_log(CM_LOGLEVEL_WARNING,"cmparser: idmap disable  [uid = %d][gid = %d]\n", uidenable, gidenable);
 		}
 	} else {
 		bc->idmaps.enabled = 0;
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"cmparser: idmap disable\n");
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: idmap disable\n");
 	}
 
 	// Get environment variable data
@@ -777,9 +691,7 @@ static int cmparser_parse_base(container_baseconfig_t *bc, const cJSON *base)
 
 					p->envstring = strdup(env->valuestring);
 					dl_list_add_tail(&bc->envlist, &p->list);
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"cmparser: baseconfig.envlist add [ %s ]\n",p->envstring);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG,"cmparser: baseconfig.envlist add [ %s ]\n",p->envstring);
 				}
 			}
 		}
@@ -856,9 +768,7 @@ static int cmparser_parse_resource(container_resourceconfig_t *rc, const cJSON *
 					if (typeval == 0) {
 						continue;
 					}
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"cmparser: resource.type = %d\n",typeval);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG,"cmparser: resource.type = %d\n",typeval);
 				} else {
 					continue;
 				}
@@ -885,10 +795,8 @@ static int cmparser_parse_resource(container_resourceconfig_t *rc, const cJSON *
 				p->type = typeval;
 				p->object = strdup(object->valuestring);
 				p->value = strdup(value->valuestring);
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"cmparser: resource.type = %d, from = %s, value = %s\n",
+				cm_log(CM_LOGLEVEL_DEBUG,"cmparser: resource.type = %d, from = %s, value = %s\n",
 							p->type, p->object, p->value);
-				#endif
 
 				dl_list_add_tail(&rc->resource.resourcelist, &p->list);
 			}
@@ -978,9 +886,7 @@ static int cmparser_parse_fs(container_fsconfig_t *fc, const cJSON *fs)
 					if (typeval == 0) {
 						continue;
 					}
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"cmparser: fsconfig.fsmount.type = %d\n",typeval);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG,"cmparser: fsconfig.fsmount.type = %d\n",typeval);
 				} else {
 					continue;
 				}
@@ -1024,10 +930,8 @@ static int cmparser_parse_fs(container_fsconfig_t *fc, const cJSON *fs)
 					pfs->fstype = strdup(fstype->valuestring);
 					pfs->option = strdup(option->valuestring);
 					dl_list_add_tail(&fc->fsmount.mountlist, &pfs->list);
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"cmparser: fsconfig.fsmount.type = %d, from = %s, to = %s, fstype = %s, option = %s\n",
+					cm_log(CM_LOGLEVEL_DEBUG,"cmparser: fsconfig.fsmount.type = %d, from = %s, to = %s, fstype = %s, option = %s\n",
 								pfs->type, pfs->from, pfs->to, pfs->fstype, pfs->option);
-					#endif
 				} else {
 					// All data available in FSMOUNT_TYPE_DELAYED
 					pdm = (container_delayed_mount_elem_t*)malloc(sizeof(container_delayed_mount_elem_t));
@@ -1043,10 +947,8 @@ static int cmparser_parse_fs(container_fsconfig_t *fc, const cJSON *fs)
 					pdm->from = strdup(from->valuestring);
 					pdm->to = strdup(to->valuestring);
 					dl_list_add_tail(&fc->delayed.initial_list, &pdm->list);
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"cmparser: fsconfig.fsmount.type = %d, from = %s, to = %s\n",
+					cm_log(CM_LOGLEVEL_DEBUG,"cmparser: fsconfig.fsmount.type = %d, from = %s, to = %s\n",
 								pdm->type, pdm->from, pdm->to);
-					#endif
 				}
 			}
 		}
@@ -1185,9 +1087,7 @@ static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON
 					if (typeval == 0) {
 						continue;
 					}
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"cmparser: deviceconfig.static_device.x.type = %d\n",typeval);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG,"cmparser: deviceconfig.static_device.x.type = %d\n",typeval);
 				} else {
 					continue;
 				}
@@ -1251,10 +1151,8 @@ static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON
 						p->exclusive = 0;	// default value
 					}
 
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"cmparser: static_device.from = %s, to = %s, devnode = %s, optional = %d, wideallow = %d, exclusive = %d\n",
+					cm_log(CM_LOGLEVEL_DEBUG,"cmparser: static_device.from = %s, to = %s, devnode = %s, optional = %d, wideallow = %d, exclusive = %d\n",
 								p->from, p->to, p->devnode, p->optional, p->wideallow, p->exclusive);
-					#endif
 
 					dl_list_add_tail(&sdc->static_devlist, &p->list);
 
@@ -1301,10 +1199,8 @@ static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON
 					p->from = strdup(from->valuestring);
 					p->to = strdup(to->valuestring);
 
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"cmparser: gpio.portnum = %d, direction = %d, from = %s, to = %s\n",
+					cm_log(CM_LOGLEVEL_DEBUG,"cmparser: gpio.portnum = %d, direction = %d, from = %s, to = %s\n",
 								p->port, p->portdirection, p->from, p->to);
-					#endif
 
 					dl_list_add_tail(&sdc->static_gpiolist, &p->list);
 
@@ -1377,10 +1273,8 @@ static int cmparser_parse_static_dev(container_static_device_t *sdc, const cJSON
 						p->optional = 0;	// default value
 					}
 
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"cmparser: iio sysfrom = %s, systo = %s, devfrom = %s, devto = %s, devnode = %s, optional = %d\n",
+					cm_log(CM_LOGLEVEL_DEBUG,"cmparser: iio sysfrom = %s, systo = %s, devfrom = %s, devto = %s, devnode = %s, optional = %d\n",
 								p->sysfrom, p->systo, p->devfrom, p->devto, p->devnode, p->optional);
-					#endif
 
 					dl_list_add_tail(&sdc->static_iiolist, &p->list);
 
@@ -1454,9 +1348,7 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 		return -2;
 	}
 
-	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout,"cmparser: subsystem = %s\n", subsystem->valuestring);
-	#endif
+	cm_log(CM_LOGLEVEL_DEBUG,"cmparser: subsystem = %s\n", subsystem->valuestring);
 
 	// Memory allocation and initialize.
 	p = (dynamic_device_entry_items_t*)malloc(sizeof(dynamic_device_entry_items_t));
@@ -1493,9 +1385,7 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 					(void) strncpy(pli->string, devtypestr->valuestring, sizeof(pli->string)-1u);
 					dl_list_add_tail(&p->rule.devtype_list, &pli->list);
 
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"cmparser: cmparser_parse_dynamic_dev_item devtype = %s\n", pli->string);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG,"cmparser: cmparser_parse_dynamic_dev_item devtype = %s\n", pli->string);
 				}
 			}
 		}
@@ -1528,9 +1418,7 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 					}
 				}
 			}
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: cmparser_parse_dynamic_dev_item action add=%d remove=%d change=%d\n", p->rule.action.add, p->rule.action.remove, p->rule.action.change);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: cmparser_parse_dynamic_dev_item action add=%d remove=%d change=%d\n", p->rule.action.add, p->rule.action.remove, p->rule.action.change);
 		}
 
 		// Got extra operation for each property.
@@ -1565,9 +1453,7 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 
 					dl_list_add_tail(&p->rule.extra_list, &pre->list);
 
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"cmparser: cmparser_parse_dynamic_dev_item extra %s = %s\n", pre->checker, pre->value);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG,"cmparser: cmparser_parse_dynamic_dev_item extra %s = %s\n", pre->checker, pre->value);
 				}
 			}
 		}
@@ -1611,9 +1497,7 @@ static int cmparser_parse_dynamic_dev_item(container_dynamic_device_entry_t *dde
 		if (cJSON_IsString(permission) && (permission->valuestring != NULL)) {
 			p->behavior.permission = strdup(permission->valuestring);
 		}
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"cmparser: cmparser_parse_dynamic_dev_item behavior injection=%d devnode=%d permission=%s\n", p->behavior.injection, p->behavior.devnode, p->behavior.permission);
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: cmparser_parse_dynamic_dev_item behavior injection=%d devnode=%d permission=%s\n", p->behavior.injection, p->behavior.devnode, p->behavior.permission);
 	}
 
 	dl_list_add_tail(&dde->items, &p->list);
@@ -1673,9 +1557,7 @@ static int cmparser_parse_dynamic_dev(container_dynamic_device_t *ddc, const cJS
 				dl_list_init(&p->list);
 				dl_list_init(&p->items);
 
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"cmparser: dynamic_device.devpath = %s\n", p->devpath);
-				#endif
+				cm_log(CM_LOGLEVEL_DEBUG,"cmparser: dynamic_device.devpath = %s\n", p->devpath);
 
 				items = cJSON_GetObjectItemCaseSensitive(elem, "items");
 				if (cJSON_IsArray(items)) {
@@ -1732,9 +1614,7 @@ int cmparser_parse_device(container_deviceconfig_t *dc, const cJSON *dev)
 	// Get static device data
 	static_device = cJSON_GetObjectItemCaseSensitive(dev, "static");
 	if (cJSON_IsArray(static_device)) {
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"cmparser: static device entry found\n");
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: static device entry found\n");
 		(void) cmparser_parse_static_dev(&dc->static_device, static_device);
 	}
 	// Static device is not mandatory
@@ -1742,9 +1622,7 @@ int cmparser_parse_device(container_deviceconfig_t *dc, const cJSON *dev)
 	// Get static device data
 	dynamic_device = cJSON_GetObjectItemCaseSensitive(dev, "dynamic");
 	if (cJSON_IsArray(dynamic_device)) {
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"cmparser: dynamic device entry found\n");
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: dynamic device entry found\n");
 		(void) cmparser_parse_dynamic_dev(&dc->dynamic_device, dynamic_device);
 	}
 	// Dynamic device is not mandatory
@@ -1934,13 +1812,11 @@ static void* cmparser_parse_static_netif_vxcan_create(cJSON *param)
 		pgw_rule = NULL;
 	}
 
-	#ifdef _PRINTF_DEBUG_
 	if (pgw_rule != NULL) {
-		(void) fprintf(stdout,"cmparser: dcmparser_parse_static_netif_vxcan_create: name = %s, upstream = %s, gw_rule = %s\n", pname, pupstream, pgw_rule);
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: dcmparser_parse_static_netif_vxcan_create: name = %s, upstream = %s, gw_rule = %s\n", pname, pupstream, pgw_rule);
 	} else {
-		(void) fprintf(stdout,"cmparser: dcmparser_parse_static_netif_vxcan_create: name = %s, upstream = %s, gw_rule = NULL\n", pname, pupstream);
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: dcmparser_parse_static_netif_vxcan_create: name = %s, upstream = %s, gw_rule = NULL\n", pname, pupstream);
 	}
-	#endif
 	pvxcan->name = pname;
 	pvxcan->upstream = pupstream;
 	pvxcan->gw_rule = pgw_rule;
@@ -1977,9 +1853,7 @@ static int cmparser_parse_static_netif_vxcan_free(void *p)
 	(void) free(pvxcan->upstream);
 	(void) free(pvxcan->name);
 	(void) free(pvxcan);
-	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout,"cmparser: cmparser_parse_static_netif_vxcan_free\n");
-	#endif
+	cm_log(CM_LOGLEVEL_DEBUG,"cmparser: cmparser_parse_static_netif_vxcan_free\n");
 
 	return 0;
 }
@@ -2117,9 +1991,7 @@ static int cmparser_parse_dynamic_netif(container_dynamic_netif_t *dnif, const c
 
 				p->ifname = strdup(ifname->valuestring);
 
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"cmparser: dynamic_netif.ifname = %s\n", p->ifname);
-				#endif
+				cm_log(CM_LOGLEVEL_DEBUG,"cmparser: dynamic_netif.ifname = %s\n", p->ifname);
 
 				dl_list_add_tail(&dnif->dynamic_netiflist, &p->list);
 			}
@@ -2161,9 +2033,7 @@ int cmparser_parse_netif(container_netifconfig_t *nc, const cJSON *nif)
 	// Get static device data
 	static_netif = cJSON_GetObjectItemCaseSensitive(nif, "static");
 	if (cJSON_IsArray(static_netif)) {
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"cmparser: static network interface entry found\n");
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: static network interface entry found\n");
 		(void) cmparser_parse_static_netif(&nc->static_netif, static_netif);
 	}
 	// Static netif is not mandatory
@@ -2171,9 +2041,7 @@ int cmparser_parse_netif(container_netifconfig_t *nc, const cJSON *nif)
 	// Get static device data
 	dynamic_netif = cJSON_GetObjectItemCaseSensitive(nif, "dynamic");
 	if (cJSON_IsArray(dynamic_netif)) {
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"cmparser: dynamic network interface found\n");
-		#endif
+		cm_log(CM_LOGLEVEL_DEBUG,"cmparser: dynamic network interface found\n");
 		(void) cmparser_parse_dynamic_netif(&nc->dynamic_netif, dynamic_netif);
 	}
 	// Dynamic netif is not mandatory
@@ -2241,9 +2109,7 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 		name = cJSON_GetObjectItemCaseSensitive(json, "name");
 		if (cJSON_IsString(name) && (name->valuestring != NULL)) {
 			ccfg->name = strdup(name->valuestring);
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"\ncmparser: start %s\n", ccfg->name);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"\ncmparser: start %s\n", ccfg->name);
 		} else {
 			result = -2;
 			goto err_ret;
@@ -2256,9 +2122,7 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 		role = cJSON_GetObjectItemCaseSensitive(json, "role");
 		if (cJSON_IsString(role) && (role->valuestring != NULL)) {
 			ccfg->role = strdup(role->valuestring);
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base-role value = %s\n",ccfg->role);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base-role value = %s\n",ccfg->role);
 		} else {
 			// When it not set, role is set container name
 			ccfg->role = strdup(ccfg->name);
@@ -2273,9 +2137,7 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 		const cJSON *base = NULL;
 		base = cJSON_GetObjectItemCaseSensitive(json, "base");
 		if (cJSON_IsObject(base)) {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: base entry found\n");
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: base entry found\n");
 			ret = cmparser_parse_base(&ccfg->baseconfig, base);
 		} else {
 			// Mandatory
@@ -2289,9 +2151,7 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 		const cJSON *resource = NULL;
 		resource = cJSON_GetObjectItemCaseSensitive(json, "resource");
 		if (cJSON_IsArray(resource)) {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: resource entry found\n");
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: resource entry found\n");
 			ret = cmparser_parse_resource(&ccfg->resourceconfig, resource);
 		}
 
@@ -2303,9 +2163,7 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 		const cJSON *fs = NULL;
 		fs = cJSON_GetObjectItemCaseSensitive(json, "fs");
 		if (cJSON_IsObject(fs)) {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: fs entry found\n");
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: fs entry found\n");
 			ret = cmparser_parse_fs(&ccfg->fsconfig, fs);
 		} else {
 			// Mandatory
@@ -2319,9 +2177,7 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 		const cJSON *device = NULL;
 		device = cJSON_GetObjectItemCaseSensitive(json, "device");
 		if (cJSON_IsObject(device)) {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: device entry found\n");
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: device entry found\n");
 			ret = cmparser_parse_device(&ccfg->deviceconfig, device);
 		} else {
 			// Mandatory
@@ -2335,9 +2191,7 @@ int cmparser_create_from_file(container_config_t **cc, const char *file)
 		const cJSON *network = NULL;
 		network = cJSON_GetObjectItemCaseSensitive(json, "network");
 		if (cJSON_IsObject(network)) {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser: network entry found\n");
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser: network entry found\n");
 			ret = cmparser_parse_netif(&ccfg->netifconfig, network);
 
 		}

@@ -12,6 +12,8 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <limits.h>
+#include "cm-log.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -89,9 +91,7 @@ static int procutil_get_cmdline(char **ppbuf, int *ppbuf_size)
 			is_available = 1;
 			(*ppbuf_size) = (int)buffer_size;
 			(*ppbuf) = pbuf;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"procutil: Got cmdline %s\n", pbuf);
-			#endif
+			cm_log(CM_LOGLEVEL_TRACE,"procutil: Got cmdline %s\n", pbuf);
 			break;
 		}
 
@@ -167,9 +167,7 @@ static int procutil_create_argument_list(procutil_t *pu, int buf_size)
 					}
 				}
 				dl_list_add_tail(&pu->argument_list, &pelem->list);
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"procutil: Got cmdline arg %s = %s\n", pelem->var, pelem->value);
-				#endif
+				cm_log(CM_LOGLEVEL_DEBUG,"procutil: Got cmdline arg %s = %s\n", pelem->var, pelem->value);
 			}
 
 			if (is_term == 1) {

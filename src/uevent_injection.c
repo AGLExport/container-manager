@@ -9,6 +9,8 @@
 
 #include "uevent_injection.h"
 
+#include "cm-log.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -149,9 +151,7 @@ int uevent_injection_to_pid(pid_t target_pid, uevent_injection_message_t *uim)
 
 	net_ns_fd = open_namespace_fd(target_pid, "net");
 	if (net_ns_fd < 0) {
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout, "open_namespace_fd fail pid = %d\n", target_pid);
-		#endif
+		cm_log(CM_LOGLEVEL_ERROR, "open_namespace_fd fail pid = %d\n", target_pid);
 		result = -2;
 		goto err_return;
 	}
@@ -174,9 +174,7 @@ int uevent_injection_to_pid(pid_t target_pid, uevent_injection_message_t *uim)
 
 	ret = wait_child_pid(child_pid);
 	if (ret < 0) {
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout, "uevent_injection_child was fail\n");
-		#endif
+		cm_log(CM_LOGLEVEL_ERROR, "uevent_injection_child was fail\n");
 		result = -4;
 		goto err_return;
 	}

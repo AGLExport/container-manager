@@ -130,6 +130,8 @@ static int cmparser_manager_parse_operation_mount(container_manager_operation_mo
 	int index = 0;
 	cJSON *elem = NULL;
 
+	/* Do not support now.*/
+
 	cJSON_ArrayForEach(elem, mount) {
 		cJSON *type = NULL, *to = NULL,  *blockdev = NULL;
 		cJSON *filesystem = NULL, *mode = NULL, *option = NULL, *redundancy = NULL;
@@ -141,9 +143,7 @@ static int cmparser_manager_parse_operation_mount(container_manager_operation_mo
 
 		type = cJSON_GetObjectItemCaseSensitive(elem, "type");
 		if (cJSON_IsString(type) && (type->valuestring != NULL)) {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser_manager: mount type = %s\n",from->valuestring);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser_manager: mount type = %s\n",type->valuestring);
 			;
 		} else {
 			// Mandatory value, drop this entry.
@@ -153,9 +153,7 @@ static int cmparser_manager_parse_operation_mount(container_manager_operation_mo
 
 		to = cJSON_GetObjectItemCaseSensitive(elem, "to");
 		if (cJSON_IsString(to) && (to->valuestring != NULL)) {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser_manager: mount to = %s\n",to->valuestring);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser_manager: mount to = %s\n",to->valuestring);
 			;
 		} else {
 			// Mandatory value, drop this entry.
@@ -166,9 +164,7 @@ static int cmparser_manager_parse_operation_mount(container_manager_operation_mo
 		filesystem = cJSON_GetObjectItemCaseSensitive(elem, "filesystem");
 		if (cJSON_IsString(filesystem) && (filesystem->valuestring != NULL)) {
 			fsstr = filesystem->valuestring;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser_manager: mount filesystem = %s\n",filesystem->valuestring);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser_manager: mount filesystem = %s\n",filesystem->valuestring);
 		} else {
 			cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "[CM CRITICAL ERROR] cmparser_manager: mount filesystem not set. It's mandatory value. drop entry.\n");
 			continue;
@@ -177,9 +173,7 @@ static int cmparser_manager_parse_operation_mount(container_manager_operation_mo
 		mode = cJSON_GetObjectItemCaseSensitive(elem, "mode");
 		if (cJSON_IsString(mode) && (mode->valuestring != NULL)) {
 			mntmode = cmparser_manager_parser_get_diskmountmode(mode->valuestring);
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser_manager: mount mode = %s\n",mode->valuestring);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser_manager: mount mode = %s\n",mode->valuestring);
 		} else {
 			// When don't have disk mount mode setting, It's use ro mount as a default.
 			mntmode = MANAGER_DISKMOUNT_TYPE_RO;
@@ -188,9 +182,7 @@ static int cmparser_manager_parse_operation_mount(container_manager_operation_mo
 		option = cJSON_GetObjectItemCaseSensitive(elem, "option");
 		if (cJSON_IsString(option) && (option->valuestring != NULL)) {
 			optionstr = option->valuestring;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser_manager: mount option = %s\n",optionstr);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser_manager: mount option = %s\n",optionstr);
 		} else {
 			// When don't have disk option setting, It's use default for filesystem.
 			optionstr = NULL;
@@ -199,9 +191,7 @@ static int cmparser_manager_parse_operation_mount(container_manager_operation_mo
 		redundancy = cJSON_GetObjectItemCaseSensitive(elem, "redundancy");
 		if (cJSON_IsString(redundancy) && (redundancy->valuestring != NULL)) {
 			mntredundancy = cmparser_manager_parser_get_diskmountfailop(redundancy->valuestring);
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"cmparser_manager: mount redundancy = %s\n",redundancy->valuestring);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"cmparser_manager: mount redundancy = %s\n",redundancy->valuestring);
 		} else {
 			// When don't have disk mount mode setting, It's use failover as a default.
 			mntredundancy = MANAGER_DISKREDUNDANCY_TYPE_FAILOVER;
@@ -216,14 +206,10 @@ static int cmparser_manager_parse_operation_mount(container_manager_operation_mo
 				if (i < 2) {
 					if (cJSON_IsString(dev) && (dev->valuestring != NULL)) {
 						bdev[i] = dev->valuestring;
-						#ifdef _PRINTF_DEBUG_
-						(void) fprintf(stdout,"cmparser_manager: mount blockdev[%d] = %s\n", i, bdev[i]);
-						#endif
+						cm_log(CM_LOGLEVEL_DEBUG,"cmparser_manager: mount blockdev[%d] = %s\n", i, bdev[i]);
 					} else {
 						bdev[i] = NULL;
-						#ifdef _PRINTF_DEBUG_
-						(void) fprintf(stdout,"cmparser_manager: mount blockdev[%d] set default value = NULL\n", i);
-						#endif
+						cm_log(CM_LOGLEVEL_TRACE,"cmparser_manager: mount blockdev[%d] set default value = NULL\n", i);
 					}
 				}
 				i++;
@@ -322,9 +308,7 @@ int cmparser_manager_create_from_file(container_manager_config_t **cm, const cha
 		configdir = cJSON_GetObjectItemCaseSensitive(json, "configdir");
 		if (cJSON_IsString(configdir) && (configdir->valuestring != NULL)) {
 			cmcfg->configdir = strdup(configdir->valuestring);
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"\ncmcfg: configdir %s\n", cmcfg->configdir);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG,"\ncmcfg: configdir %s\n", cmcfg->configdir);
 		} else {
 			result = -2;
 			goto err_ret;
@@ -344,15 +328,11 @@ int cmparser_manager_create_from_file(container_manager_config_t **cm, const cha
 
 				name = cJSON_GetObjectItemCaseSensitive(elem, "name");
 				if (cJSON_IsString(name) && (name->valuestring != NULL)) {
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"cmcfg: etherbridge name = %s\n",name->valuestring);
-					#endif
+					cm_log(CM_LOGLEVEL_DEBUG,"cmcfg: etherbridge name = %s\n",name->valuestring);
 					;
 				} else {
 					// Mandatory value, drop this entry.
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout,"cmcfg: etherbridge name is from not set. It's mandatory value\n");
-					#endif
+					cm_log(CM_LOGLEVEL_WARNING,"cmcfg: etherbridge name is from not set. It's mandatory value. Drop this entry.\n");
 					continue;
 				}
 

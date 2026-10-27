@@ -125,13 +125,9 @@ int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_
 					// fail back
 					cdne->ifindex = 0;
 					cdne->is_available = 0;
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout, "[fail] network if update add %s to %s\n", cdne->ifname, cc->name);
-					#endif
+					cm_log(CM_LOGLEVEL_WARNING, "[fail] network if update add %s to %s\n", cdne->ifname, cc->name);
 				} else {
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout, "network if update add %s to %s\n", cdne->ifname, cc->name);
-					#endif
+					cm_log(CM_LOGLEVEL_INFO, "network if update add %s to %s\n", cdne->ifname, cc->name);
 					// nop
 					;
 				}
@@ -151,9 +147,7 @@ int container_netif_update_guest(container_config_t *cc, dynamic_device_manager_
 			cdne->ifindex = 0;
 
 			// Don't need memory free.
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout, "network if update removed %s from %s\n", cdne->ifname, cc->name);
-			#endif
+			cm_log(CM_LOGLEVEL_DEBUG, "network if update removed %s from %s\n", cdne->ifname, cc->name);
 		}
 	}
 
@@ -175,11 +169,9 @@ int container_netif_remove_element(container_config_t *cc)
 	cdn = &cc->netifconfig.dynamic_netif;
 	// netif remove
 	dl_list_for_each(cdne, &cdn->dynamic_netiflist, container_dynamic_netif_elem_t, list) {
-		#ifdef _PRINTF_DEBUG_
 		if (cdne->ifindex != 0) {
-			(void) fprintf(stdout, "network if update removed %s from %s\n", cdne->ifname, cc->name);
+			cm_log(CM_LOGLEVEL_INFO, "network if update removed %s from %s\n", cdne->ifname, cc->name);
 		}
-		#endif
 
 		cdne->ifindex = 0;
 		// Don't need memory free.
@@ -242,9 +234,7 @@ int container_exited(containers_t *cs, const container_mngsm_guest_exit_data_t *
 
 	cc = cs->containers[container_num];
 
-	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout,"container_exited : %s\n", cc->name);
-	#endif
+	cm_log(CM_LOGLEVEL_INFO,"container_exited : %s\n", cc->name);
 
 	if (cs->sys_state  == CM_SYSTEM_STATE_RUN) {
 		if (cc->runtime_stat.status == CONTAINER_NOT_STARTED) {
@@ -325,9 +315,7 @@ int container_request_shutdown(container_config_t *cc, int sys_state)
 	int ret = -1;
 	int result = 0;
 
-	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout,"container_request_shutdown to %s (%d)\n", cc->name, sys_state);
-	#endif
+	cm_log(CM_LOGLEVEL_INFO,"container_request_shutdown to %s (%d)\n", cc->name, sys_state);
 
 	if (sys_state == CM_SYSTEM_STATE_RUN) {
 		if (cc->runtime_stat.status == CONTAINER_NOT_STARTED) {
@@ -433,9 +421,7 @@ int container_request_reboot(container_config_t *cc, int sys_state)
 	int ret = -1;
 	int result = 0;
 
-	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout,"container_request_reboot to %s (%d)\n", cc->name, sys_state);
-	#endif
+	cm_log(CM_LOGLEVEL_INFO,"container_request_reboot to %s (%d)\n", cc->name, sys_state);
 
 	if (sys_state == CM_SYSTEM_STATE_RUN) {
 		if (cc->runtime_stat.status == CONTAINER_NOT_STARTED) {
@@ -629,9 +615,7 @@ int container_exec_internal_event(containers_t *cs)
 						active_cc->runtime_stat.status = CONTAINER_NOT_STARTED;
 						ret = container_start(active_cc);
 						if (ret == 0) {
-							#ifdef _PRINTF_DEBUG_
-							(void) fprintf(stdout,"container_start: Container guest %s was launched. role = %s\n", active_cc->name, role);
-							#endif
+							cm_log(CM_LOGLEVEL_INFO,"container_start: Container guest %s was launched. role = %s\n", active_cc->name, role);
 
 							ret = container_monitor_addguest(cs, active_cc);
 							if (ret < 0) {
@@ -667,9 +651,7 @@ int container_exec_internal_event(containers_t *cs)
 										} else {
 											cc->runtime_stat.status = CONTAINER_NOT_STARTED;
 										}
-										#ifdef _PRINTF_DEBUG_
-										(void) fprintf(stdout, "container_workqueue cancel and remove at %s\n", cc->name);
-										#endif
+										cm_log(CM_LOGLEVEL_INFO, "container_workqueue cancel and remove at %s\n", cc->name);
 									} else {
 										;	//nop
 									}
@@ -701,9 +683,7 @@ int container_exec_internal_event(containers_t *cs)
 						} else {
 							cc->runtime_stat.status = CONTAINER_NOT_STARTED;
 						}
-						#ifdef _PRINTF_DEBUG_
-						(void) fprintf(stdout, "container_workqueue end of worker exec(%d) at %s\n", after_execute, cc->name);
-						#endif
+						cm_log(CM_LOGLEVEL_INFO, "container_workqueue end of worker exec(%d) at %s\n", after_execute, cc->name);
 					} else {
 						;	// nop
 					}
@@ -762,9 +742,7 @@ int container_exec_internal_event(containers_t *cs)
 					// A workqueue is completed and cleanup success.
 					cc->runtime_stat.status = CONTAINER_EXIT;
 
-					#ifdef _PRINTF_DEBUG_
-					(void) fprintf(stdout, "container_workqueue end of worker exec(%d) at %s\n", after_execute, cc->name);
-					#endif
+					cm_log(CM_LOGLEVEL_INFO, "container_workqueue end of worker exec(%d) at %s\n", after_execute, cc->name);
 				} else {
 					// A workqueue is not completed. Fail safe : send cancel request.
 					(void) container_workqueue_cancel(&cc->workqueue);
@@ -878,15 +856,11 @@ int container_start(container_config_t *cc)
 	int ret = -1;
 
 	if (cc->runtime_stat.status == CONTAINER_DISABLE) {
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout, "container %s is disable launch\n", cc->name);
-		#endif
+		cm_log(CM_LOGLEVEL_WARNING, "container %s is disable launch\n", cc->name);
 		return -2;
 	}
 
-	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout, "container_start %s\n", cc->name);
-	#endif
+	cm_log(CM_LOGLEVEL_INFO, "container_start %s\n", cc->name);
 
 	// run preprocess
 	ret = container_start_preprocess_base(&cc->baseconfig);
@@ -989,9 +963,7 @@ int container_start_by_role(containers_t *cs, char *role)
 
 		ret = container_start(cc);
 		if (ret == 0) {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"container_start: Container guest %s was launched. role = %s\n", cc->name, role);
-			#endif
+			cm_log(CM_LOGLEVEL_INFO,"container_start: Container guest %s was launched. role = %s\n", cc->name, role);
 
 			ret = container_monitor_addguest(cs, cc);
 			if (ret < 0) {
@@ -1207,14 +1179,12 @@ static int container_start_preprocess_base(container_baseconfig_t *bc)
 					if (ret < 0) {
 						exdisk->error_count = exdisk->error_count + 1;
 						// This point is critical error but not out critical error log. This log will out in recovery operation.
-						#ifdef _PRINTF_DEBUG_
 						if ((exdisk->error_count % g_reduced_critical_error_mount) == 1) {
 							// This log should be reduced to one output per 100 time of error.
-							(void) fprintf(stdout
+							cm_log(CM_LOGLEVEL_INFO
 											,"container_start_preprocess_base: disk %s could not mount. (count = %d)\n"
 											, exdisk->blockdev[0], exdisk->error_count);
 						}
-						#endif
 						return -1;
 					} else {
 						// This extra disk mount is succeed.
@@ -1417,18 +1387,14 @@ static int container_do_delayed_operation(container_config_t *cc)
 						// A runtime_list role is operation queue, shall not free element memory.
 						dl_list_del(&dmelem->runtime_list);
 						dl_list_init(&dmelem->runtime_list);
-						#ifdef _PRINTF_DEBUG_
-						(void) fprintf(stdout,"Delayed bind mount from %s to %s at %s\n", dmelem->from, dmelem->to, cc->name);
-						#endif
+						cm_log(CM_LOGLEVEL_DEBUG,"Delayed bind mount from %s to %s at %s\n", dmelem->from, dmelem->to, cc->name);
 					}
 				}
 			} else {
 				// Delayed mount is only to support FSMOUNT_TYPE_DELAYED.
 				dl_list_del(&dmelem->runtime_list);
 				dl_list_init(&dmelem->runtime_list);
-				#ifdef _PRINTF_DEBUG_
-				(void) fprintf(stdout,"Got a abnormal element in delayed.runtime_list. %s\n", dmelem->from);
-				#endif
+				cm_log(CM_LOGLEVEL_WARNING,"Got a abnormal element in delayed.runtime_list. %s\n", dmelem->from);
 			}
 		}
 	}

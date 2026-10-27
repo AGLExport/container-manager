@@ -17,6 +17,8 @@
 #include <sys/ioctl.h>
 #include <errno.h>
 
+#include "cm-log.h"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -300,9 +302,7 @@ int socketcanutil_configure_gateway(const char *src_ifname, const char *dest_ifn
 
 	if ((src_ifindex == 0) || (dst_ifindex == 0)) {
 		result = -1;
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"socketcanutil_configure_gateway: CAN if pair %s,%s is nothing.\n", src_ifname, dest_ifname);
-		#endif
+		cm_log(CM_LOGLEVEL_ERROR,"socketcanutil_configure_gateway: CAN if pair %s,%s is nothing.\n", src_ifname, dest_ifname);
 		goto err_ret;
 	}
 
@@ -313,9 +313,7 @@ int socketcanutil_configure_gateway(const char *src_ifname, const char *dest_ifn
 		ret = cangw_config_load_from_file(&psgr, gw_config_file);
 		if (ret < 0) {
 			result = -1;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"socketcanutil_configure_gateway: CAN GW configuration file (%s) is invalid.\n", gw_config_file);
-			#endif
+			cm_log(CM_LOGLEVEL_ERROR,"socketcanutil_configure_gateway: CAN GW configuration file (%s) is invalid.\n", gw_config_file);
 			goto err_ret;
 		}
 
@@ -328,9 +326,7 @@ int socketcanutil_configure_gateway(const char *src_ifname, const char *dest_ifn
 		ret = cangw_add_rules(psgr);
 		(void) cangw_release_rules(psgr);
 		if (ret < 0) {
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"socketcanutil_configure_gateway: cangw_add_rules is fail. ret = %d.\n", ret);
-			#endif
+			cm_log(CM_LOGLEVEL_ERROR,"socketcanutil_configure_gateway: cangw_add_rules is fail. ret = %d.\n", ret);
 			result = -1;
 			goto err_ret;
 		}
@@ -350,9 +346,7 @@ int socketcanutil_configure_gateway(const char *src_ifname, const char *dest_ifn
 		ret = cangw_add_rule(&gw_rule);
 		if (ret < 0) {
 			result = -1;
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"socketcanutil_configure_gateway: cangw_add_rules is fail (default configuration). ret = %d.\n", ret);
-			#endif
+			cm_log(CM_LOGLEVEL_ERROR,"socketcanutil_configure_gateway: cangw_add_rules is fail (default configuration). ret = %d.\n", ret);
 			goto err_ret;
 		}
 	}

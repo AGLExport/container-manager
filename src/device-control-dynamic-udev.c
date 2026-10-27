@@ -10,6 +10,8 @@
 #include <systemd/sd-event.h>
 #include <libudev.h>
 
+#include "cm-log.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/sysmacros.h>
@@ -164,9 +166,7 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 
 	ret = device_control_dynamic_udev_create_info(&udi, &lddr, le);
 	if (ret == 0) {
-		#ifdef _PRINTF_DEBUG_
-		(void) fprintf(stdout,"udi: action=%s devpath=%s devtype=%s subsystem=%s\n", udi.action, udi.devpath, udi.devtype, udi.subsystem);
-		#endif
+		cm_log(CM_LOGLEVEL_TRACE,"udi: action=%s devpath=%s devtype=%s subsystem=%s\n", udi.action, udi.devpath, udi.devtype, udi.subsystem);
 
 		cc = device_control_dynamic_udev_get_target_container(ddu->cs, &udi, pdev, &behavior);
 		if (cc == NULL) {
@@ -198,6 +198,7 @@ static int device_control_dynamic_udev_devevent(dynamic_device_manager_t *ddm)
 		uevent_injection_message_t uim;
 		pid_t target_pid = 0;
 
+		// To Be add info level log
 		(void) memset(uim.message, 0 , sizeof(uim.message));
 		uim.used = 0;
 
@@ -251,6 +252,42 @@ static const char *trimmed_devname(const char* devnode)
 	return pstr;
 }
 /**
+ * Log the injection properties as one record when TRACE is enabled.
+ * The first NUL-terminated field is the event header, not a property.
+ */
+static void device_control_dynamic_udev_trace_injection_message(const uevent_injection_message_t *uim)
+{
+	char logbuf[UEVENT_INJECTION_BUFFER_SIZE];
+	size_t used = 0, offset = 0, length = 0;
+
+	if (!cm_log_enabled(CM_LOGLEVEL_TRACE)) {
+		return;
+	}
+
+	if ((uim->used <= 0) || ((size_t)uim->used > sizeof(uim->message))) {
+		return;
+	}
+
+	used = (size_t)uim->used;
+	offset = strnlen(uim->message, used);
+	if (offset == used) {
+		return;
+	}
+	offset++;
+	length = used - offset;
+
+	(void) memcpy(logbuf, &uim->message[offset], length);
+	for (size_t i = 0; i < length; i++) {
+		if (logbuf[i] == '\0') {
+			logbuf[i] = ' ';
+		}
+	}
+	logbuf[length] = '\0';
+
+	cm_log(CM_LOGLEVEL_TRACE, "INJECTION: %s\n", logbuf);
+}
+
+/**
  * Sub function for uevent monitor.
  * This function create uevent from udev properties list.
  *
@@ -271,9 +308,6 @@ static int device_control_dynamic_udev_create_injection_message(uevent_injection
 	remain = (ssize_t)sizeof(uim->message) - 1;
 	buf = &uim->message[0];
 
-	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout,"INJECTION: ");
-	#endif
 
 	// add@/devices/pci0000:00/0000:00:08.1/0000:05:00.3/usb4/4-2/4-2:1.0/host3/target3:0:0/3:0:0:0/block/sdb/sdb1
 	ret = snprintf(&buf[usage], remain, "%s@%s", udi->action, udi->devpath);
@@ -317,9 +351,6 @@ static int device_control_dynamic_udev_create_injection_message(uevent_injection
 				return -1;
 			}
 
-			#ifdef _PRINTF_DEBUG_
-			(void) fprintf(stdout,"%s=%s ", elem_name, elem_value);
-			#endif
 		}
 
 		le = udev_list_entry_get_next(le);
@@ -327,9 +358,7 @@ static int device_control_dynamic_udev_create_injection_message(uevent_injection
 
 	uim->used = usage;
 
-	#ifdef _PRINTF_DEBUG_
-	(void) fprintf(stdout,"\n");
-	#endif
+	device_control_dynamic_udev_trace_injection_message(uim);
 
 	return 0;
 }
