@@ -25,7 +25,7 @@ cm_worker_fsck_la_CXXFLAGS = \
 	-D_GNU_SOURCE
 
 cm_worker_fsck_la_LIBADD = \
-	libs/libcmworker.a
+	libs/libcmworker.la
 
 # Linker options
 cm_worker_fsck_la_LDFLAGS = \
@@ -50,7 +50,7 @@ cm_worker_erase_mkfs_la_CXXFLAGS = \
 	-D_GNU_SOURCE
 
 cm_worker_erase_mkfs_la_LIBADD = \
-	libs/libcmworker.a
+	libs/libcmworker.la
 
 # Linker options
 cm_worker_erase_mkfs_la_LDFLAGS = \
@@ -75,7 +75,7 @@ cm_worker_mkfs_la_CXXFLAGS = \
 	-D_GNU_SOURCE
 
 cm_worker_mkfs_la_LIBADD = \
-	libs/libcmworker.a
+	libs/libcmworker.la
 
 # Linker options
 cm_worker_mkfs_la_LDFLAGS = \
