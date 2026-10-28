@@ -30,6 +30,47 @@ static int devc_iionode_scan(container_static_device_t *sdevc);
 static int devc_netbridge_setup(container_manager_config_t *cmc);
 
 /**
+ * Static device scanning.
+ * This function scan and setup device node, sysfs gpio and sysfs iio with device node.
+ *
+ * @param [in]	cc	Pointer to container_config_t.
+ * @return int
+ * @retval  0 Success.
+ * @retval -1 Device scan and/or setup critical error.
+ */
+int devc_scan_static_devices(container_config_t *cc)
+{
+	int ret = 1;
+	int result = -1;
+
+	if (cc == NULL) {
+		goto err_ret;
+	}
+
+	// run static device scan
+	ret = devc_static_devnode_scan(&cc->deviceconfig.static_device);
+	if (ret < 0) {
+		goto err_ret;
+	}
+
+	// run gpio export
+	ret = devc_gpionode_scan(&cc->deviceconfig.static_device);
+	if (ret < 0) {
+		goto err_ret;
+	}
+
+	ret = devc_iionode_scan(&cc->deviceconfig.static_device);
+	if (ret < 0) {
+		goto err_ret;
+	}
+
+	return 0;
+
+err_ret:
+
+	return result;
+}
+/**
  * Start up time device initialization.
  * This function scan and setup device node, sysfs gpio and sysfs iio with device node.
  *
@@ -52,19 +93,7 @@ int devc_early_device_setup(containers_t *cs)
 	for(int i=0;i < num;i++) {
 		cc = cs->containers[i];
 
-		// run static device scan
-		ret = devc_static_devnode_scan(&cc->deviceconfig.static_device);
-		if (ret < 0) {
-			goto err_ret;
-		}
-
-		// run gpio export
-		ret = devc_gpionode_scan(&cc->deviceconfig.static_device);
-		if (ret < 0) {
-			goto err_ret;
-		}
-
-		ret = devc_iionode_scan(&cc->deviceconfig.static_device);
+		ret = devc_scan_static_devices(cc);
 		if (ret < 0) {
 			goto err_ret;
 		}
@@ -76,6 +105,7 @@ err_ret:
 
 	return result;
 }
+
 /**
  * Start up time device initialization device node sub.
  * This function do device node scanning only.

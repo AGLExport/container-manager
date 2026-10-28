@@ -13,6 +13,7 @@
 #include "devicemng.h"
 
 //-----------------------------------------------------------------------------
+int devc_scan_static_devices(container_config_t *cc);
 int devc_early_device_setup(containers_t *cs);
 
 int devc_device_manager_setup(containers_t *cs, container_control_interface_t *cci, sd_event *event);

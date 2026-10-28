@@ -862,6 +862,15 @@ int container_start(container_config_t *cc)
 
 	cm_log(CM_LOGLEVEL_INFO, "container_start %s\n", cc->name);
 
+	if (cc->runtime_stat.status == CONTAINER_DEAD) {
+		// Retry container start. Shall re-scan static devices.
+		ret = devc_scan_static_devices(cc);
+		if (ret < 0) {
+			cm_log(CM_LOGLEVEL_ERROR, "static device scan for container %s is failed.\n", cc->name);
+			return -1;
+		}
+	}
+
 	// run preprocess
 	ret = container_start_preprocess_base(&cc->baseconfig);
 	if (ret < 0) {
