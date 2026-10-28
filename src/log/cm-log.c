@@ -28,6 +28,13 @@ int cm_log_enabled(int level)
 	return result;
 }
 
+int cm_log_set_minimum_level(int level)
+{
+	int old = g_log_output_level;
+	g_log_output_level = level;
+
+	return old;
+}
 /**
  * Container Manager log.
  * This function supports log level filtered log output to stderr.
