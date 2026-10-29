@@ -72,6 +72,8 @@ int main(int argc, char *argv[])
 		goto finish;
 	}
 
+	(void) cm_log_set_level_from_env();
+
 	ret = container_mngsm_setup(&cs, event, NULL);
 	if (ret < 0) {
 		cm_log(CM_LOGLEVEL_CRITICAL_ERROR,"container_mngsm_setup: fail %d\n", ret);

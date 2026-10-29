@@ -23,6 +23,7 @@
 int cm_log_enabled(int level);
 void cm_log(int level, const char *format, ...);
 int cm_log_set_minimum_level(int level);
+int cm_log_set_level_from_env(void);
 
 //-----------------------------------------------------------------------------
 #endif //#ifndef CM_LOG_H
