@@ -5,7 +5,8 @@ bin_PROGRAMS = \
 	parser_test
 
 parser_test_SOURCES = \
-	parser/interface_test.cpp
+	parser/interface_test.cpp \
+	$(top_srcdir)/src/log/cm-log.c
 
 # options
 # Additional library
@@ -24,6 +25,7 @@ CFLAGS = \
 	-fsanitize=address -coverage \
 	-I$(top_srcdir)/3rdparty/wpa-supplicant \
 	-I$(top_srcdir)/src/parser \
+	-I$(top_srcdir)/src/log \
 	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/include \
 	@LIBCJSON_CFLAGS@ \
@@ -39,6 +41,7 @@ CXXFLAGS = \
 	-fsanitize=address -coverage \
 	-I$(top_srcdir)/3rdparty/wpa-supplicant \
 	-I$(top_srcdir)/src/parser \
+	-I$(top_srcdir)/src/log \
 	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/include \
 	@LIBCJSON_CFLAGS@ \
