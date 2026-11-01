@@ -69,6 +69,7 @@ int main(int argc, char *argv[])
 
 	ret = sd_event_default(&event);
 	if (ret < 0) {
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "Container manager failed: stage=sd_event_default rc=%d\n", ret);
 		goto finish;
 	}
 
@@ -76,21 +77,21 @@ int main(int argc, char *argv[])
 
 	ret = container_mngsm_setup(&cs, event, NULL);
 	if (ret < 0) {
-		cm_log(CM_LOGLEVEL_CRITICAL_ERROR,"container_mngsm_setup: fail %d\n", ret);
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "Container manager failed: stage=container_mngsm_setup rc=%d\n", ret);
 		result = -1;
 		goto finish;
 	}
 
 	ret = container_mngsm_interface_get(&cci, cs);
 	if (ret < 0) {
-		cm_log(CM_LOGLEVEL_CRITICAL_ERROR,"container_mngsm_interface_create: fail %d\n", ret);
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "Container manager failed: stage=container_mngsm_interface_get rc=%d\n", ret);
 		result = -1;
 		goto finish;
 	}
 
 	ret = devc_device_manager_setup(cs, cci, event);
 	if (ret < 0) {
-		cm_log(CM_LOGLEVEL_CRITICAL_ERROR,"devc_device_manager_setup: fail %d\n", ret);
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "Container manager failed: stage=devc_device_manager_setup rc=%d\n", ret);
 		result = -1;
 		goto finish;
 	}
@@ -98,6 +99,7 @@ int main(int argc, char *argv[])
 	// early device setup: setup all containers, for static device, gpio,
 	ret = devc_early_device_setup(cs);
 	if (ret < 0) {
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "Container manager failed: stage=devc_early_device_setup rc=%d\n", ret);
 		result = -1;
 		goto finish;
 	}
@@ -105,6 +107,7 @@ int main(int argc, char *argv[])
 	util_array[0].userdata = (void*)cci;
 	ret = signal_setup(event, util_array, 1);
 	if (ret < 0) {
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "Container manager failed: stage=signal_setup rc=%d\n", ret);
 		result = -1;
 		goto finish;
 	}
@@ -112,12 +115,14 @@ int main(int argc, char *argv[])
 	// Enable automatic service watchdog support
 	ret = sd_event_set_watchdog(event, 1);
 	if (ret < 0) {
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "Container manager failed: stage=sd_event_set_watchdog rc=%d\n", ret);
 		result = -1;
 		goto finish;
 	}
 
 	ret = container_mngsm_start(cs);
 	if (ret < 0) {
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "Container manager failed: stage=container_mngsm_start rc=%d\n", ret);
 		result = -1;
 		goto finish;
 	}
@@ -129,12 +134,14 @@ int main(int argc, char *argv[])
 
 	ret = container_mngsm_exec_delayed_operation(cs, 0);
 	if (ret < 0) {
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "Container manager failed: stage=container_mngsm_exec_delayed_operation rc=%d\n", ret);
 		result = -1;
 		goto finish;
 	}
 
 	ret = sd_event_loop(event);
 	if (ret < 0) {
+		cm_log(CM_LOGLEVEL_CRITICAL_ERROR, "Container manager failed: stage=sd_event_loop rc=%d\n", ret);
 		result = ret;
 	}
 

@@ -1305,7 +1305,7 @@ int lxcutil_create_instance(container_config_t *cc)
 		(void) snprintf(buf, sizeof(buf)-1u, "/tmp/dbgcfg-%s.txt", cc->name);
 		bret = cc->runtime_stat.lxc->save_config(cc->runtime_stat.lxc, buf);
 		if (bret == false) {
-			(void) fprintf(stdout,"lxcutil: save_config fail.\n");
+			cm_log(CM_LOGLEVEL_ERROR,"lxcutil: save_config fail.\n");
 		}
 
 	}

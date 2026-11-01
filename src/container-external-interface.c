@@ -386,6 +386,10 @@ static int container_external_interface_command_change(cm_external_interface_t *
 											dl_list_add(&cmrc->container_list, &pelem2->list);
 
 											response.response = CONTAINER_EXTIF_CHANGE_RESPONSE_ACCEPT;
+
+											cm_log(CM_LOGLEVEL_INFO,
+												"Active guest change accepted: role=%s previous=%s requested=%s\n",
+												cmrc->name, pelem->cc->name, pelem2->cc->name);
 											break;
 										}
 									}
@@ -400,6 +404,7 @@ static int container_external_interface_command_change(cm_external_interface_t *
 			response.response = CONTAINER_EXTIF_CHANGE_RESPONSE_NONAME;
 		}
 
+		ret = (response.response == CONTAINER_EXTIF_CHANGE_RESPONSE_ACCEPT) ? 0 : -1;
 		sret = write(fd, &response, sizeof(response));
 		if (sret != (ssize_t)sizeof(response)) {
 			ret = -1;
@@ -533,6 +538,7 @@ static int container_external_interface_exec(cm_external_interface_t *pextif, in
 	int ret = 0;
 
 	if ((buf == NULL) || (size < (ssize_t)sizeof(container_extif_command_header_t))) {
+		cm_log(CM_LOGLEVEL_WARNING, "External command execution failed: command=unknown size=%zd rc=-1\n", size);
 		return -1;
 	}
 
@@ -557,6 +563,11 @@ static int container_external_interface_exec(cm_external_interface_t *pextif, in
 	default:
 		ret = -1;
 		break;
+	}
+
+	if (ret < 0) {
+		cm_log(CM_LOGLEVEL_ERROR, "External command execution failed: command=0x%x size=%zd rc=%d\n",
+			(unsigned int)pheader->command, size, ret);
 	}
 
 	return ret;

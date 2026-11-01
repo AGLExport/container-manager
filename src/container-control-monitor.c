@@ -18,6 +18,7 @@
 #include <sys/types.h>
 #include <sys/mount.h>
 
+#include "cm-log.h"
 #include "cm-utils.h"
 #include "lxc-util.h"
 #include "container-config.h"
@@ -116,25 +117,28 @@ static int container_monitor_pidfd_handler(sd_event_source *event, int fd, uint3
 int container_monitor_addguest(containers_t *cs, container_config_t *cc)
 {
 	sd_event_source *pidfd_source = NULL;
-	int ret = -1;
+	int ret = -1, result = -1;
 	int pidfd = -1;
 
 	if ((cs == NULL) || (cc == NULL)) {
-		return -1;
+		goto err_return;
 	}
 
 	if (cc->runtime_stat.lxc == NULL) {
-		return -1;
+		goto err_return;
 	}
 
 	pidfd = cc->runtime_stat.lxc->init_pidfd(cc->runtime_stat.lxc);
 	if (pidfd < 0) {
-		return -2;
+		cm_log(CM_LOGLEVEL_ERROR, "Failed to register container monitor: container=%s stage=init_pidfd rc=%d\n", cc->name, pidfd);
+		result = -2;
+		goto err_return;
 	}
 
 	ret = sd_event_add_io(cs->event, &pidfd_source, pidfd, (EPOLLIN | EPOLLHUP | EPOLLERR), container_monitor_pidfd_handler, cs);
 	if (ret < 0) {
-		ret = -2;
+		cm_log(CM_LOGLEVEL_ERROR, "Failed to register container monitor: container=%s stage=sd_event_add_io rc=%d\n", cc->name, ret);
+		result = -2;
 		goto err_return;
 	}
 
@@ -147,7 +151,7 @@ err_return:
 		(void) sd_event_source_disable_unref(pidfd_source);
 	}
 
-	return -1;
+	return result;
 }
 /**
  *  Stop guest container monitoring using container monitor. (Reserve)

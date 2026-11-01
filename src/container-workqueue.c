@@ -329,7 +329,7 @@ int container_workqueue_cleanup(container_workqueue_t *workqueue, int *after_exe
 
 	workqueue->state_after_execute = 0;
 
-	cm_log(CM_LOGLEVEL_DEBUG,"container_workqueue_cleanup: got result %d\n", workqueue->result);
+	cm_log(CM_LOGLEVEL_INFO, "Container worker finished: result=%d.\n", workqueue->result);
 
 	(void) container_workqueue_unload_plugin(workqueue);
 
@@ -397,6 +397,9 @@ int container_workqueue_run(container_workqueue_t *workqueue)
 	ret = pthread_create(&(workqueue->worker_thread), &thread_attr, container_workqueue_thread, (void*)workqueue);
 	(void) pthread_attr_destroy(&thread_attr);
 	if (ret != 0) {
+		cm_log(CM_LOGLEVEL_ERROR,
+			"Failed to create container worker thread: pthread_error=%d\n", ret);
+
 		// Fail back status.
 		status = CONTAINER_WORKER_SCHEDULED;
 		__atomic_store(&(workqueue->status), &status, __ATOMIC_RELAXED);
